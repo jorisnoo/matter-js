@@ -17,137 +17,148 @@ import Composite from '../body/Composite';
 import Common from '../core/Common';
 import Bounds from '../geometry/Bounds';
 
-const MouseConstraint = {};
+class MouseConstraint {
+    /**
+     * Creates a new mouse constraint.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {engine} engine
+     * @param {} options
+     * @return {MouseConstraint} A new MouseConstraint
+     */
+    constructor(engine, options) {
+        let mouse = (engine ? engine.mouse : null) || (options ? options.mouse : null);
 
-/**
- * Creates a new mouse constraint.
- * All properties have default values, and many are pre-calculated automatically based on other properties.
- * See the properties section below for detailed information on what you can pass via the `options` object.
- * @method create
- * @param {engine} engine
- * @param {} options
- * @return {MouseConstraint} A new MouseConstraint
- */
-MouseConstraint.create = function(engine, options) {
-    let mouse = (engine ? engine.mouse : null) || (options ? options.mouse : null);
-
-    if (!mouse) {
-        if (engine && engine.render && engine.render.canvas) {
-            mouse = Mouse.create(engine.render.canvas);
-        } else if (options && options.element) {
-            mouse = Mouse.create(options.element);
-        } else {
-            mouse = Mouse.create();
-            Common.warn('MouseConstraint.create: options.mouse was undefined, options.element was undefined, may not function as expected');
+        if (!mouse) {
+            if (engine && engine.render && engine.render.canvas) {
+                mouse = Mouse.create(engine.render.canvas);
+            } else if (options && options.element) {
+                mouse = Mouse.create(options.element);
+            } else {
+                mouse = Mouse.create();
+                Common.warn('MouseConstraint.create: options.mouse was undefined, options.element was undefined, may not function as expected');
+            }
         }
+
+        const constraint = Constraint.create({
+            label: 'Mouse Constraint',
+            pointA: mouse.position,
+            pointB: { x: 0, y: 0 },
+            length: 0.01,
+            stiffness: 0.1,
+            angularStiffness: 1,
+            render: {
+                strokeStyle: '#90EE90',
+                lineWidth: 3
+            }
+        });
+
+        const defaults = {
+            type: 'mouseConstraint',
+            mouse: mouse,
+            element: null,
+            body: null,
+            constraint: constraint,
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0xFFFFFFFF,
+                group: 0
+            }
+        };
+
+        Object.assign(this, Common.extend(defaults, options));
+
+        Events.on(engine, 'beforeUpdate', () => {
+            const allBodies = Composite.allBodies(engine.world);
+            MouseConstraint.update(this, allBodies);
+            MouseConstraint._triggerEvents(this);
+        });
     }
 
-    const constraint = Constraint.create({
-        label: 'Mouse Constraint',
-        pointA: mouse.position,
-        pointB: { x: 0, y: 0 },
-        length: 0.01,
-        stiffness: 0.1,
-        angularStiffness: 1,
-        render: {
-            strokeStyle: '#90EE90',
-            lineWidth: 3
-        }
-    });
+    /**
+     * Creates a new mouse constraint.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {engine} engine
+     * @param {} options
+     * @return {MouseConstraint} A new MouseConstraint
+     */
+    static create(engine, options) {
+        return new MouseConstraint(engine, options);
+    }
 
-    const defaults = {
-        type: 'mouseConstraint',
-        mouse: mouse,
-        element: null,
-        body: null,
-        constraint: constraint,
-        collisionFilter: {
-            category: 0x0001,
-            mask: 0xFFFFFFFF,
-            group: 0
-        }
-    };
+    /**
+     * Updates the given mouse constraint.
+     * @private
+     * @method update
+     * @param {MouseConstraint} mouseConstraint
+     * @param {body[]} bodies
+     */
+    static update(mouseConstraint, bodies) {
+        const mouse = mouseConstraint.mouse,
+            constraint = mouseConstraint.constraint;
+        let body = mouseConstraint.body;
 
-    const mouseConstraint = Common.extend(defaults, options);
+        if (mouse.button === 0) {
+            if (!constraint.bodyB) {
+                for (let i = 0; i < bodies.length; i++) {
+                    body = bodies[i];
+                    if (Bounds.contains(body.bounds, mouse.position)
+                            && Detector.canCollide(body.collisionFilter, mouseConstraint.collisionFilter)) {
+                        for (let j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
+                            const part = body.parts[j];
+                            if (Vertices.contains(part.vertices, mouse.position)) {
+                                constraint.pointA = mouse.position;
+                                constraint.bodyB = mouseConstraint.body = body;
+                                constraint.pointB = { x: mouse.position.x - body.position.x, y: mouse.position.y - body.position.y };
+                                constraint.angleB = body.angle;
 
-    Events.on(engine, 'beforeUpdate', function() {
-        const allBodies = Composite.allBodies(engine.world);
-        MouseConstraint.update(mouseConstraint, allBodies);
-        MouseConstraint._triggerEvents(mouseConstraint);
-    });
+                                Sleeping.set(body, false);
+                                Events.trigger(mouseConstraint, 'startdrag', { mouse: mouse, body: body });
 
-    return mouseConstraint;
-};
-
-/**
- * Updates the given mouse constraint.
- * @private
- * @method update
- * @param {MouseConstraint} mouseConstraint
- * @param {body[]} bodies
- */
-MouseConstraint.update = function(mouseConstraint, bodies) {
-    const mouse = mouseConstraint.mouse,
-        constraint = mouseConstraint.constraint;
-    let body = mouseConstraint.body;
-
-    if (mouse.button === 0) {
-        if (!constraint.bodyB) {
-            for (let i = 0; i < bodies.length; i++) {
-                body = bodies[i];
-                if (Bounds.contains(body.bounds, mouse.position)
-                        && Detector.canCollide(body.collisionFilter, mouseConstraint.collisionFilter)) {
-                    for (let j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
-                        const part = body.parts[j];
-                        if (Vertices.contains(part.vertices, mouse.position)) {
-                            constraint.pointA = mouse.position;
-                            constraint.bodyB = mouseConstraint.body = body;
-                            constraint.pointB = { x: mouse.position.x - body.position.x, y: mouse.position.y - body.position.y };
-                            constraint.angleB = body.angle;
-
-                            Sleeping.set(body, false);
-                            Events.trigger(mouseConstraint, 'startdrag', { mouse: mouse, body: body });
-
-                            break;
+                                break;
+                            }
                         }
                     }
                 }
+            } else {
+                Sleeping.set(constraint.bodyB, false);
+                constraint.pointA = mouse.position;
             }
         } else {
-            Sleeping.set(constraint.bodyB, false);
-            constraint.pointA = mouse.position;
+            constraint.bodyB = mouseConstraint.body = null;
+            constraint.pointB = null;
+
+            if (body)
+                Events.trigger(mouseConstraint, 'enddrag', { mouse: mouse, body: body });
         }
-    } else {
-        constraint.bodyB = mouseConstraint.body = null;
-        constraint.pointB = null;
-
-        if (body)
-            Events.trigger(mouseConstraint, 'enddrag', { mouse: mouse, body: body });
     }
-};
 
-/**
- * Triggers mouse constraint events.
- * @method _triggerEvents
- * @private
- * @param {mouse} mouseConstraint
- */
-MouseConstraint._triggerEvents = function(mouseConstraint) {
-    const mouse = mouseConstraint.mouse,
-        mouseEvents = mouse.sourceEvents;
+    /**
+     * Triggers mouse constraint events.
+     * @method _triggerEvents
+     * @private
+     * @param {mouse} mouseConstraint
+     */
+    static _triggerEvents(mouseConstraint) {
+        const mouse = mouseConstraint.mouse,
+            mouseEvents = mouse.sourceEvents;
 
-    if (mouseEvents.mousemove)
-        Events.trigger(mouseConstraint, 'mousemove', { mouse: mouse });
+        if (mouseEvents.mousemove)
+            Events.trigger(mouseConstraint, 'mousemove', { mouse: mouse });
 
-    if (mouseEvents.mousedown)
-        Events.trigger(mouseConstraint, 'mousedown', { mouse: mouse });
+        if (mouseEvents.mousedown)
+            Events.trigger(mouseConstraint, 'mousedown', { mouse: mouse });
 
-    if (mouseEvents.mouseup)
-        Events.trigger(mouseConstraint, 'mouseup', { mouse: mouse });
+        if (mouseEvents.mouseup)
+            Events.trigger(mouseConstraint, 'mouseup', { mouse: mouse });
 
-    // reset the mouse state ready for the next step
-    Mouse.clearSourceEvents(mouse);
-};
+        // reset the mouse state ready for the next step
+        Mouse.clearSourceEvents(mouse);
+    }
+}
 
 /*
 *

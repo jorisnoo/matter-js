@@ -14,857 +14,868 @@ import Common from '../core/Common';
 import Bounds from '../geometry/Bounds';
 import Axes from '../geometry/Axes';
 
-const Body = {};
+class Body {
+    static _timeCorrection = true;
+    static _inertiaScale = 4;
+    static _nextCollidingGroupId = 1;
+    static _nextNonCollidingGroupId = -1;
+    static _nextCategory = 0x0001;
+    static _baseDelta = 1000 / 60;
 
-Body._timeCorrection = true;
-Body._inertiaScale = 4;
-Body._nextCollidingGroupId = 1;
-Body._nextNonCollidingGroupId = -1;
-Body._nextCategory = 0x0001;
-Body._baseDelta = 1000 / 60;
+    /**
+     * Creates a new rigid body model. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * Vertices must be specified in clockwise order.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {} options
+     * @return {body} body
+     */
+    constructor(options = {}) {
+        const defaults = {
+            id: Common.nextId(),
+            type: 'body',
+            label: 'Body',
+            parts: [],
+            plugin: {},
+            angle: 0,
+            vertices: Vertices.fromPath('L 0 0 L 40 0 L 40 40 L 0 40'),
+            position: { x: 0, y: 0 },
+            force: { x: 0, y: 0 },
+            torque: 0,
+            positionImpulse: { x: 0, y: 0 },
+            constraintImpulse: { x: 0, y: 0, angle: 0 },
+            totalContacts: 0,
+            speed: 0,
+            angularSpeed: 0,
+            velocity: { x: 0, y: 0 },
+            angularVelocity: 0,
+            isSensor: false,
+            isStatic: false,
+            isSleeping: false,
+            motion: 0,
+            sleepThreshold: 60,
+            density: 0.001,
+            restitution: 0,
+            friction: 0.1,
+            frictionStatic: 0.5,
+            frictionAir: 0.01,
+            collisionFilter: {
+                category: 0x0001,
+                mask: 0xFFFFFFFF,
+                group: 0
+            },
+            slop: 0.05,
+            timeScale: 1,
+            render: {
+                visible: true,
+                opacity: 1,
+                strokeStyle: null,
+                fillStyle: null,
+                lineWidth: null,
+                sprite: {
+                    xScale: 1,
+                    yScale: 1,
+                    xOffset: 0,
+                    yOffset: 0
+                }
+            },
+            events: null,
+            bounds: null,
+            chamfer: null,
+            circleRadius: 0,
+            positionPrev: null,
+            anglePrev: 0,
+            parent: null,
+            axes: null,
+            area: 0,
+            mass: 0,
+            inertia: 0,
+            deltaTime: 1000 / 60,
+            _original: null
+        };
 
-/**
- * Creates a new rigid body model. The options parameter is an object that specifies any properties you wish to override the defaults.
- * All properties have default values, and many are pre-calculated automatically based on other properties.
- * Vertices must be specified in clockwise order.
- * See the properties section below for detailed information on what you can pass via the `options` object.
- * @method create
- * @param {} options
- * @return {body} body
- */
-Body.create = function(options) {
-    const defaults = {
-        id: Common.nextId(),
-        type: 'body',
-        label: 'Body',
-        parts: [],
-        plugin: {},
-        angle: 0,
-        vertices: Vertices.fromPath('L 0 0 L 40 0 L 40 40 L 0 40'),
-        position: { x: 0, y: 0 },
-        force: { x: 0, y: 0 },
-        torque: 0,
-        positionImpulse: { x: 0, y: 0 },
-        constraintImpulse: { x: 0, y: 0, angle: 0 },
-        totalContacts: 0,
-        speed: 0,
-        angularSpeed: 0,
-        velocity: { x: 0, y: 0 },
-        angularVelocity: 0,
-        isSensor: false,
-        isStatic: false,
-        isSleeping: false,
-        motion: 0,
-        sleepThreshold: 60,
-        density: 0.001,
-        restitution: 0,
-        friction: 0.1,
-        frictionStatic: 0.5,
-        frictionAir: 0.01,
-        collisionFilter: {
-            category: 0x0001,
-            mask: 0xFFFFFFFF,
-            group: 0
-        },
-        slop: 0.05,
-        timeScale: 1,
-        render: {
-            visible: true,
-            opacity: 1,
-            strokeStyle: null,
-            fillStyle: null,
-            lineWidth: null,
-            sprite: {
-                xScale: 1,
-                yScale: 1,
-                xOffset: 0,
-                yOffset: 0
+        Object.assign(this, Common.extend(defaults, options));
+
+        Body._initProperties(this, options);
+    }
+
+    /**
+     * Creates a new rigid body model. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * Vertices must be specified in clockwise order.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {} options
+     * @return {body} body
+     */
+    static create(options) {
+        return new Body(options);
+    }
+
+    /**
+     * Returns the next unique group index for which bodies will collide.
+     * If `isNonColliding` is `true`, returns the next unique group index for which bodies will _not_ collide.
+     * See `body.collisionFilter` for more information.
+     * @method nextGroup
+     * @param {bool} [isNonColliding=false]
+     * @return {Number} Unique group index
+     */
+    static nextGroup(isNonColliding) {
+        if (isNonColliding)
+            return Body._nextNonCollidingGroupId--;
+
+        return Body._nextCollidingGroupId++;
+    }
+
+    /**
+     * Returns the next unique category bitfield (starting after the initial default category `0x0001`).
+     * There are 32 available. See `body.collisionFilter` for more information.
+     * @method nextCategory
+     * @return {Number} Unique category bitfield
+     */
+    static nextCategory() {
+        Body._nextCategory = Body._nextCategory << 1;
+        return Body._nextCategory;
+    }
+
+    /**
+     * Initialises body properties.
+     * @method _initProperties
+     * @private
+     * @param {body} body
+     * @param {} [options]
+     */
+    static _initProperties(body, options = {}) {
+
+        // init required properties (order is important)
+        Body.set(body, {
+            bounds: body.bounds || Bounds.create(body.vertices),
+            positionPrev: body.positionPrev || Vector.clone(body.position),
+            anglePrev: body.anglePrev || body.angle,
+            vertices: body.vertices,
+            parts: body.parts || [body],
+            isStatic: body.isStatic,
+            isSleeping: body.isSleeping,
+            parent: body.parent || body
+        });
+
+        Vertices.rotate(body.vertices, body.angle, body.position);
+        Axes.rotate(body.axes, body.angle);
+        Bounds.update(body.bounds, body.vertices, body.velocity);
+
+        // allow options to override the automatically calculated properties
+        Body.set(body, {
+            axes: options.axes || body.axes,
+            area: options.area || body.area,
+            mass: options.mass || body.mass,
+            inertia: options.inertia || body.inertia
+        });
+
+        // render properties
+        const defaultFillStyle = (body.isStatic ? '#14151f' : Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1'])),
+            defaultStrokeStyle = body.isStatic ? '#555' : '#ccc',
+            defaultLineWidth = body.isStatic && body.render.fillStyle === null ? 1 : 0;
+        body.render.fillStyle = body.render.fillStyle || defaultFillStyle;
+        body.render.strokeStyle = body.render.strokeStyle || defaultStrokeStyle;
+        body.render.lineWidth = body.render.lineWidth || defaultLineWidth;
+        body.render.sprite.xOffset += -(body.bounds.min.x - body.position.x) / (body.bounds.max.x - body.bounds.min.x);
+        body.render.sprite.yOffset += -(body.bounds.min.y - body.position.y) / (body.bounds.max.y - body.bounds.min.y);
+    }
+
+    /**
+     * Given a property and a value (or map of), sets the property(s) on the body, using the appropriate setter functions if they exist.
+     * Prefer to use the actual setter functions in performance critical situations.
+     * @method set
+     * @param {body} body
+     * @param {} settings A property name (or map of properties and values) to set on the body.
+     * @param {} value The value to set if `settings` is a single property name.
+     */
+    static set(body, settings, value) {
+        let property;
+
+        if (typeof settings === 'string') {
+            property = settings;
+            settings = {};
+            settings[property] = value;
+        }
+
+        for (property in settings) {
+            if (!Object.prototype.hasOwnProperty.call(settings, property))
+                continue;
+
+            value = settings[property];
+            switch (property) {
+
+            case 'isStatic':
+                Body.setStatic(body, value);
+                break;
+            case 'isSleeping':
+                Sleeping.set(body, value);
+                break;
+            case 'mass':
+                Body.setMass(body, value);
+                break;
+            case 'density':
+                Body.setDensity(body, value);
+                break;
+            case 'inertia':
+                Body.setInertia(body, value);
+                break;
+            case 'vertices':
+                Body.setVertices(body, value);
+                break;
+            case 'position':
+                Body.setPosition(body, value);
+                break;
+            case 'angle':
+                Body.setAngle(body, value);
+                break;
+            case 'velocity':
+                Body.setVelocity(body, value);
+                break;
+            case 'angularVelocity':
+                Body.setAngularVelocity(body, value);
+                break;
+            case 'speed':
+                Body.setSpeed(body, value);
+                break;
+            case 'angularSpeed':
+                Body.setAngularSpeed(body, value);
+                break;
+            case 'parts':
+                Body.setParts(body, value);
+                break;
+            case 'centre':
+                Body.setCentre(body, value);
+                break;
+            default:
+                body[property] = value;
+
             }
-        },
-        events: null,
-        bounds: null,
-        chamfer: null,
-        circleRadius: 0,
-        positionPrev: null,
-        anglePrev: 0,
-        parent: null,
-        axes: null,
-        area: 0,
-        mass: 0,
-        inertia: 0,
-        deltaTime: 1000 / 60,
-        _original: null
-    };
-
-    const body = Common.extend(defaults, options);
-
-    _initProperties(body, options);
-
-    return body;
-};
-
-/**
- * Returns the next unique group index for which bodies will collide.
- * If `isNonColliding` is `true`, returns the next unique group index for which bodies will _not_ collide.
- * See `body.collisionFilter` for more information.
- * @method nextGroup
- * @param {bool} [isNonColliding=false]
- * @return {Number} Unique group index
- */
-Body.nextGroup = function(isNonColliding) {
-    if (isNonColliding)
-        return Body._nextNonCollidingGroupId--;
-
-    return Body._nextCollidingGroupId++;
-};
-
-/**
- * Returns the next unique category bitfield (starting after the initial default category `0x0001`).
- * There are 32 available. See `body.collisionFilter` for more information.
- * @method nextCategory
- * @return {Number} Unique category bitfield
- */
-Body.nextCategory = function() {
-    Body._nextCategory = Body._nextCategory << 1;
-    return Body._nextCategory;
-};
-
-/**
- * Initialises body properties.
- * @method _initProperties
- * @private
- * @param {body} body
- * @param {} [options]
- */
-const _initProperties = (body, options = {}) => {
-
-    // init required properties (order is important)
-    Body.set(body, {
-        bounds: body.bounds || Bounds.create(body.vertices),
-        positionPrev: body.positionPrev || Vector.clone(body.position),
-        anglePrev: body.anglePrev || body.angle,
-        vertices: body.vertices,
-        parts: body.parts || [body],
-        isStatic: body.isStatic,
-        isSleeping: body.isSleeping,
-        parent: body.parent || body
-    });
-
-    Vertices.rotate(body.vertices, body.angle, body.position);
-    Axes.rotate(body.axes, body.angle);
-    Bounds.update(body.bounds, body.vertices, body.velocity);
-
-    // allow options to override the automatically calculated properties
-    Body.set(body, {
-        axes: options.axes || body.axes,
-        area: options.area || body.area,
-        mass: options.mass || body.mass,
-        inertia: options.inertia || body.inertia
-    });
-
-    // render properties
-    const defaultFillStyle = (body.isStatic ? '#14151f' : Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1'])),
-        defaultStrokeStyle = body.isStatic ? '#555' : '#ccc',
-        defaultLineWidth = body.isStatic && body.render.fillStyle === null ? 1 : 0;
-    body.render.fillStyle = body.render.fillStyle || defaultFillStyle;
-    body.render.strokeStyle = body.render.strokeStyle || defaultStrokeStyle;
-    body.render.lineWidth = body.render.lineWidth || defaultLineWidth;
-    body.render.sprite.xOffset += -(body.bounds.min.x - body.position.x) / (body.bounds.max.x - body.bounds.min.x);
-    body.render.sprite.yOffset += -(body.bounds.min.y - body.position.y) / (body.bounds.max.y - body.bounds.min.y);
-};
-
-/**
- * Given a property and a value (or map of), sets the property(s) on the body, using the appropriate setter functions if they exist.
- * Prefer to use the actual setter functions in performance critical situations.
- * @method set
- * @param {body} body
- * @param {} settings A property name (or map of properties and values) to set on the body.
- * @param {} value The value to set if `settings` is a single property name.
- */
-Body.set = function(body, settings, value) {
-    let property;
-
-    if (typeof settings === 'string') {
-        property = settings;
-        settings = {};
-        settings[property] = value;
-    }
-
-    for (property in settings) {
-        if (!Object.prototype.hasOwnProperty.call(settings, property))
-            continue;
-
-        value = settings[property];
-        switch (property) {
-
-        case 'isStatic':
-            Body.setStatic(body, value);
-            break;
-        case 'isSleeping':
-            Sleeping.set(body, value);
-            break;
-        case 'mass':
-            Body.setMass(body, value);
-            break;
-        case 'density':
-            Body.setDensity(body, value);
-            break;
-        case 'inertia':
-            Body.setInertia(body, value);
-            break;
-        case 'vertices':
-            Body.setVertices(body, value);
-            break;
-        case 'position':
-            Body.setPosition(body, value);
-            break;
-        case 'angle':
-            Body.setAngle(body, value);
-            break;
-        case 'velocity':
-            Body.setVelocity(body, value);
-            break;
-        case 'angularVelocity':
-            Body.setAngularVelocity(body, value);
-            break;
-        case 'speed':
-            Body.setSpeed(body, value);
-            break;
-        case 'angularSpeed':
-            Body.setAngularSpeed(body, value);
-            break;
-        case 'parts':
-            Body.setParts(body, value);
-            break;
-        case 'centre':
-            Body.setCentre(body, value);
-            break;
-        default:
-            body[property] = value;
-
         }
     }
-};
 
-/**
- * Sets the body as static, including isStatic flag and setting mass and inertia to Infinity.
- * @method setStatic
- * @param {body} body
- * @param {bool} isStatic
- */
-Body.setStatic = function(body, isStatic) {
-    for (let i = 0; i < body.parts.length; i++) {
-        const part = body.parts[i];
+    /**
+     * Sets the body as static, including isStatic flag and setting mass and inertia to Infinity.
+     * @method setStatic
+     * @param {body} body
+     * @param {bool} isStatic
+     */
+    static setStatic(body, isStatic) {
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
 
-        if (isStatic) {
-            if (!part.isStatic) {
-                part._original = {
-                    restitution: part.restitution,
-                    friction: part.friction,
-                    mass: part.mass,
-                    inertia: part.inertia,
-                    density: part.density,
-                    inverseMass: part.inverseMass,
-                    inverseInertia: part.inverseInertia
-                };
+            if (isStatic) {
+                if (!part.isStatic) {
+                    part._original = {
+                        restitution: part.restitution,
+                        friction: part.friction,
+                        mass: part.mass,
+                        inertia: part.inertia,
+                        density: part.density,
+                        inverseMass: part.inverseMass,
+                        inverseInertia: part.inverseInertia
+                    };
+                }
+
+                part.restitution = 0;
+                part.friction = 1;
+                part.mass = part.inertia = part.density = Infinity;
+                part.inverseMass = part.inverseInertia = 0;
+
+                part.positionPrev.x = part.position.x;
+                part.positionPrev.y = part.position.y;
+                part.anglePrev = part.angle;
+                part.angularVelocity = 0;
+                part.speed = 0;
+                part.angularSpeed = 0;
+                part.motion = 0;
+            } else if (part._original) {
+                part.restitution = part._original.restitution;
+                part.friction = part._original.friction;
+                part.mass = part._original.mass;
+                part.inertia = part._original.inertia;
+                part.density = part._original.density;
+                part.inverseMass = part._original.inverseMass;
+                part.inverseInertia = part._original.inverseInertia;
+
+                part._original = null;
             }
 
-            part.restitution = 0;
-            part.friction = 1;
-            part.mass = part.inertia = part.density = Infinity;
-            part.inverseMass = part.inverseInertia = 0;
-
-            part.positionPrev.x = part.position.x;
-            part.positionPrev.y = part.position.y;
-            part.anglePrev = part.angle;
-            part.angularVelocity = 0;
-            part.speed = 0;
-            part.angularSpeed = 0;
-            part.motion = 0;
-        } else if (part._original) {
-            part.restitution = part._original.restitution;
-            part.friction = part._original.friction;
-            part.mass = part._original.mass;
-            part.inertia = part._original.inertia;
-            part.density = part._original.density;
-            part.inverseMass = part._original.inverseMass;
-            part.inverseInertia = part._original.inverseInertia;
-
-            part._original = null;
-        }
-
-        part.isStatic = isStatic;
-    }
-};
-
-/**
- * Sets the mass of the body. Inverse mass, density and inertia are automatically updated to reflect the change.
- * @method setMass
- * @param {body} body
- * @param {number} mass
- */
-Body.setMass = function(body, mass) {
-    const moment = body.inertia / (body.mass / 6);
-    body.inertia = moment * (mass / 6);
-    body.inverseInertia = 1 / body.inertia;
-
-    body.mass = mass;
-    body.inverseMass = 1 / body.mass;
-    body.density = body.mass / body.area;
-};
-
-/**
- * Sets the density of the body. Mass and inertia are automatically updated to reflect the change.
- * @method setDensity
- * @param {body} body
- * @param {number} density
- */
-Body.setDensity = function(body, density) {
-    Body.setMass(body, density * body.area);
-    body.density = density;
-};
-
-/**
- * Sets the moment of inertia of the body. This is the second moment of area in two dimensions.
- * Inverse inertia is automatically updated to reflect the change. Mass is not changed.
- * @method setInertia
- * @param {body} body
- * @param {number} inertia
- */
-Body.setInertia = function(body, inertia) {
-    body.inertia = inertia;
-    body.inverseInertia = 1 / body.inertia;
-};
-
-/**
- * Sets the body's vertices and updates body properties accordingly, including inertia, area and mass (with respect to `body.density`).
- * Vertices will be automatically transformed to be orientated around their centre of mass as the origin.
- * They are then automatically translated to world space based on `body.position`.
- *
- * The `vertices` argument should be passed as an array of `Matter.Vector` points (or a `Matter.Vertices` array).
- * Vertices must form a convex hull. Concave vertices must be decomposed into convex parts.
- *
- * @method setVertices
- * @param {body} body
- * @param {vector[]} vertices
- */
-Body.setVertices = function(body, vertices) {
-    // change vertices
-    if (vertices[0].body === body) {
-        body.vertices = vertices;
-    } else {
-        body.vertices = Vertices.create(vertices, body);
-    }
-
-    // update properties
-    body.axes = Axes.fromVertices(body.vertices);
-    body.area = Vertices.area(body.vertices);
-    Body.setMass(body, body.density * body.area);
-
-    // orient vertices around the centre of mass at origin (0, 0)
-    const centre = Vertices.centre(body.vertices);
-    Vertices.translate(body.vertices, centre, -1);
-
-    // update inertia while vertices are at origin (0, 0)
-    Body.setInertia(body, Body._inertiaScale * Vertices.inertia(body.vertices, body.mass));
-
-    // update geometry
-    Vertices.translate(body.vertices, body.position);
-    Bounds.update(body.bounds, body.vertices, body.velocity);
-};
-
-/**
- * Sets the parts of the `body`.
- *
- * See `body.parts` for details and requirements on how parts are used.
- *
- * See Bodies.fromVertices for a related utility.
- *
- * This function updates `body` mass, inertia and centroid based on the parts geometry.
- * Sets each `part.parent` to be this `body`.
- *
- * The convex hull is computed and set on this `body` (unless `autoHull` is `false`).
- * Automatically ensures that the first part in `body.parts` is the `body`.
- * @method setParts
- * @param {body} body
- * @param {body[]} parts
- * @param {bool} [autoHull=true]
- */
-Body.setParts = function(body, parts, autoHull) {
-    let i;
-
-    // add all the parts, ensuring that the first part is always the parent body
-    parts = parts.slice(0);
-    body.parts.length = 0;
-    body.parts.push(body);
-    body.parent = body;
-
-    for (i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (part !== body) {
-            part.parent = body;
-            body.parts.push(part);
+            part.isStatic = isStatic;
         }
     }
 
-    if (body.parts.length === 1)
-        return;
+    /**
+     * Sets the mass of the body. Inverse mass, density and inertia are automatically updated to reflect the change.
+     * @method setMass
+     * @param {body} body
+     * @param {number} mass
+     */
+    static setMass(body, mass) {
+        const moment = body.inertia / (body.mass / 6);
+        body.inertia = moment * (mass / 6);
+        body.inverseInertia = 1 / body.inertia;
 
-    autoHull = autoHull ?? true;
+        body.mass = mass;
+        body.inverseMass = 1 / body.mass;
+        body.density = body.mass / body.area;
+    }
 
-    // find the convex hull of all parts to set on the parent body
-    if (autoHull) {
-        let vertices = [];
-        for (i = 0; i < parts.length; i++) {
-            vertices = vertices.concat(parts[i].vertices);
+    /**
+     * Sets the density of the body. Mass and inertia are automatically updated to reflect the change.
+     * @method setDensity
+     * @param {body} body
+     * @param {number} density
+     */
+    static setDensity(body, density) {
+        Body.setMass(body, density * body.area);
+        body.density = density;
+    }
+
+    /**
+     * Sets the moment of inertia of the body. This is the second moment of area in two dimensions.
+     * Inverse inertia is automatically updated to reflect the change. Mass is not changed.
+     * @method setInertia
+     * @param {body} body
+     * @param {number} inertia
+     */
+    static setInertia(body, inertia) {
+        body.inertia = inertia;
+        body.inverseInertia = 1 / body.inertia;
+    }
+
+    /**
+     * Sets the body's vertices and updates body properties accordingly, including inertia, area and mass (with respect to `body.density`).
+     * Vertices will be automatically transformed to be orientated around their centre of mass as the origin.
+     * They are then automatically translated to world space based on `body.position`.
+     *
+     * The `vertices` argument should be passed as an array of `Matter.Vector` points (or a `Matter.Vertices` array).
+     * Vertices must form a convex hull. Concave vertices must be decomposed into convex parts.
+     *
+     * @method setVertices
+     * @param {body} body
+     * @param {vector[]} vertices
+     */
+    static setVertices(body, vertices) {
+        // change vertices
+        if (vertices[0].body === body) {
+            body.vertices = vertices;
+        } else {
+            body.vertices = Vertices.create(vertices, body);
         }
-
-        Vertices.clockwiseSort(vertices);
-
-        const hull = Vertices.hull(vertices),
-            hullCentre = Vertices.centre(hull);
-
-        Body.setVertices(body, hull);
-        Vertices.translate(body.vertices, hullCentre);
-    }
-
-    // sum the properties of all compound parts of the parent body
-    const total = Body._totalProperties(body);
-
-    body.area = total.area;
-    body.parent = body;
-    body.position.x = total.centre.x;
-    body.position.y = total.centre.y;
-    body.positionPrev.x = total.centre.x;
-    body.positionPrev.y = total.centre.y;
-
-    Body.setMass(body, total.mass);
-    Body.setInertia(body, total.inertia);
-    Body.setPosition(body, total.centre);
-};
-
-/**
- * Set the centre of mass of the body.
- * The `centre` is a vector in world-space unless `relative` is set, in which case it is a translation.
- * The centre of mass is the point the body rotates about and can be used to simulate non-uniform density.
- * This is equal to moving `body.position` but not the `body.vertices`.
- * Invalid if the `centre` falls outside the body's convex hull.
- * @method setCentre
- * @param {body} body
- * @param {vector} centre
- * @param {bool} relative
- */
-Body.setCentre = function(body, centre, relative) {
-    if (!relative) {
-        body.positionPrev.x = centre.x - (body.position.x - body.positionPrev.x);
-        body.positionPrev.y = centre.y - (body.position.y - body.positionPrev.y);
-        body.position.x = centre.x;
-        body.position.y = centre.y;
-    } else {
-        body.positionPrev.x += centre.x;
-        body.positionPrev.y += centre.y;
-        body.position.x += centre.x;
-        body.position.y += centre.y;
-    }
-};
-
-/**
- * Sets the position of the body. By default velocity is unchanged.
- * If `updateVelocity` is `true` then velocity is inferred from the change in position.
- * @method setPosition
- * @param {body} body
- * @param {vector} position
- * @param {boolean} [updateVelocity=false]
- */
-Body.setPosition = function(body, position, updateVelocity) {
-    const delta = Vector.sub(position, body.position);
-
-    if (updateVelocity) {
-        body.positionPrev.x = body.position.x;
-        body.positionPrev.y = body.position.y;
-        body.velocity.x = delta.x;
-        body.velocity.y = delta.y;
-        body.speed = Vector.magnitude(delta);
-    } else {
-        body.positionPrev.x += delta.x;
-        body.positionPrev.y += delta.y;
-    }
-
-    for (let i = 0; i < body.parts.length; i++) {
-        const part = body.parts[i];
-        part.position.x += delta.x;
-        part.position.y += delta.y;
-        Vertices.translate(part.vertices, delta);
-        Bounds.update(part.bounds, part.vertices, body.velocity);
-    }
-};
-
-/**
- * Sets the angle of the body. By default angular velocity is unchanged.
- * If `updateVelocity` is `true` then angular velocity is inferred from the change in angle.
- * @method setAngle
- * @param {body} body
- * @param {number} angle
- * @param {boolean} [updateVelocity=false]
- */
-Body.setAngle = function(body, angle, updateVelocity) {
-    const delta = angle - body.angle;
-
-    if (updateVelocity) {
-        body.anglePrev = body.angle;
-        body.angularVelocity = delta;
-        body.angularSpeed = Math.abs(delta);
-    } else {
-        body.anglePrev += delta;
-    }
-
-    for (let i = 0; i < body.parts.length; i++) {
-        const part = body.parts[i];
-        part.angle += delta;
-        Vertices.rotate(part.vertices, delta, body.position);
-        Axes.rotate(part.axes, delta);
-        Bounds.update(part.bounds, part.vertices, body.velocity);
-        if (i > 0) {
-            Vector.rotateAbout(part.position, delta, body.position, part.position);
-        }
-    }
-};
-
-/**
- * Sets the current linear velocity of the body.
- * Affects body speed.
- * @method setVelocity
- * @param {body} body
- * @param {vector} velocity
- */
-Body.setVelocity = function(body, velocity) {
-    const timeScale = body.deltaTime / Body._baseDelta;
-    body.positionPrev.x = body.position.x - velocity.x * timeScale;
-    body.positionPrev.y = body.position.y - velocity.y * timeScale;
-    body.velocity.x = (body.position.x - body.positionPrev.x) / timeScale;
-    body.velocity.y = (body.position.y - body.positionPrev.y) / timeScale;
-    body.speed = Vector.magnitude(body.velocity);
-};
-
-/**
- * Gets the current linear velocity of the body.
- * @method getVelocity
- * @param {body} body
- * @return {vector} velocity
- */
-Body.getVelocity = function(body) {
-    const timeScale = Body._baseDelta / body.deltaTime;
-
-    return {
-        x: (body.position.x - body.positionPrev.x) * timeScale,
-        y: (body.position.y - body.positionPrev.y) * timeScale
-    };
-};
-
-/**
- * Gets the current linear speed of the body.
- * Equivalent to the magnitude of its velocity.
- * @method getSpeed
- * @param {body} body
- * @return {number} speed
- */
-Body.getSpeed = function(body) {
-    return Vector.magnitude(Body.getVelocity(body));
-};
-
-/**
- * Sets the current linear speed of the body.
- * Direction is maintained. Affects body velocity.
- * @method setSpeed
- * @param {body} body
- * @param {number} speed
- */
-Body.setSpeed = function(body, speed) {
-    Body.setVelocity(body, Vector.mult(Vector.normalise(Body.getVelocity(body)), speed));
-};
-
-/**
- * Sets the current rotational velocity of the body.
- * Affects body angular speed.
- * @method setAngularVelocity
- * @param {body} body
- * @param {number} velocity
- */
-Body.setAngularVelocity = function(body, velocity) {
-    const timeScale = body.deltaTime / Body._baseDelta;
-    body.anglePrev = body.angle - velocity * timeScale;
-    body.angularVelocity = (body.angle - body.anglePrev) / timeScale;
-    body.angularSpeed = Math.abs(body.angularVelocity);
-};
-
-/**
- * Gets the current rotational velocity of the body.
- * @method getAngularVelocity
- * @param {body} body
- * @return {number} angular velocity
- */
-Body.getAngularVelocity = function(body) {
-    return (body.angle - body.anglePrev) * Body._baseDelta / body.deltaTime;
-};
-
-/**
- * Gets the current rotational speed of the body.
- * Equivalent to the magnitude of its angular velocity.
- * @method getAngularSpeed
- * @param {body} body
- * @return {number} angular speed
- */
-Body.getAngularSpeed = function(body) {
-    return Math.abs(Body.getAngularVelocity(body));
-};
-
-/**
- * Sets the current rotational speed of the body.
- * Direction is maintained. Affects body angular velocity.
- * @method setAngularSpeed
- * @param {body} body
- * @param {number} speed
- */
-Body.setAngularSpeed = function(body, speed) {
-    Body.setAngularVelocity(body, Common.sign(Body.getAngularVelocity(body)) * speed);
-};
-
-/**
- * Moves a body by a given vector relative to its current position. By default velocity is unchanged.
- * If `updateVelocity` is `true` then velocity is inferred from the change in position.
- * @method translate
- * @param {body} body
- * @param {vector} translation
- * @param {boolean} [updateVelocity=false]
- */
-Body.translate = function(body, translation, updateVelocity) {
-    Body.setPosition(body, Vector.add(body.position, translation), updateVelocity);
-};
-
-/**
- * Rotates a body by a given angle relative to its current angle. By default angular velocity is unchanged.
- * If `updateVelocity` is `true` then angular velocity is inferred from the change in angle.
- * @method rotate
- * @param {body} body
- * @param {number} rotation
- * @param {vector} [point]
- * @param {boolean} [updateVelocity=false]
- */
-Body.rotate = function(body, rotation, point, updateVelocity) {
-    if (!point) {
-        Body.setAngle(body, body.angle + rotation, updateVelocity);
-    } else {
-        const cos = Math.cos(rotation),
-            sin = Math.sin(rotation),
-            dx = body.position.x - point.x,
-            dy = body.position.y - point.y;
-
-        Body.setPosition(body, {
-            x: point.x + (dx * cos - dy * sin),
-            y: point.y + (dx * sin + dy * cos)
-        }, updateVelocity);
-
-        Body.setAngle(body, body.angle + rotation, updateVelocity);
-    }
-};
-
-/**
- * Scales the body, including updating physical properties (mass, area, axes, inertia), from a world-space point (default is body centre).
- * @method scale
- * @param {body} body
- * @param {number} scaleX
- * @param {number} scaleY
- * @param {vector} [point]
- */
-Body.scale = function(body, scaleX, scaleY, point) {
-    let totalArea = 0,
-        totalInertia = 0;
-
-    point = point || body.position;
-
-    for (let i = 0; i < body.parts.length; i++) {
-        const part = body.parts[i];
-
-        // scale vertices
-        Vertices.scale(part.vertices, scaleX, scaleY, point);
 
         // update properties
-        part.axes = Axes.fromVertices(part.vertices);
-        part.area = Vertices.area(part.vertices);
-        Body.setMass(part, body.density * part.area);
+        body.axes = Axes.fromVertices(body.vertices);
+        body.area = Vertices.area(body.vertices);
+        Body.setMass(body, body.density * body.area);
 
-        // update inertia (requires vertices to be at origin)
-        Vertices.translate(part.vertices, { x: -part.position.x, y: -part.position.y });
-        Body.setInertia(part, Body._inertiaScale * Vertices.inertia(part.vertices, part.mass));
-        Vertices.translate(part.vertices, { x: part.position.x, y: part.position.y });
+        // orient vertices around the centre of mass at origin (0, 0)
+        const centre = Vertices.centre(body.vertices);
+        Vertices.translate(body.vertices, centre, -1);
 
-        if (i > 0) {
-            totalArea += part.area;
-            totalInertia += part.inertia;
-        }
+        // update inertia while vertices are at origin (0, 0)
+        Body.setInertia(body, Body._inertiaScale * Vertices.inertia(body.vertices, body.mass));
 
-        // scale position
-        part.position.x = point.x + (part.position.x - point.x) * scaleX;
-        part.position.y = point.y + (part.position.y - point.y) * scaleY;
-
-        // update bounds
-        Bounds.update(part.bounds, part.vertices, body.velocity);
+        // update geometry
+        Vertices.translate(body.vertices, body.position);
+        Bounds.update(body.bounds, body.vertices, body.velocity);
     }
 
-    // handle parent body
-    if (body.parts.length > 1) {
-        body.area = totalArea;
+    /**
+     * Sets the parts of the `body`.
+     *
+     * See `body.parts` for details and requirements on how parts are used.
+     *
+     * See Bodies.fromVertices for a related utility.
+     *
+     * This function updates `body` mass, inertia and centroid based on the parts geometry.
+     * Sets each `part.parent` to be this `body`.
+     *
+     * The convex hull is computed and set on this `body` (unless `autoHull` is `false`).
+     * Automatically ensures that the first part in `body.parts` is the `body`.
+     * @method setParts
+     * @param {body} body
+     * @param {body[]} parts
+     * @param {bool} [autoHull=true]
+     */
+    static setParts(body, parts, autoHull) {
+        let i;
 
-        if (!body.isStatic) {
-            Body.setMass(body, body.density * totalArea);
-            Body.setInertia(body, totalInertia);
-        }
-    }
+        // add all the parts, ensuring that the first part is always the parent body
+        parts = parts.slice(0);
+        body.parts.length = 0;
+        body.parts.push(body);
+        body.parent = body;
 
-    // handle circles
-    if (body.circleRadius) {
-        if (scaleX === scaleY) {
-            body.circleRadius *= scaleX;
-        } else {
-            // body is no longer a circle
-            body.circleRadius = null;
-        }
-    }
-};
-
-/**
- * Performs an update by integrating the equations of motion on the `body`.
- * This is applied every update by `Matter.Engine` automatically.
- * @method update
- * @param {body} body
- * @param {number} [deltaTime=16.666]
- */
-Body.update = function(body, deltaTime) {
-    deltaTime = (deltaTime ?? (1000 / 60)) * body.timeScale;
-
-    const deltaTimeSquared = deltaTime * deltaTime,
-        correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;
-
-    // from the previous step
-    const frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta),
-        velocityPrevX = (body.position.x - body.positionPrev.x) * correction,
-        velocityPrevY = (body.position.y - body.positionPrev.y) * correction;
-
-    // update velocity with Verlet integration
-    body.velocity.x = (velocityPrevX * frictionAir) + (body.force.x / body.mass) * deltaTimeSquared;
-    body.velocity.y = (velocityPrevY * frictionAir) + (body.force.y / body.mass) * deltaTimeSquared;
-
-    body.positionPrev.x = body.position.x;
-    body.positionPrev.y = body.position.y;
-    body.position.x += body.velocity.x;
-    body.position.y += body.velocity.y;
-    body.deltaTime = deltaTime;
-
-    // update angular velocity with Verlet integration
-    body.angularVelocity = ((body.angle - body.anglePrev) * frictionAir * correction) + (body.torque / body.inertia) * deltaTimeSquared;
-    body.anglePrev = body.angle;
-    body.angle += body.angularVelocity;
-
-    // transform the body geometry
-    for (let i = 0; i < body.parts.length; i++) {
-        const part = body.parts[i];
-
-        Vertices.translate(part.vertices, body.velocity);
-
-        if (i > 0) {
-            part.position.x += body.velocity.x;
-            part.position.y += body.velocity.y;
-        }
-
-        if (body.angularVelocity !== 0) {
-            Vertices.rotate(part.vertices, body.angularVelocity, body.position);
-            Axes.rotate(part.axes, body.angularVelocity);
-            if (i > 0) {
-                Vector.rotateAbout(part.position, body.angularVelocity, body.position, part.position);
+        for (i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (part !== body) {
+                part.parent = body;
+                body.parts.push(part);
             }
         }
 
-        Bounds.update(part.bounds, part.vertices, body.velocity);
-    }
-};
+        if (body.parts.length === 1)
+            return;
 
-/**
- * Updates properties `body.velocity`, `body.speed`, `body.angularVelocity` and `body.angularSpeed` which are normalised in relation to `Body._baseDelta`.
- * @method updateVelocities
- * @param {body} body
- */
-Body.updateVelocities = function(body) {
-    const timeScale = Body._baseDelta / body.deltaTime,
-        bodyVelocity = body.velocity;
+        autoHull = autoHull ?? true;
 
-    bodyVelocity.x = (body.position.x - body.positionPrev.x) * timeScale;
-    bodyVelocity.y = (body.position.y - body.positionPrev.y) * timeScale;
-    body.speed = Math.sqrt((bodyVelocity.x * bodyVelocity.x) + (bodyVelocity.y * bodyVelocity.y));
+        // find the convex hull of all parts to set on the parent body
+        if (autoHull) {
+            let vertices = [];
+            for (i = 0; i < parts.length; i++) {
+                vertices = vertices.concat(parts[i].vertices);
+            }
 
-    body.angularVelocity = (body.angle - body.anglePrev) * timeScale;
-    body.angularSpeed = Math.abs(body.angularVelocity);
-};
+            Vertices.clockwiseSort(vertices);
 
-/**
- * Applies the `force` to the `body` from the force origin `position` in world-space, over a single timestep, including applying any resulting angular torque.
- *
- * Forces are useful for effects like gravity, wind or rocket thrust, but can be difficult in practice when precise control is needed. In these cases see `Body.setVelocity` and `Body.setPosition` as an alternative.
- *
- * The force from this function is only applied once for the duration of a single timestep, in other words the duration depends directly on the current engine update `delta` and the rate of calls to this function.
- *
- * Therefore to account for time, you should apply the force constantly over as many engine updates as equivalent to the intended duration.
- *
- * If all or part of the force duration is some fraction of a timestep, first multiply the force by `duration / timestep`.
- *
- * The force origin `position` in world-space must also be specified. Passing `body.position` will result in zero angular effect as the force origin would be at the centre of mass.
- *
- * The `body` will take time to accelerate under a force, the resulting effect depends on duration of the force, the body mass and other forces on the body including friction combined.
- * @method applyForce
- * @param {body} body
- * @param {vector} position The force origin in world-space. Pass `body.position` to avoid angular torque.
- * @param {vector} force
- */
-Body.applyForce = function(body, position, force) {
-    const offset = { x: position.x - body.position.x, y: position.y - body.position.y };
-    body.force.x += force.x;
-    body.force.y += force.y;
-    body.torque += offset.x * force.y - offset.y * force.x;
-};
+            const hull = Vertices.hull(vertices),
+                hullCentre = Vertices.centre(hull);
 
-/**
- * Returns the sums of the properties of all compound parts of the parent body.
- * @method _totalProperties
- * @private
- * @param {body} body
- * @return {}
- */
-Body._totalProperties = function(body) {
-    // from equations at:
-    // https://ecourses.ou.edu/cgi-bin/ebook.cgi?doc=&topic=st&chap_sec=07.2&page=theory
-    // http://output.to/sideway/default.asp?qno=121100087
+            Body.setVertices(body, hull);
+            Vertices.translate(body.vertices, hullCentre);
+        }
 
-    const properties = {
-        mass: 0,
-        area: 0,
-        inertia: 0,
-        centre: { x: 0, y: 0 }
-    };
+        // sum the properties of all compound parts of the parent body
+        const total = Body._totalProperties(body);
 
-    // sum the properties of all compound parts of the parent body
-    for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
-        const part = body.parts[i],
-            mass = part.mass !== Infinity ? part.mass : 1;
+        body.area = total.area;
+        body.parent = body;
+        body.position.x = total.centre.x;
+        body.position.y = total.centre.y;
+        body.positionPrev.x = total.centre.x;
+        body.positionPrev.y = total.centre.y;
 
-        properties.mass += mass;
-        properties.area += part.area;
-        properties.inertia += part.inertia;
-        properties.centre = Vector.add(properties.centre, Vector.mult(part.position, mass));
+        Body.setMass(body, total.mass);
+        Body.setInertia(body, total.inertia);
+        Body.setPosition(body, total.centre);
     }
 
-    properties.centre = Vector.div(properties.centre, properties.mass);
+    /**
+     * Set the centre of mass of the body.
+     * The `centre` is a vector in world-space unless `relative` is set, in which case it is a translation.
+     * The centre of mass is the point the body rotates about and can be used to simulate non-uniform density.
+     * This is equal to moving `body.position` but not the `body.vertices`.
+     * Invalid if the `centre` falls outside the body's convex hull.
+     * @method setCentre
+     * @param {body} body
+     * @param {vector} centre
+     * @param {bool} relative
+     */
+    static setCentre(body, centre, relative) {
+        if (!relative) {
+            body.positionPrev.x = centre.x - (body.position.x - body.positionPrev.x);
+            body.positionPrev.y = centre.y - (body.position.y - body.positionPrev.y);
+            body.position.x = centre.x;
+            body.position.y = centre.y;
+        } else {
+            body.positionPrev.x += centre.x;
+            body.positionPrev.y += centre.y;
+            body.position.x += centre.x;
+            body.position.y += centre.y;
+        }
+    }
 
-    return properties;
-};
+    /**
+     * Sets the position of the body. By default velocity is unchanged.
+     * If `updateVelocity` is `true` then velocity is inferred from the change in position.
+     * @method setPosition
+     * @param {body} body
+     * @param {vector} position
+     * @param {boolean} [updateVelocity=false]
+     */
+    static setPosition(body, position, updateVelocity) {
+        const delta = Vector.sub(position, body.position);
+
+        if (updateVelocity) {
+            body.positionPrev.x = body.position.x;
+            body.positionPrev.y = body.position.y;
+            body.velocity.x = delta.x;
+            body.velocity.y = delta.y;
+            body.speed = Vector.magnitude(delta);
+        } else {
+            body.positionPrev.x += delta.x;
+            body.positionPrev.y += delta.y;
+        }
+
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
+            part.position.x += delta.x;
+            part.position.y += delta.y;
+            Vertices.translate(part.vertices, delta);
+            Bounds.update(part.bounds, part.vertices, body.velocity);
+        }
+    }
+
+    /**
+     * Sets the angle of the body. By default angular velocity is unchanged.
+     * If `updateVelocity` is `true` then angular velocity is inferred from the change in angle.
+     * @method setAngle
+     * @param {body} body
+     * @param {number} angle
+     * @param {boolean} [updateVelocity=false]
+     */
+    static setAngle(body, angle, updateVelocity) {
+        const delta = angle - body.angle;
+
+        if (updateVelocity) {
+            body.anglePrev = body.angle;
+            body.angularVelocity = delta;
+            body.angularSpeed = Math.abs(delta);
+        } else {
+            body.anglePrev += delta;
+        }
+
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
+            part.angle += delta;
+            Vertices.rotate(part.vertices, delta, body.position);
+            Axes.rotate(part.axes, delta);
+            Bounds.update(part.bounds, part.vertices, body.velocity);
+            if (i > 0) {
+                Vector.rotateAbout(part.position, delta, body.position, part.position);
+            }
+        }
+    }
+
+    /**
+     * Sets the current linear velocity of the body.
+     * Affects body speed.
+     * @method setVelocity
+     * @param {body} body
+     * @param {vector} velocity
+     */
+    static setVelocity(body, velocity) {
+        const timeScale = body.deltaTime / Body._baseDelta;
+        body.positionPrev.x = body.position.x - velocity.x * timeScale;
+        body.positionPrev.y = body.position.y - velocity.y * timeScale;
+        body.velocity.x = (body.position.x - body.positionPrev.x) / timeScale;
+        body.velocity.y = (body.position.y - body.positionPrev.y) / timeScale;
+        body.speed = Vector.magnitude(body.velocity);
+    }
+
+    /**
+     * Gets the current linear velocity of the body.
+     * @method getVelocity
+     * @param {body} body
+     * @return {vector} velocity
+     */
+    static getVelocity(body) {
+        const timeScale = Body._baseDelta / body.deltaTime;
+
+        return {
+            x: (body.position.x - body.positionPrev.x) * timeScale,
+            y: (body.position.y - body.positionPrev.y) * timeScale
+        };
+    }
+
+    /**
+     * Gets the current linear speed of the body.
+     * Equivalent to the magnitude of its velocity.
+     * @method getSpeed
+     * @param {body} body
+     * @return {number} speed
+     */
+    static getSpeed(body) {
+        return Vector.magnitude(Body.getVelocity(body));
+    }
+
+    /**
+     * Sets the current linear speed of the body.
+     * Direction is maintained. Affects body velocity.
+     * @method setSpeed
+     * @param {body} body
+     * @param {number} speed
+     */
+    static setSpeed(body, speed) {
+        Body.setVelocity(body, Vector.mult(Vector.normalise(Body.getVelocity(body)), speed));
+    }
+
+    /**
+     * Sets the current rotational velocity of the body.
+     * Affects body angular speed.
+     * @method setAngularVelocity
+     * @param {body} body
+     * @param {number} velocity
+     */
+    static setAngularVelocity(body, velocity) {
+        const timeScale = body.deltaTime / Body._baseDelta;
+        body.anglePrev = body.angle - velocity * timeScale;
+        body.angularVelocity = (body.angle - body.anglePrev) / timeScale;
+        body.angularSpeed = Math.abs(body.angularVelocity);
+    }
+
+    /**
+     * Gets the current rotational velocity of the body.
+     * @method getAngularVelocity
+     * @param {body} body
+     * @return {number} angular velocity
+     */
+    static getAngularVelocity(body) {
+        return (body.angle - body.anglePrev) * Body._baseDelta / body.deltaTime;
+    }
+
+    /**
+     * Gets the current rotational speed of the body.
+     * Equivalent to the magnitude of its angular velocity.
+     * @method getAngularSpeed
+     * @param {body} body
+     * @return {number} angular speed
+     */
+    static getAngularSpeed(body) {
+        return Math.abs(Body.getAngularVelocity(body));
+    }
+
+    /**
+     * Sets the current rotational speed of the body.
+     * Direction is maintained. Affects body angular velocity.
+     * @method setAngularSpeed
+     * @param {body} body
+     * @param {number} speed
+     */
+    static setAngularSpeed(body, speed) {
+        Body.setAngularVelocity(body, Common.sign(Body.getAngularVelocity(body)) * speed);
+    }
+
+    /**
+     * Moves a body by a given vector relative to its current position. By default velocity is unchanged.
+     * If `updateVelocity` is `true` then velocity is inferred from the change in position.
+     * @method translate
+     * @param {body} body
+     * @param {vector} translation
+     * @param {boolean} [updateVelocity=false]
+     */
+    static translate(body, translation, updateVelocity) {
+        Body.setPosition(body, Vector.add(body.position, translation), updateVelocity);
+    }
+
+    /**
+     * Rotates a body by a given angle relative to its current angle. By default angular velocity is unchanged.
+     * If `updateVelocity` is `true` then angular velocity is inferred from the change in angle.
+     * @method rotate
+     * @param {body} body
+     * @param {number} rotation
+     * @param {vector} [point]
+     * @param {boolean} [updateVelocity=false]
+     */
+    static rotate(body, rotation, point, updateVelocity) {
+        if (!point) {
+            Body.setAngle(body, body.angle + rotation, updateVelocity);
+        } else {
+            const cos = Math.cos(rotation),
+                sin = Math.sin(rotation),
+                dx = body.position.x - point.x,
+                dy = body.position.y - point.y;
+
+            Body.setPosition(body, {
+                x: point.x + (dx * cos - dy * sin),
+                y: point.y + (dx * sin + dy * cos)
+            }, updateVelocity);
+
+            Body.setAngle(body, body.angle + rotation, updateVelocity);
+        }
+    }
+
+    /**
+     * Scales the body, including updating physical properties (mass, area, axes, inertia), from a world-space point (default is body centre).
+     * @method scale
+     * @param {body} body
+     * @param {number} scaleX
+     * @param {number} scaleY
+     * @param {vector} [point]
+     */
+    static scale(body, scaleX, scaleY, point) {
+        let totalArea = 0,
+            totalInertia = 0;
+
+        point = point || body.position;
+
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
+
+            // scale vertices
+            Vertices.scale(part.vertices, scaleX, scaleY, point);
+
+            // update properties
+            part.axes = Axes.fromVertices(part.vertices);
+            part.area = Vertices.area(part.vertices);
+            Body.setMass(part, body.density * part.area);
+
+            // update inertia (requires vertices to be at origin)
+            Vertices.translate(part.vertices, { x: -part.position.x, y: -part.position.y });
+            Body.setInertia(part, Body._inertiaScale * Vertices.inertia(part.vertices, part.mass));
+            Vertices.translate(part.vertices, { x: part.position.x, y: part.position.y });
+
+            if (i > 0) {
+                totalArea += part.area;
+                totalInertia += part.inertia;
+            }
+
+            // scale position
+            part.position.x = point.x + (part.position.x - point.x) * scaleX;
+            part.position.y = point.y + (part.position.y - point.y) * scaleY;
+
+            // update bounds
+            Bounds.update(part.bounds, part.vertices, body.velocity);
+        }
+
+        // handle parent body
+        if (body.parts.length > 1) {
+            body.area = totalArea;
+
+            if (!body.isStatic) {
+                Body.setMass(body, body.density * totalArea);
+                Body.setInertia(body, totalInertia);
+            }
+        }
+
+        // handle circles
+        if (body.circleRadius) {
+            if (scaleX === scaleY) {
+                body.circleRadius *= scaleX;
+            } else {
+                // body is no longer a circle
+                body.circleRadius = null;
+            }
+        }
+    }
+
+    /**
+     * Performs an update by integrating the equations of motion on the `body`.
+     * This is applied every update by `Matter.Engine` automatically.
+     * @method update
+     * @param {body} body
+     * @param {number} [deltaTime=16.666]
+     */
+    static update(body, deltaTime) {
+        deltaTime = (deltaTime ?? (1000 / 60)) * body.timeScale;
+
+        const deltaTimeSquared = deltaTime * deltaTime,
+            correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;
+
+        // from the previous step
+        const frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta),
+            velocityPrevX = (body.position.x - body.positionPrev.x) * correction,
+            velocityPrevY = (body.position.y - body.positionPrev.y) * correction;
+
+        // update velocity with Verlet integration
+        body.velocity.x = (velocityPrevX * frictionAir) + (body.force.x / body.mass) * deltaTimeSquared;
+        body.velocity.y = (velocityPrevY * frictionAir) + (body.force.y / body.mass) * deltaTimeSquared;
+
+        body.positionPrev.x = body.position.x;
+        body.positionPrev.y = body.position.y;
+        body.position.x += body.velocity.x;
+        body.position.y += body.velocity.y;
+        body.deltaTime = deltaTime;
+
+        // update angular velocity with Verlet integration
+        body.angularVelocity = ((body.angle - body.anglePrev) * frictionAir * correction) + (body.torque / body.inertia) * deltaTimeSquared;
+        body.anglePrev = body.angle;
+        body.angle += body.angularVelocity;
+
+        // transform the body geometry
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
+
+            Vertices.translate(part.vertices, body.velocity);
+
+            if (i > 0) {
+                part.position.x += body.velocity.x;
+                part.position.y += body.velocity.y;
+            }
+
+            if (body.angularVelocity !== 0) {
+                Vertices.rotate(part.vertices, body.angularVelocity, body.position);
+                Axes.rotate(part.axes, body.angularVelocity);
+                if (i > 0) {
+                    Vector.rotateAbout(part.position, body.angularVelocity, body.position, part.position);
+                }
+            }
+
+            Bounds.update(part.bounds, part.vertices, body.velocity);
+        }
+    }
+
+    /**
+     * Updates properties `body.velocity`, `body.speed`, `body.angularVelocity` and `body.angularSpeed` which are normalised in relation to `Body._baseDelta`.
+     * @method updateVelocities
+     * @param {body} body
+     */
+    static updateVelocities(body) {
+        const timeScale = Body._baseDelta / body.deltaTime,
+            bodyVelocity = body.velocity;
+
+        bodyVelocity.x = (body.position.x - body.positionPrev.x) * timeScale;
+        bodyVelocity.y = (body.position.y - body.positionPrev.y) * timeScale;
+        body.speed = Math.sqrt((bodyVelocity.x * bodyVelocity.x) + (bodyVelocity.y * bodyVelocity.y));
+
+        body.angularVelocity = (body.angle - body.anglePrev) * timeScale;
+        body.angularSpeed = Math.abs(body.angularVelocity);
+    }
+
+    /**
+     * Applies the `force` to the `body` from the force origin `position` in world-space, over a single timestep, including applying any resulting angular torque.
+     *
+     * Forces are useful for effects like gravity, wind or rocket thrust, but can be difficult in practice when precise control is needed. In these cases see `Body.setVelocity` and `Body.setPosition` as an alternative.
+     *
+     * The force from this function is only applied once for the duration of a single timestep, in other words the duration depends directly on the current engine update `delta` and the rate of calls to this function.
+     *
+     * Therefore to account for time, you should apply the force constantly over as many engine updates as equivalent to the intended duration.
+     *
+     * If all or part of the force duration is some fraction of a timestep, first multiply the force by `duration / timestep`.
+     *
+     * The force origin `position` in world-space must also be specified. Passing `body.position` will result in zero angular effect as the force origin would be at the centre of mass.
+     *
+     * The `body` will take time to accelerate under a force, the resulting effect depends on duration of the force, the body mass and other forces on the body including friction combined.
+     * @method applyForce
+     * @param {body} body
+     * @param {vector} position The force origin in world-space. Pass `body.position` to avoid angular torque.
+     * @param {vector} force
+     */
+    static applyForce(body, position, force) {
+        const offset = { x: position.x - body.position.x, y: position.y - body.position.y };
+        body.force.x += force.x;
+        body.force.y += force.y;
+        body.torque += offset.x * force.y - offset.y * force.x;
+    }
+
+    /**
+     * Returns the sums of the properties of all compound parts of the parent body.
+     * @method _totalProperties
+     * @private
+     * @param {body} body
+     * @return {}
+     */
+    static _totalProperties(body) {
+        // from equations at:
+        // https://ecourses.ou.edu/cgi-bin/ebook.cgi?doc=&topic=st&chap_sec=07.2&page=theory
+        // http://output.to/sideway/default.asp?qno=121100087
+
+        const properties = {
+            mass: 0,
+            area: 0,
+            inertia: 0,
+            centre: { x: 0, y: 0 }
+        };
+
+        // sum the properties of all compound parts of the parent body
+        for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
+            const part = body.parts[i],
+                mass = part.mass !== Infinity ? part.mass : 1;
+
+            properties.mass += mass;
+            properties.area += part.area;
+            properties.inertia += part.inertia;
+            properties.centre = Vector.add(properties.centre, Vector.mult(part.position, mass));
+        }
+
+        properties.centre = Vector.div(properties.centre, properties.mass);
+
+        return properties;
+    }
+}
 
 /*
 *

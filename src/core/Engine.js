@@ -18,314 +18,322 @@ import Constraint from '../constraint/Constraint';
 import Common from './Common';
 import Body from '../body/Body';
 
-const Engine = {};
+class Engine {
 
-Engine._deltaMax = 1000 / 60;
+    static _deltaMax = 1000 / 60;
 
-/**
- * Creates a new engine. The options parameter is an object that specifies any properties you wish to override the defaults.
- * All properties have default values, and many are pre-calculated automatically based on other properties.
- * See the properties section below for detailed information on what you can pass via the `options` object.
- * @method create
- * @param {object} [options]
- * @return {engine} engine
- */
-Engine.create = function(options = {}) {
+    /**
+     * Creates a new engine. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @param {object} [options]
+     */
+    constructor(options = {}) {
+        const defaults = {
+            positionIterations: 6,
+            velocityIterations: 4,
+            constraintIterations: 2,
+            enableSleeping: false,
+            events: [],
+            plugin: {},
+            gravity: {
+                x: 0,
+                y: 1,
+                scale: 0.001
+            },
+            timing: {
+                timestamp: 0,
+                timeScale: 1,
+                lastDelta: 0,
+                lastElapsed: 0,
+                lastUpdatesPerFrame: 0
+            }
+        };
 
-    const defaults = {
-        positionIterations: 6,
-        velocityIterations: 4,
-        constraintIterations: 2,
-        enableSleeping: false,
-        events: [],
-        plugin: {},
-        gravity: {
-            x: 0,
-            y: 1,
-            scale: 0.001
-        },
-        timing: {
-            timestamp: 0,
-            timeScale: 1,
-            lastDelta: 0,
-            lastElapsed: 0,
-            lastUpdatesPerFrame: 0
+        Object.assign(this, Common.extend(defaults, options));
+
+        this.world = options.world || Composite.create({ label: 'World' });
+        this.pairs = options.pairs || Pairs.create();
+        this.detector = options.detector || Detector.create();
+        this.detector.pairs = this.pairs;
+
+        this.world.gravity = this.gravity;
+    }
+
+    /**
+     * Creates a new engine. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * All properties have default values, and many are pre-calculated automatically based on other properties.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {object} [options]
+     * @return {engine} engine
+     */
+    static create(options = {}) {
+        return new Engine(options);
+    }
+
+    /**
+     * Moves the simulation forward in time by `delta` milliseconds.
+     * Triggers `beforeUpdate`, `beforeSolve` and `afterUpdate` events.
+     * Triggers `collisionStart`, `collisionActive` and `collisionEnd` events.
+     * @method update
+     * @param {engine} engine
+     * @param {number} [delta=16.666]
+     */
+    static update(engine, delta) {
+        const startTime = Common.now();
+
+        const world = engine.world,
+            detector = engine.detector,
+            pairs = engine.pairs,
+            timing = engine.timing,
+            timestamp = timing.timestamp;
+        let i;
+
+        // warn if high delta
+        if (delta > Engine._deltaMax) {
+            Common.warnOnce(
+                'Matter.Engine.update: delta argument is recommended to be less than or equal to', Engine._deltaMax.toFixed(3), 'ms.'
+            );
         }
-    };
 
-    const engine = Common.extend(defaults, options);
+        delta = delta ?? Common._baseDelta;
+        delta *= timing.timeScale;
 
-    engine.world = options.world || Composite.create({ label: 'World' });
-    engine.pairs = options.pairs || Pairs.create();
-    engine.detector = options.detector || Detector.create();
-    engine.detector.pairs = engine.pairs;
+        // increment timestamp
+        timing.timestamp += delta;
+        timing.lastDelta = delta;
 
-    engine.world.gravity = engine.gravity;
-
-    return engine;
-};
-
-/**
- * Moves the simulation forward in time by `delta` milliseconds.
- * Triggers `beforeUpdate`, `beforeSolve` and `afterUpdate` events.
- * Triggers `collisionStart`, `collisionActive` and `collisionEnd` events.
- * @method update
- * @param {engine} engine
- * @param {number} [delta=16.666]
- */
-Engine.update = function(engine, delta) {
-    const startTime = Common.now();
-
-    const world = engine.world,
-        detector = engine.detector,
-        pairs = engine.pairs,
-        timing = engine.timing,
-        timestamp = timing.timestamp;
-    let i;
-
-    // warn if high delta
-    if (delta > Engine._deltaMax) {
-        Common.warnOnce(
-            'Matter.Engine.update: delta argument is recommended to be less than or equal to', Engine._deltaMax.toFixed(3), 'ms.'
-        );
-    }
-
-    delta = delta ?? Common._baseDelta;
-    delta *= timing.timeScale;
-
-    // increment timestamp
-    timing.timestamp += delta;
-    timing.lastDelta = delta;
-
-    // create an event object
-    const event = {
-        timestamp: timing.timestamp,
-        delta
-    };
-
-    Events.trigger(engine, 'beforeUpdate', event);
-
-    // get all bodies and all constraints in the world
-    const allBodies = Composite.allBodies(world),
-        allConstraints = Composite.allConstraints(world);
-
-    // if the world has changed
-    if (world.isModified) {
-        // update the detector bodies
-        Detector.setBodies(detector, allBodies);
-
-        // reset all composite modified flags
-        Composite.setModified(world, false, false, true);
-    }
-
-    // update sleeping if enabled
-    if (engine.enableSleeping)
-        Sleeping.update(allBodies, delta);
-
-    // apply gravity to all bodies
-    Engine._bodiesApplyGravity(allBodies, engine.gravity);
-
-    // update all body position and rotation by integration
-    if (delta > 0) {
-        Engine._bodiesUpdate(allBodies, delta);
-    }
-
-    Events.trigger(engine, 'beforeSolve', event);
-
-    // update all constraints (first pass)
-    Constraint.preSolveAll(allBodies);
-    for (i = 0; i < engine.constraintIterations; i++) {
-        Constraint.solveAll(allConstraints, delta);
-    }
-    Constraint.postSolveAll(allBodies);
-
-    // find all collisions
-    const collisions = Detector.collisions(detector);
-
-    // update collision pairs
-    Pairs.update(pairs, collisions, timestamp);
-
-    // wake up bodies involved in collisions
-    if (engine.enableSleeping)
-        Sleeping.afterCollisions(pairs.list);
-
-    // trigger collision events
-    if (pairs.collisionStart.length > 0) {
-        Events.trigger(engine, 'collisionStart', {
-            pairs: pairs.collisionStart,
+        // create an event object
+        const event = {
             timestamp: timing.timestamp,
-            delta: delta
-        });
+            delta
+        };
+
+        Events.trigger(engine, 'beforeUpdate', event);
+
+        // get all bodies and all constraints in the world
+        const allBodies = Composite.allBodies(world),
+            allConstraints = Composite.allConstraints(world);
+
+        // if the world has changed
+        if (world.isModified) {
+            // update the detector bodies
+            Detector.setBodies(detector, allBodies);
+
+            // reset all composite modified flags
+            Composite.setModified(world, false, false, true);
+        }
+
+        // update sleeping if enabled
+        if (engine.enableSleeping)
+            Sleeping.update(allBodies, delta);
+
+        // apply gravity to all bodies
+        Engine._bodiesApplyGravity(allBodies, engine.gravity);
+
+        // update all body position and rotation by integration
+        if (delta > 0) {
+            Engine._bodiesUpdate(allBodies, delta);
+        }
+
+        Events.trigger(engine, 'beforeSolve', event);
+
+        // update all constraints (first pass)
+        Constraint.preSolveAll(allBodies);
+        for (i = 0; i < engine.constraintIterations; i++) {
+            Constraint.solveAll(allConstraints, delta);
+        }
+        Constraint.postSolveAll(allBodies);
+
+        // find all collisions
+        const collisions = Detector.collisions(detector);
+
+        // update collision pairs
+        Pairs.update(pairs, collisions, timestamp);
+
+        // wake up bodies involved in collisions
+        if (engine.enableSleeping)
+            Sleeping.afterCollisions(pairs.list);
+
+        // trigger collision events
+        if (pairs.collisionStart.length > 0) {
+            Events.trigger(engine, 'collisionStart', {
+                pairs: pairs.collisionStart,
+                timestamp: timing.timestamp,
+                delta: delta
+            });
+        }
+
+        // iteratively resolve position between collisions
+        const positionDamping = Common.clamp(20 / engine.positionIterations, 0, 1);
+
+        Resolver.preSolvePosition(pairs.list);
+        for (i = 0; i < engine.positionIterations; i++) {
+            Resolver.solvePosition(pairs.list, delta, positionDamping);
+        }
+        Resolver.postSolvePosition(allBodies);
+
+        // update all constraints (second pass)
+        Constraint.preSolveAll(allBodies);
+        for (i = 0; i < engine.constraintIterations; i++) {
+            Constraint.solveAll(allConstraints, delta);
+        }
+        Constraint.postSolveAll(allBodies);
+
+        // iteratively resolve velocity between collisions
+        Resolver.preSolveVelocity(pairs.list);
+        for (i = 0; i < engine.velocityIterations; i++) {
+            Resolver.solveVelocity(pairs.list, delta);
+        }
+
+        // update body speed and velocity properties
+        Engine._bodiesUpdateVelocities(allBodies);
+
+        // trigger collision events
+        if (pairs.collisionActive.length > 0) {
+            Events.trigger(engine, 'collisionActive', {
+                pairs: pairs.collisionActive,
+                timestamp: timing.timestamp,
+                delta: delta
+            });
+        }
+
+        if (pairs.collisionEnd.length > 0) {
+            Events.trigger(engine, 'collisionEnd', {
+                pairs: pairs.collisionEnd,
+                timestamp: timing.timestamp,
+                delta: delta
+            });
+        }
+
+        // clear force buffers
+        Engine._bodiesClearForces(allBodies);
+
+        Events.trigger(engine, 'afterUpdate', event);
+
+        // log the time elapsed computing this update
+        engine.timing.lastElapsed = Common.now() - startTime;
+
+        return engine;
     }
 
-    // iteratively resolve position between collisions
-    const positionDamping = Common.clamp(20 / engine.positionIterations, 0, 1);
+    /**
+     * Merges two engines by keeping the configuration of `engineA` but replacing the world with the one from `engineB`.
+     * @method merge
+     * @param {engine} engineA
+     * @param {engine} engineB
+     */
+    static merge(engineA, engineB) {
+        Common.extend(engineA, engineB);
 
-    Resolver.preSolvePosition(pairs.list);
-    for (i = 0; i < engine.positionIterations; i++) {
-        Resolver.solvePosition(pairs.list, delta, positionDamping);
-    }
-    Resolver.postSolvePosition(allBodies);
+        if (engineB.world) {
+            engineA.world = engineB.world;
 
-    // update all constraints (second pass)
-    Constraint.preSolveAll(allBodies);
-    for (i = 0; i < engine.constraintIterations; i++) {
-        Constraint.solveAll(allConstraints, delta);
-    }
-    Constraint.postSolveAll(allBodies);
+            Engine.clear(engineA);
 
-    // iteratively resolve velocity between collisions
-    Resolver.preSolveVelocity(pairs.list);
-    for (i = 0; i < engine.velocityIterations; i++) {
-        Resolver.solveVelocity(pairs.list, delta);
-    }
+            const bodies = Composite.allBodies(engineA.world);
 
-    // update body speed and velocity properties
-    Engine._bodiesUpdateVelocities(allBodies);
-
-    // trigger collision events
-    if (pairs.collisionActive.length > 0) {
-        Events.trigger(engine, 'collisionActive', {
-            pairs: pairs.collisionActive,
-            timestamp: timing.timestamp,
-            delta: delta
-        });
+            for (let i = 0; i < bodies.length; i++) {
+                const body = bodies[i];
+                Sleeping.set(body, false);
+                body.id = Common.nextId();
+            }
+        }
     }
 
-    if (pairs.collisionEnd.length > 0) {
-        Events.trigger(engine, 'collisionEnd', {
-            pairs: pairs.collisionEnd,
-            timestamp: timing.timestamp,
-            delta: delta
-        });
+    /**
+     * Clears the engine pairs and detector.
+     * @method clear
+     * @param {engine} engine
+     */
+    static clear(engine) {
+        Pairs.clear(engine.pairs);
+        Detector.clear(engine.detector);
     }
 
-    // clear force buffers
-    Engine._bodiesClearForces(allBodies);
+    /**
+     * Zeroes the `body.force` and `body.torque` force buffers.
+     * @method _bodiesClearForces
+     * @private
+     * @param {body[]} bodies
+     */
+    static _bodiesClearForces(bodies) {
+        const bodiesLength = bodies.length;
 
-    Events.trigger(engine, 'afterUpdate', event);
-
-    // log the time elapsed computing this update
-    engine.timing.lastElapsed = Common.now() - startTime;
-
-    return engine;
-};
-
-/**
- * Merges two engines by keeping the configuration of `engineA` but replacing the world with the one from `engineB`.
- * @method merge
- * @param {engine} engineA
- * @param {engine} engineB
- */
-Engine.merge = function(engineA, engineB) {
-    Common.extend(engineA, engineB);
-
-    if (engineB.world) {
-        engineA.world = engineB.world;
-
-        Engine.clear(engineA);
-
-        const bodies = Composite.allBodies(engineA.world);
-
-        for (let i = 0; i < bodies.length; i++) {
+        for (let i = 0; i < bodiesLength; i++) {
             const body = bodies[i];
-            Sleeping.set(body, false);
-            body.id = Common.nextId();
+
+            // reset force buffers
+            body.force.x = 0;
+            body.force.y = 0;
+            body.torque = 0;
         }
     }
-};
 
-/**
- * Clears the engine pairs and detector.
- * @method clear
- * @param {engine} engine
- */
-Engine.clear = function(engine) {
-    Pairs.clear(engine.pairs);
-    Detector.clear(engine.detector);
-};
+    /**
+     * Applies gravitational acceleration to all `bodies`.
+     * This models a [uniform gravitational field](https://en.wikipedia.org/wiki/Gravity_of_Earth), similar to near the surface of a planet.
+     *
+     * @method _bodiesApplyGravity
+     * @private
+     * @param {body[]} bodies
+     * @param {vector} gravity
+     */
+    static _bodiesApplyGravity(bodies, gravity) {
+        const gravityScale = typeof gravity.scale !== 'undefined' ? gravity.scale : 0.001,
+            bodiesLength = bodies.length;
 
-/**
- * Zeroes the `body.force` and `body.torque` force buffers.
- * @method _bodiesClearForces
- * @private
- * @param {body[]} bodies
- */
-Engine._bodiesClearForces = function(bodies) {
-    const bodiesLength = bodies.length;
+        if ((gravity.x === 0 && gravity.y === 0) || gravityScale === 0) {
+            return;
+        }
 
-    for (let i = 0; i < bodiesLength; i++) {
-        const body = bodies[i];
+        for (let i = 0; i < bodiesLength; i++) {
+            const body = bodies[i];
 
-        // reset force buffers
-        body.force.x = 0;
-        body.force.y = 0;
-        body.torque = 0;
-    }
-};
+            if (body.isStatic || body.isSleeping)
+                continue;
 
-/**
- * Applies gravitational acceleration to all `bodies`.
- * This models a [uniform gravitational field](https://en.wikipedia.org/wiki/Gravity_of_Earth), similar to near the surface of a planet.
- *
- * @method _bodiesApplyGravity
- * @private
- * @param {body[]} bodies
- * @param {vector} gravity
- */
-Engine._bodiesApplyGravity = function(bodies, gravity) {
-    const gravityScale = typeof gravity.scale !== 'undefined' ? gravity.scale : 0.001,
-        bodiesLength = bodies.length;
-
-    if ((gravity.x === 0 && gravity.y === 0) || gravityScale === 0) {
-        return;
+            // add the resultant force of gravity
+            body.force.y += body.mass * gravity.y * gravityScale;
+            body.force.x += body.mass * gravity.x * gravityScale;
+        }
     }
 
-    for (let i = 0; i < bodiesLength; i++) {
-        const body = bodies[i];
+    /**
+     * Applies `Body.update` to all given `bodies`.
+     * @method _bodiesUpdate
+     * @private
+     * @param {body[]} bodies
+     * @param {number} delta The amount of time elapsed between updates
+     */
+    static _bodiesUpdate(bodies, delta) {
+        const bodiesLength = bodies.length;
 
-        if (body.isStatic || body.isSleeping)
-            continue;
+        for (let i = 0; i < bodiesLength; i++) {
+            const body = bodies[i];
 
-        // add the resultant force of gravity
-        body.force.y += body.mass * gravity.y * gravityScale;
-        body.force.x += body.mass * gravity.x * gravityScale;
+            if (body.isStatic || body.isSleeping)
+                continue;
+
+            Body.update(body, delta);
+        }
     }
-};
 
-/**
- * Applies `Body.update` to all given `bodies`.
- * @method _bodiesUpdate
- * @private
- * @param {body[]} bodies
- * @param {number} delta The amount of time elapsed between updates
- */
-Engine._bodiesUpdate = function(bodies, delta) {
-    const bodiesLength = bodies.length;
+    /**
+     * Applies `Body.updateVelocities` to all given `bodies`.
+     * @method _bodiesUpdateVelocities
+     * @private
+     * @param {body[]} bodies
+     */
+    static _bodiesUpdateVelocities(bodies) {
+        const bodiesLength = bodies.length;
 
-    for (let i = 0; i < bodiesLength; i++) {
-        const body = bodies[i];
-
-        if (body.isStatic || body.isSleeping)
-            continue;
-
-        Body.update(body, delta);
+        for (let i = 0; i < bodiesLength; i++) {
+            Body.updateVelocities(bodies[i]);
+        }
     }
-};
-
-/**
- * Applies `Body.updateVelocities` to all given `bodies`.
- * @method _bodiesUpdateVelocities
- * @private
- * @param {body[]} bodies
- */
-Engine._bodiesUpdateVelocities = function(bodies) {
-    const bodiesLength = bodies.length;
-
-    for (let i = 0; i < bodiesLength; i++) {
-        Body.updateVelocities(bodies[i]);
-    }
-};
+}
 
 /**
  * A deprecated alias for `Runner.run`, use `Matter.Runner.run(engine)` instead and see `Matter.Runner` for more information.

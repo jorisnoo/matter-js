@@ -14,17 +14,17 @@
 
 import Composite from './Composite';
 
-const World = {};
-
 /**
  * See above, aliases for back compatibility only
  */
-World.create = Composite.create;
-World.add = Composite.add;
-World.remove = Composite.remove;
-World.clear = Composite.clear;
-World.addComposite = Composite.addComposite;
-World.addBody = Composite.addBody;
-World.addConstraint = Composite.addConstraint;
+class World {
+    static create = Composite.create;
+    static add = Composite.add;
+    static remove = Composite.remove;
+    static clear = Composite.clear;
+    static addComposite = Composite.addComposite;
+    static addBody = Composite.addBody;
+    static addConstraint = Composite.addConstraint;
+}
 
 export default World;

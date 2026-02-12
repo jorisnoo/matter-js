@@ -14,256 +14,264 @@ import Events from './Events';
 import Engine from './Engine';
 import Common from './Common';
 
-const Runner = {};
+class Runner {
 
-Runner._maxFrameDelta = 1000 / 15;
-Runner._frameDeltaFallback = 1000 / 60;
-Runner._timeBufferMargin = 1.5;
-Runner._elapsedNextEstimate = 1;
-Runner._smoothingLowerBound = 0.1;
-Runner._smoothingUpperBound = 0.9;
+    static _maxFrameDelta = 1000 / 15;
+    static _frameDeltaFallback = 1000 / 60;
+    static _timeBufferMargin = 1.5;
+    static _elapsedNextEstimate = 1;
+    static _smoothingLowerBound = 0.1;
+    static _smoothingUpperBound = 0.9;
 
-/**
- * Creates a new Runner.
- * See the properties section below for detailed information on what you can pass via the `options` object.
- * @method create
- * @param {} options
- */
-Runner.create = function(options) {
-    const defaults = {
-        delta: 1000 / 60,
-        frameDelta: null,
-        frameDeltaSmoothing: true,
-        frameDeltaSnapping: true,
-        frameDeltaHistory: [],
-        frameDeltaHistorySize: 100,
-        frameRequestId: null,
-        timeBuffer: 0,
-        timeLastTick: null,
-        maxUpdates: null,
-        maxFrameTime: 1000 / 30,
-        lastUpdatesDeferred: 0,
-        enabled: true
-    };
+    /**
+     * Creates a new Runner.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @param {} options
+     */
+    constructor(options) {
+        const defaults = {
+            delta: 1000 / 60,
+            frameDelta: null,
+            frameDeltaSmoothing: true,
+            frameDeltaSnapping: true,
+            frameDeltaHistory: [],
+            frameDeltaHistorySize: 100,
+            frameRequestId: null,
+            timeBuffer: 0,
+            timeLastTick: null,
+            maxUpdates: null,
+            maxFrameTime: 1000 / 30,
+            lastUpdatesDeferred: 0,
+            enabled: true
+        };
 
-    const runner = Common.extend(defaults, options);
+        Object.assign(this, Common.extend(defaults, options));
 
-    // for temporary back compatibility only
-    runner.fps = 0;
-
-    return runner;
-};
-
-/**
- * Runs a `Matter.Engine` whilst synchronising engine updates with the browser frame rate.
- * See module and properties descriptions for more information on this runner.
- * Alternatively see `Engine.update` to step the engine directly inside your own game loop implementation.
- * @method run
- * @param {runner} runner
- * @param {engine} [engine]
- * @return {runner} runner
- */
-Runner.run = function(runner, engine) {
-    // initial time buffer for the first frame
-    runner.timeBuffer = Runner._frameDeltaFallback;
-
-    (function onFrame(time){
-        runner.frameRequestId = Runner._onNextFrame(runner, onFrame);
-
-        if (time && runner.enabled) {
-            Runner.tick(runner, engine, time);
-        }
-    })();
-
-    return runner;
-};
-
-/**
- * Performs a single runner tick as used inside `Runner.run`.
- * See module and properties descriptions for more information on this runner.
- * Alternatively see `Engine.update` to step the engine directly inside your own game loop implementation.
- * @method tick
- * @param {runner} runner
- * @param {engine} engine
- * @param {number} time
- */
-Runner.tick = function(runner, engine, time) {
-    const tickStartTime = Common.now(),
-        engineDelta = runner.delta;
-    let updateCount = 0;
-
-    // find frame delta time since last call
-    let frameDelta = time - runner.timeLastTick;
-
-    // fallback for unusable frame delta values (e.g. 0, NaN, on first frame or long pauses)
-    if (!frameDelta || !runner.timeLastTick || frameDelta > Math.max(Runner._maxFrameDelta, runner.maxFrameTime)) {
-        // reuse last accepted frame delta else fallback
-        frameDelta = runner.frameDelta || Runner._frameDeltaFallback;
+        // for temporary back compatibility only
+        this.fps = 0;
     }
 
-    if (runner.frameDeltaSmoothing) {
-        // record frame delta over a number of frames
-        runner.frameDeltaHistory.push(frameDelta);
-        runner.frameDeltaHistory = runner.frameDeltaHistory.slice(-runner.frameDeltaHistorySize);
+    /**
+     * Creates a new Runner.
+     * See the properties section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {} options
+     */
+    static create(options) {
+        return new Runner(options);
+    }
 
-        // sort frame delta history
-        const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
+    /**
+     * Runs a `Matter.Engine` whilst synchronising engine updates with the browser frame rate.
+     * See module and properties descriptions for more information on this runner.
+     * Alternatively see `Engine.update` to step the engine directly inside your own game loop implementation.
+     * @method run
+     * @param {runner} runner
+     * @param {engine} [engine]
+     * @return {runner} runner
+     */
+    static run(runner, engine) {
+        // initial time buffer for the first frame
+        runner.timeBuffer = Runner._frameDeltaFallback;
 
-        // sample a central window to limit outliers
-        const deltaHistoryWindow = runner.frameDeltaHistory.slice(
-            deltaHistorySorted.length * Runner._smoothingLowerBound,
-            deltaHistorySorted.length * Runner._smoothingUpperBound
+        (function onFrame(time){
+            runner.frameRequestId = Runner._onNextFrame(runner, onFrame);
+
+            if (time && runner.enabled) {
+                Runner.tick(runner, engine, time);
+            }
+        })();
+
+        return runner;
+    }
+
+    /**
+     * Performs a single runner tick as used inside `Runner.run`.
+     * See module and properties descriptions for more information on this runner.
+     * Alternatively see `Engine.update` to step the engine directly inside your own game loop implementation.
+     * @method tick
+     * @param {runner} runner
+     * @param {engine} engine
+     * @param {number} time
+     */
+    static tick(runner, engine, time) {
+        const tickStartTime = Common.now(),
+            engineDelta = runner.delta;
+        let updateCount = 0;
+
+        // find frame delta time since last call
+        let frameDelta = time - runner.timeLastTick;
+
+        // fallback for unusable frame delta values (e.g. 0, NaN, on first frame or long pauses)
+        if (!frameDelta || !runner.timeLastTick || frameDelta > Math.max(Runner._maxFrameDelta, runner.maxFrameTime)) {
+            // reuse last accepted frame delta else fallback
+            frameDelta = runner.frameDelta || Runner._frameDeltaFallback;
+        }
+
+        if (runner.frameDeltaSmoothing) {
+            // record frame delta over a number of frames
+            runner.frameDeltaHistory.push(frameDelta);
+            runner.frameDeltaHistory = runner.frameDeltaHistory.slice(-runner.frameDeltaHistorySize);
+
+            // sort frame delta history
+            const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
+
+            // sample a central window to limit outliers
+            const deltaHistoryWindow = runner.frameDeltaHistory.slice(
+                deltaHistorySorted.length * Runner._smoothingLowerBound,
+                deltaHistorySorted.length * Runner._smoothingUpperBound
+            );
+
+            // take the mean of the central window
+            const frameDeltaSmoothed = Runner._mean(deltaHistoryWindow);
+            frameDelta = frameDeltaSmoothed || frameDelta;
+        }
+
+        if (runner.frameDeltaSnapping) {
+            // snap frame delta to the nearest 1 Hz
+            frameDelta = 1000 / Math.round(1000 / frameDelta);
+        }
+
+        // update runner values for next call
+        runner.frameDelta = frameDelta;
+        runner.timeLastTick = time;
+
+        // accumulate elapsed time
+        runner.timeBuffer += runner.frameDelta;
+
+        // limit time buffer size to a single frame of updates
+        runner.timeBuffer = Common.clamp(
+            runner.timeBuffer, 0, runner.frameDelta + engineDelta * Runner._timeBufferMargin
         );
 
-        // take the mean of the central window
-        const frameDeltaSmoothed = _mean(deltaHistoryWindow);
-        frameDelta = frameDeltaSmoothed || frameDelta;
-    }
+        // reset count of over budget updates
+        runner.lastUpdatesDeferred = 0;
 
-    if (runner.frameDeltaSnapping) {
-        // snap frame delta to the nearest 1 Hz
-        frameDelta = 1000 / Math.round(1000 / frameDelta);
-    }
+        // get max updates per frame
+        const maxUpdates = runner.maxUpdates || Math.ceil(runner.maxFrameTime / engineDelta);
 
-    // update runner values for next call
-    runner.frameDelta = frameDelta;
-    runner.timeLastTick = time;
+        // create event object
+        const event = {
+            timestamp: engine.timing.timestamp
+        };
 
-    // accumulate elapsed time
-    runner.timeBuffer += runner.frameDelta;
+        // tick events before update
+        Events.trigger(runner, 'beforeTick', event);
+        Events.trigger(runner, 'tick', event);
 
-    // limit time buffer size to a single frame of updates
-    runner.timeBuffer = Common.clamp(
-        runner.timeBuffer, 0, runner.frameDelta + engineDelta * Runner._timeBufferMargin
-    );
+        const updateStartTime = Common.now();
 
-    // reset count of over budget updates
-    runner.lastUpdatesDeferred = 0;
+        // simulate time elapsed between calls
+        while (engineDelta > 0 && runner.timeBuffer >= engineDelta * Runner._timeBufferMargin) {
+            // update the engine
+            Events.trigger(runner, 'beforeUpdate', event);
+            Engine.update(engine, engineDelta);
+            Events.trigger(runner, 'afterUpdate', event);
 
-    // get max updates per frame
-    const maxUpdates = runner.maxUpdates || Math.ceil(runner.maxFrameTime / engineDelta);
+            // consume time simulated from buffer
+            runner.timeBuffer -= engineDelta;
+            updateCount += 1;
 
-    // create event object
-    const event = {
-        timestamp: engine.timing.timestamp
-    };
+            // find elapsed time during this tick
+            const elapsedTimeTotal = Common.now() - tickStartTime,
+                elapsedTimeUpdates = Common.now() - updateStartTime,
+                elapsedNextEstimate = elapsedTimeTotal + Runner._elapsedNextEstimate * elapsedTimeUpdates / updateCount;
 
-    // tick events before update
-    Events.trigger(runner, 'beforeTick', event);
-    Events.trigger(runner, 'tick', event);
+            // defer updates if over performance budgets for this frame
+            if (updateCount >= maxUpdates || elapsedNextEstimate > runner.maxFrameTime) {
+                runner.lastUpdatesDeferred = Math.round(Math.max(0, (runner.timeBuffer / engineDelta) - Runner._timeBufferMargin));
+                break;
+            }
+        }
 
-    const updateStartTime = Common.now();
+        // track timing metrics
+        engine.timing.lastUpdatesPerFrame = updateCount;
 
-    // simulate time elapsed between calls
-    while (engineDelta > 0 && runner.timeBuffer >= engineDelta * Runner._timeBufferMargin) {
-        // update the engine
-        Events.trigger(runner, 'beforeUpdate', event);
-        Engine.update(engine, engineDelta);
-        Events.trigger(runner, 'afterUpdate', event);
+        // tick events after update
+        Events.trigger(runner, 'afterTick', event);
 
-        // consume time simulated from buffer
-        runner.timeBuffer -= engineDelta;
-        updateCount += 1;
+        // show useful warnings if needed
+        if (runner.frameDeltaHistory.length >= 100) {
+            if (runner.lastUpdatesDeferred && Math.round(runner.frameDelta / engineDelta) > maxUpdates) {
+                Common.warnOnce('Matter.Runner: runner reached runner.maxUpdates, see docs.');
+            } else if (runner.lastUpdatesDeferred) {
+                Common.warnOnce('Matter.Runner: runner reached runner.maxFrameTime, see docs.');
+            }
 
-        // find elapsed time during this tick
-        const elapsedTimeTotal = Common.now() - tickStartTime,
-            elapsedTimeUpdates = Common.now() - updateStartTime,
-            elapsedNextEstimate = elapsedTimeTotal + Runner._elapsedNextEstimate * elapsedTimeUpdates / updateCount;
+            if (typeof runner.isFixed !== 'undefined') {
+                Common.warnOnce('Matter.Runner: runner.isFixed is now redundant, see docs.');
+            }
 
-        // defer updates if over performance budgets for this frame
-        if (updateCount >= maxUpdates || elapsedNextEstimate > runner.maxFrameTime) {
-            runner.lastUpdatesDeferred = Math.round(Math.max(0, (runner.timeBuffer / engineDelta) - Runner._timeBufferMargin));
-            break;
+            if (runner.deltaMin || runner.deltaMax) {
+                Common.warnOnce('Matter.Runner: runner.deltaMin and runner.deltaMax were removed, see docs.');
+            }
+
+            if (runner.fps !== 0) {
+                Common.warnOnce('Matter.Runner: runner.fps was replaced by runner.delta, see docs.');
+            }
         }
     }
 
-    // track timing metrics
-    engine.timing.lastUpdatesPerFrame = updateCount;
-
-    // tick events after update
-    Events.trigger(runner, 'afterTick', event);
-
-    // show useful warnings if needed
-    if (runner.frameDeltaHistory.length >= 100) {
-        if (runner.lastUpdatesDeferred && Math.round(runner.frameDelta / engineDelta) > maxUpdates) {
-            Common.warnOnce('Matter.Runner: runner reached runner.maxUpdates, see docs.');
-        } else if (runner.lastUpdatesDeferred) {
-            Common.warnOnce('Matter.Runner: runner reached runner.maxFrameTime, see docs.');
-        }
-
-        if (typeof runner.isFixed !== 'undefined') {
-            Common.warnOnce('Matter.Runner: runner.isFixed is now redundant, see docs.');
-        }
-
-        if (runner.deltaMin || runner.deltaMax) {
-            Common.warnOnce('Matter.Runner: runner.deltaMin and runner.deltaMax were removed, see docs.');
-        }
-
-        if (runner.fps !== 0) {
-            Common.warnOnce('Matter.Runner: runner.fps was replaced by runner.delta, see docs.');
-        }
-    }
-};
-
-/**
- * Ends execution of `Runner.run` on the given `runner` by canceling the frame loop.
- * Alternatively to temporarily pause the runner, see `runner.enabled`.
- * @method stop
- * @param {runner} runner
- */
-Runner.stop = function(runner) {
-    Runner._cancelNextFrame(runner);
-};
-
-/**
- * Schedules the `callback` on this `runner` for the next animation frame.
- * @private
- * @method _onNextFrame
- * @param {runner} runner
- * @param {function} callback
- * @return {number} frameRequestId
- */
-Runner._onNextFrame = function(runner, callback) {
-    if (typeof window !== 'undefined' && window.requestAnimationFrame) {
-        runner.frameRequestId = window.requestAnimationFrame(callback);
-    } else {
-        throw new Error('Matter.Runner: missing required global window.requestAnimationFrame.');
+    /**
+     * Ends execution of `Runner.run` on the given `runner` by canceling the frame loop.
+     * Alternatively to temporarily pause the runner, see `runner.enabled`.
+     * @method stop
+     * @param {runner} runner
+     */
+    static stop(runner) {
+        Runner._cancelNextFrame(runner);
     }
 
-    return runner.frameRequestId;
-};
+    /**
+     * Schedules the `callback` on this `runner` for the next animation frame.
+     * @private
+     * @method _onNextFrame
+     * @param {runner} runner
+     * @param {function} callback
+     * @return {number} frameRequestId
+     */
+    static _onNextFrame(runner, callback) {
+        if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+            runner.frameRequestId = window.requestAnimationFrame(callback);
+        } else {
+            throw new Error('Matter.Runner: missing required global window.requestAnimationFrame.');
+        }
 
-/**
- * Cancels the last callback scheduled by `Runner._onNextFrame` on this `runner`.
- * @private
- * @method _cancelNextFrame
- * @param {runner} runner
- */
-Runner._cancelNextFrame = function(runner) {
-    if (typeof window !== 'undefined' && window.cancelAnimationFrame) {
-        window.cancelAnimationFrame(runner.frameRequestId);
-    } else {
-        throw new Error('Matter.Runner: missing required global window.cancelAnimationFrame.');
-    }
-};
-
-/**
- * Returns the mean of the given numbers.
- * @method _mean
- * @private
- * @param {Number[]} values
- * @return {Number} the mean of given values.
- */
-const _mean = (values) => {
-    let result = 0;
-    const valuesLength = values.length;
-
-    for (let i = 0; i < valuesLength; i += 1) {
-        result += values[i];
+        return runner.frameRequestId;
     }
 
-    return (result / valuesLength) || 0;
-};
+    /**
+     * Cancels the last callback scheduled by `Runner._onNextFrame` on this `runner`.
+     * @private
+     * @method _cancelNextFrame
+     * @param {runner} runner
+     */
+    static _cancelNextFrame(runner) {
+        if (typeof window !== 'undefined' && window.cancelAnimationFrame) {
+            window.cancelAnimationFrame(runner.frameRequestId);
+        } else {
+            throw new Error('Matter.Runner: missing required global window.cancelAnimationFrame.');
+        }
+    }
+
+    /**
+     * Returns the mean of the given numbers.
+     * @method _mean
+     * @private
+     * @param {Number[]} values
+     * @return {Number} the mean of given values.
+     */
+    static _mean(values) {
+        let result = 0;
+        const valuesLength = values.length;
+
+        for (let i = 0; i < valuesLength; i += 1) {
+            result += values[i];
+        }
+
+        return (result / valuesLength) || 0;
+    }
+}
 
 /*
 *

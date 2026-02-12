@@ -16,573 +16,586 @@ import Common from '../core/Common';
 import Bounds from '../geometry/Bounds';
 import Body from './Body';
 
-const Composite = {};
+class Composite {
 
-/**
- * Creates a new composite. The options parameter is an object that specifies any properties you wish to override the defaults.
- * See the properites section below for detailed information on what you can pass via the `options` object.
- * @method create
- * @param {} [options]
- * @return {composite} A new composite
- */
-Composite.create = function(options) {
-    return Common.extend({
-        id: Common.nextId(),
-        type: 'composite',
-        parent: null,
-        isModified: false,
-        bodies: [],
-        constraints: [],
-        composites: [],
-        label: 'Composite',
-        plugin: {},
-        cache: {
-            allBodies: null,
-            allConstraints: null,
-            allComposites: null
-        }
-    }, options);
-};
-
-/**
- * Sets the composite's `isModified` flag.
- * If `updateParents` is true, all parents will be set (default: false).
- * If `updateChildren` is true, all children will be set (default: false).
- * @private
- * @method setModified
- * @param {composite} composite
- * @param {boolean} isModified
- * @param {boolean} [updateParents=false]
- * @param {boolean} [updateChildren=false]
- */
-Composite.setModified = function(composite, isModified, updateParents, updateChildren) {
-    composite.isModified = isModified;
-
-    if (isModified && composite.cache) {
-        composite.cache.allBodies = null;
-        composite.cache.allConstraints = null;
-        composite.cache.allComposites = null;
-    }
-
-    if (updateParents && composite.parent) {
-        Composite.setModified(composite.parent, isModified, updateParents, updateChildren);
-    }
-
-    if (updateChildren) {
-        for (let i = 0; i < composite.composites.length; i++) {
-            const childComposite = composite.composites[i];
-            Composite.setModified(childComposite, isModified, updateParents, updateChildren);
-        }
-    }
-};
-
-/**
- * Generic single or multi-add function. Adds a single or an array of body(s), constraint(s) or composite(s) to the given composite.
- * Triggers `beforeAdd` and `afterAdd` events on the `composite`.
- * @method add
- * @param {composite} composite
- * @param {object|array} object A single or an array of body(s), constraint(s) or composite(s)
- * @return {composite} The original composite with the objects added
- */
-Composite.add = function(composite, object) {
-    const objects = [].concat(object);
-
-    Events.trigger(composite, 'beforeAdd', { object: object });
-
-    for (let i = 0; i < objects.length; i++) {
-        const obj = objects[i];
-
-        switch (obj.type) {
-
-        case 'body':
-            // skip adding compound parts
-            if (obj.parent !== obj) {
-                Common.warn('Composite.add: skipped adding a compound body part (you must add its parent instead)');
-                break;
+    /**
+     * Creates a new composite. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * See the properites section below for detailed information on what you can pass via the `options` object.
+     * @param {} [options]
+     */
+    constructor(options) {
+        const defaults = {
+            id: Common.nextId(),
+            type: 'composite',
+            parent: null,
+            isModified: false,
+            bodies: [],
+            constraints: [],
+            composites: [],
+            label: 'Composite',
+            plugin: {},
+            cache: {
+                allBodies: null,
+                allConstraints: null,
+                allComposites: null
             }
+        };
 
-            Composite.addBody(composite, obj);
-            break;
-        case 'constraint':
-            Composite.addConstraint(composite, obj);
-            break;
-        case 'composite':
-            Composite.addComposite(composite, obj);
-            break;
-        case 'mouseConstraint':
-            Composite.addConstraint(composite, obj.constraint);
-            break;
+        Object.assign(this, Common.extend(defaults, options));
+    }
 
+    /**
+     * Creates a new composite. The options parameter is an object that specifies any properties you wish to override the defaults.
+     * See the properites section below for detailed information on what you can pass via the `options` object.
+     * @method create
+     * @param {} [options]
+     * @return {composite} A new composite
+     */
+    static create(options) {
+        return new Composite(options);
+    }
+
+    /**
+     * Sets the composite's `isModified` flag.
+     * If `updateParents` is true, all parents will be set (default: false).
+     * If `updateChildren` is true, all children will be set (default: false).
+     * @private
+     * @method setModified
+     * @param {composite} composite
+     * @param {boolean} isModified
+     * @param {boolean} [updateParents=false]
+     * @param {boolean} [updateChildren=false]
+     */
+    static setModified(composite, isModified, updateParents, updateChildren) {
+        composite.isModified = isModified;
+
+        if (isModified && composite.cache) {
+            composite.cache.allBodies = null;
+            composite.cache.allConstraints = null;
+            composite.cache.allComposites = null;
+        }
+
+        if (updateParents && composite.parent) {
+            Composite.setModified(composite.parent, isModified, updateParents, updateChildren);
+        }
+
+        if (updateChildren) {
+            for (let i = 0; i < composite.composites.length; i++) {
+                const childComposite = composite.composites[i];
+                Composite.setModified(childComposite, isModified, updateParents, updateChildren);
+            }
         }
     }
 
-    Events.trigger(composite, 'afterAdd', { object: object });
+    /**
+     * Generic single or multi-add function. Adds a single or an array of body(s), constraint(s) or composite(s) to the given composite.
+     * Triggers `beforeAdd` and `afterAdd` events on the `composite`.
+     * @method add
+     * @param {composite} composite
+     * @param {object|array} object A single or an array of body(s), constraint(s) or composite(s)
+     * @return {composite} The original composite with the objects added
+     */
+    static add(composite, object) {
+        const objects = [].concat(object);
 
-    return composite;
-};
+        Events.trigger(composite, 'beforeAdd', { object: object });
 
-/**
- * Generic remove function. Removes one or many body(s), constraint(s) or a composite(s) to the given composite.
- * Optionally searching its children recursively.
- * Triggers `beforeRemove` and `afterRemove` events on the `composite`.
- * @method remove
- * @param {composite} composite
- * @param {object|array} object
- * @param {boolean} [deep=false]
- * @return {composite} The original composite with the objects removed
- */
-Composite.remove = function(composite, object, deep) {
-    const objects = [].concat(object);
+        for (let i = 0; i < objects.length; i++) {
+            const obj = objects[i];
 
-    Events.trigger(composite, 'beforeRemove', { object: object });
+            switch (obj.type) {
 
-    for (let i = 0; i < objects.length; i++) {
-        const obj = objects[i];
+            case 'body':
+                // skip adding compound parts
+                if (obj.parent !== obj) {
+                    Common.warn('Composite.add: skipped adding a compound body part (you must add its parent instead)');
+                    break;
+                }
 
-        switch (obj.type) {
+                Composite.addBody(composite, obj);
+                break;
+            case 'constraint':
+                Composite.addConstraint(composite, obj);
+                break;
+            case 'composite':
+                Composite.addComposite(composite, obj);
+                break;
+            case 'mouseConstraint':
+                Composite.addConstraint(composite, obj.constraint);
+                break;
 
+            }
+        }
+
+        Events.trigger(composite, 'afterAdd', { object: object });
+
+        return composite;
+    }
+
+    /**
+     * Generic remove function. Removes one or many body(s), constraint(s) or a composite(s) to the given composite.
+     * Optionally searching its children recursively.
+     * Triggers `beforeRemove` and `afterRemove` events on the `composite`.
+     * @method remove
+     * @param {composite} composite
+     * @param {object|array} object
+     * @param {boolean} [deep=false]
+     * @return {composite} The original composite with the objects removed
+     */
+    static remove(composite, object, deep) {
+        const objects = [].concat(object);
+
+        Events.trigger(composite, 'beforeRemove', { object: object });
+
+        for (let i = 0; i < objects.length; i++) {
+            const obj = objects[i];
+
+            switch (obj.type) {
+
+            case 'body':
+                Composite.removeBody(composite, obj, deep);
+                break;
+            case 'constraint':
+                Composite.removeConstraint(composite, obj, deep);
+                break;
+            case 'composite':
+                Composite.removeComposite(composite, obj, deep);
+                break;
+            case 'mouseConstraint':
+                Composite.removeConstraint(composite, obj.constraint);
+                break;
+
+            }
+        }
+
+        Events.trigger(composite, 'afterRemove', { object: object });
+
+        return composite;
+    }
+
+    /**
+     * Adds a composite to the given composite.
+     * @private
+     * @method addComposite
+     * @param {composite} compositeA
+     * @param {composite} compositeB
+     * @return {composite} The original compositeA with the objects from compositeB added
+     */
+    static addComposite(compositeA, compositeB) {
+        compositeA.composites.push(compositeB);
+        compositeB.parent = compositeA;
+        Composite.setModified(compositeA, true, true, false);
+        return compositeA;
+    }
+
+    /**
+     * Removes a composite from the given composite, and optionally searching its children recursively.
+     * @private
+     * @method removeComposite
+     * @param {composite} compositeA
+     * @param {composite} compositeB
+     * @param {boolean} [deep=false]
+     * @return {composite} The original compositeA with the composite removed
+     */
+    static removeComposite(compositeA, compositeB, deep) {
+        const position = compositeA.composites.indexOf(compositeB);
+
+        if (position !== -1) {
+            const bodies = Composite.allBodies(compositeB);
+
+            Composite.removeCompositeAt(compositeA, position);
+
+            for (let i = 0; i < bodies.length; i++) {
+                bodies[i].sleepCounter = 0;
+            }
+        }
+
+        if (deep) {
+            for (let i = 0; i < compositeA.composites.length; i++){
+                Composite.removeComposite(compositeA.composites[i], compositeB, true);
+            }
+        }
+
+        return compositeA;
+    }
+
+    /**
+     * Removes a composite from the given composite.
+     * @private
+     * @method removeCompositeAt
+     * @param {composite} composite
+     * @param {number} position
+     * @return {composite} The original composite with the composite removed
+     */
+    static removeCompositeAt(composite, position) {
+        composite.composites.splice(position, 1);
+        Composite.setModified(composite, true, true, false);
+        return composite;
+    }
+
+    /**
+     * Adds a body to the given composite.
+     * @private
+     * @method addBody
+     * @param {composite} composite
+     * @param {body} body
+     * @return {composite} The original composite with the body added
+     */
+    static addBody(composite, body) {
+        composite.bodies.push(body);
+        Composite.setModified(composite, true, true, false);
+        return composite;
+    }
+
+    /**
+     * Removes a body from the given composite, and optionally searching its children recursively.
+     * @private
+     * @method removeBody
+     * @param {composite} composite
+     * @param {body} body
+     * @param {boolean} [deep=false]
+     * @return {composite} The original composite with the body removed
+     */
+    static removeBody(composite, body, deep) {
+        const position = composite.bodies.indexOf(body);
+
+        if (position !== -1) {
+            Composite.removeBodyAt(composite, position);
+            body.sleepCounter = 0;
+        }
+
+        if (deep) {
+            for (let i = 0; i < composite.composites.length; i++){
+                Composite.removeBody(composite.composites[i], body, true);
+            }
+        }
+
+        return composite;
+    }
+
+    /**
+     * Removes a body from the given composite.
+     * @private
+     * @method removeBodyAt
+     * @param {composite} composite
+     * @param {number} position
+     * @return {composite} The original composite with the body removed
+     */
+    static removeBodyAt(composite, position) {
+        composite.bodies.splice(position, 1);
+        Composite.setModified(composite, true, true, false);
+        return composite;
+    }
+
+    /**
+     * Adds a constraint to the given composite.
+     * @private
+     * @method addConstraint
+     * @param {composite} composite
+     * @param {constraint} constraint
+     * @return {composite} The original composite with the constraint added
+     */
+    static addConstraint(composite, constraint) {
+        composite.constraints.push(constraint);
+        Composite.setModified(composite, true, true, false);
+        return composite;
+    }
+
+    /**
+     * Removes a constraint from the given composite, and optionally searching its children recursively.
+     * @private
+     * @method removeConstraint
+     * @param {composite} composite
+     * @param {constraint} constraint
+     * @param {boolean} [deep=false]
+     * @return {composite} The original composite with the constraint removed
+     */
+    static removeConstraint(composite, constraint, deep) {
+        const position = composite.constraints.indexOf(constraint);
+
+        if (position !== -1) {
+            Composite.removeConstraintAt(composite, position);
+        }
+
+        if (deep) {
+            for (let i = 0; i < composite.composites.length; i++){
+                Composite.removeConstraint(composite.composites[i], constraint, true);
+            }
+        }
+
+        return composite;
+    }
+
+    /**
+     * Removes a body from the given composite.
+     * @private
+     * @method removeConstraintAt
+     * @param {composite} composite
+     * @param {number} position
+     * @return {composite} The original composite with the constraint removed
+     */
+    static removeConstraintAt(composite, position) {
+        composite.constraints.splice(position, 1);
+        Composite.setModified(composite, true, true, false);
+        return composite;
+    }
+
+    /**
+     * Removes all bodies, constraints and composites from the given composite.
+     * Optionally clearing its children recursively.
+     * @method clear
+     * @param {composite} composite
+     * @param {boolean} keepStatic
+     * @param {boolean} [deep=false]
+     */
+    static clear(composite, keepStatic, deep) {
+        if (deep) {
+            for (let i = 0; i < composite.composites.length; i++){
+                Composite.clear(composite.composites[i], keepStatic, true);
+            }
+        }
+
+        if (keepStatic) {
+            composite.bodies = composite.bodies.filter((body) => body.isStatic);
+        } else {
+            composite.bodies.length = 0;
+        }
+
+        composite.constraints.length = 0;
+        composite.composites.length = 0;
+
+        Composite.setModified(composite, true, true, false);
+
+        return composite;
+    }
+
+    /**
+     * Returns all bodies in the given composite, including all bodies in its children, recursively.
+     * @method allBodies
+     * @param {composite} composite
+     * @return {body[]} All the bodies
+     */
+    static allBodies(composite) {
+        if (composite.cache && composite.cache.allBodies) {
+            return composite.cache.allBodies;
+        }
+
+        let bodies = [].concat(composite.bodies);
+
+        for (let i = 0; i < composite.composites.length; i++)
+            bodies = bodies.concat(Composite.allBodies(composite.composites[i]));
+
+        if (composite.cache) {
+            composite.cache.allBodies = bodies;
+        }
+
+        return bodies;
+    }
+
+    /**
+     * Returns all constraints in the given composite, including all constraints in its children, recursively.
+     * @method allConstraints
+     * @param {composite} composite
+     * @return {constraint[]} All the constraints
+     */
+    static allConstraints(composite) {
+        if (composite.cache && composite.cache.allConstraints) {
+            return composite.cache.allConstraints;
+        }
+
+        let constraints = [].concat(composite.constraints);
+
+        for (let i = 0; i < composite.composites.length; i++)
+            constraints = constraints.concat(Composite.allConstraints(composite.composites[i]));
+
+        if (composite.cache) {
+            composite.cache.allConstraints = constraints;
+        }
+
+        return constraints;
+    }
+
+    /**
+     * Returns all composites in the given composite, including all composites in its children, recursively.
+     * @method allComposites
+     * @param {composite} composite
+     * @return {composite[]} All the composites
+     */
+    static allComposites(composite) {
+        if (composite.cache && composite.cache.allComposites) {
+            return composite.cache.allComposites;
+        }
+
+        let composites = [].concat(composite.composites);
+
+        for (let i = 0; i < composite.composites.length; i++)
+            composites = composites.concat(Composite.allComposites(composite.composites[i]));
+
+        if (composite.cache) {
+            composite.cache.allComposites = composites;
+        }
+
+        return composites;
+    }
+
+    /**
+     * Searches the composite recursively for an object matching the type and id supplied, null if not found.
+     * @method get
+     * @param {composite} composite
+     * @param {number} id
+     * @param {string} type
+     * @return {object} The requested object, if found
+     */
+    static get(composite, id, type) {
+        let objects,
+            object;
+
+        switch (type) {
         case 'body':
-            Composite.removeBody(composite, obj, deep);
+            objects = Composite.allBodies(composite);
             break;
         case 'constraint':
-            Composite.removeConstraint(composite, obj, deep);
+            objects = Composite.allConstraints(composite);
             break;
         case 'composite':
-            Composite.removeComposite(composite, obj, deep);
+            objects = Composite.allComposites(composite).concat(composite);
             break;
-        case 'mouseConstraint':
-            Composite.removeConstraint(composite, obj.constraint);
-            break;
-
         }
+
+        if (!objects)
+            return null;
+
+        object = objects.filter((object) => object.id.toString() === id.toString());
+
+        return object.length === 0 ? null : object[0];
     }
 
-    Events.trigger(composite, 'afterRemove', { object: object });
+    /**
+     * Moves the given object(s) from compositeA to compositeB (equal to a remove followed by an add).
+     * @method move
+     * @param {compositeA} compositeA
+     * @param {object[]} objects
+     * @param {compositeB} compositeB
+     * @return {composite} Returns compositeA
+     */
+    static move(compositeA, objects, compositeB) {
+        Composite.remove(compositeA, objects);
+        Composite.add(compositeB, objects);
+        return compositeA;
+    }
 
-    return composite;
-};
+    /**
+     * Assigns new ids for all objects in the composite, recursively.
+     * @method rebase
+     * @param {composite} composite
+     * @return {composite} Returns composite
+     */
+    static rebase(composite) {
+        const objects = Composite.allBodies(composite)
+            .concat(Composite.allConstraints(composite))
+            .concat(Composite.allComposites(composite));
 
-/**
- * Adds a composite to the given composite.
- * @private
- * @method addComposite
- * @param {composite} compositeA
- * @param {composite} compositeB
- * @return {composite} The original compositeA with the objects from compositeB added
- */
-Composite.addComposite = function(compositeA, compositeB) {
-    compositeA.composites.push(compositeB);
-    compositeB.parent = compositeA;
-    Composite.setModified(compositeA, true, true, false);
-    return compositeA;
-};
+        for (let i = 0; i < objects.length; i++) {
+            objects[i].id = Common.nextId();
+        }
 
-/**
- * Removes a composite from the given composite, and optionally searching its children recursively.
- * @private
- * @method removeComposite
- * @param {composite} compositeA
- * @param {composite} compositeB
- * @param {boolean} [deep=false]
- * @return {composite} The original compositeA with the composite removed
- */
-Composite.removeComposite = function(compositeA, compositeB, deep) {
-    const position = compositeA.composites.indexOf(compositeB);
+        return composite;
+    }
 
-    if (position !== -1) {
-        const bodies = Composite.allBodies(compositeB);
-
-        Composite.removeCompositeAt(compositeA, position);
+    /**
+     * Translates all children in the composite by a given vector relative to their current positions,
+     * without imparting any velocity.
+     * @method translate
+     * @param {composite} composite
+     * @param {vector} translation
+     * @param {bool} [recursive=true]
+     */
+    static translate(composite, translation, recursive) {
+        const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
 
         for (let i = 0; i < bodies.length; i++) {
-            bodies[i].sleepCounter = 0;
+            Body.translate(bodies[i], translation);
         }
+
+        return composite;
     }
 
-    if (deep) {
-        for (let i = 0; i < compositeA.composites.length; i++){
-            Composite.removeComposite(compositeA.composites[i], compositeB, true);
+    /**
+     * Rotates all children in the composite by a given angle about the given point, without imparting any angular velocity.
+     * @method rotate
+     * @param {composite} composite
+     * @param {number} rotation
+     * @param {vector} point
+     * @param {bool} [recursive=true]
+     */
+    static rotate(composite, rotation, point, recursive) {
+        const cos = Math.cos(rotation),
+            sin = Math.sin(rotation),
+            bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i],
+                dx = body.position.x - point.x,
+                dy = body.position.y - point.y;
+
+            Body.setPosition(body, {
+                x: point.x + (dx * cos - dy * sin),
+                y: point.y + (dx * sin + dy * cos)
+            });
+
+            Body.rotate(body, rotation);
         }
+
+        return composite;
     }
 
-    return compositeA;
-};
+    /**
+     * Scales all children in the composite, including updating physical properties (mass, area, axes, inertia), from a world-space point.
+     * @method scale
+     * @param {composite} composite
+     * @param {number} scaleX
+     * @param {number} scaleY
+     * @param {vector} point
+     * @param {bool} [recursive=true]
+     */
+    static scale(composite, scaleX, scaleY, point, recursive) {
+        const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
 
-/**
- * Removes a composite from the given composite.
- * @private
- * @method removeCompositeAt
- * @param {composite} composite
- * @param {number} position
- * @return {composite} The original composite with the composite removed
- */
-Composite.removeCompositeAt = function(composite, position) {
-    composite.composites.splice(position, 1);
-    Composite.setModified(composite, true, true, false);
-    return composite;
-};
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i],
+                dx = body.position.x - point.x,
+                dy = body.position.y - point.y;
 
-/**
- * Adds a body to the given composite.
- * @private
- * @method addBody
- * @param {composite} composite
- * @param {body} body
- * @return {composite} The original composite with the body added
- */
-Composite.addBody = function(composite, body) {
-    composite.bodies.push(body);
-    Composite.setModified(composite, true, true, false);
-    return composite;
-};
+            Body.setPosition(body, {
+                x: point.x + dx * scaleX,
+                y: point.y + dy * scaleY
+            });
 
-/**
- * Removes a body from the given composite, and optionally searching its children recursively.
- * @private
- * @method removeBody
- * @param {composite} composite
- * @param {body} body
- * @param {boolean} [deep=false]
- * @return {composite} The original composite with the body removed
- */
-Composite.removeBody = function(composite, body, deep) {
-    const position = composite.bodies.indexOf(body);
-
-    if (position !== -1) {
-        Composite.removeBodyAt(composite, position);
-        body.sleepCounter = 0;
-    }
-
-    if (deep) {
-        for (let i = 0; i < composite.composites.length; i++){
-            Composite.removeBody(composite.composites[i], body, true);
+            Body.scale(body, scaleX, scaleY);
         }
+
+        return composite;
     }
 
-    return composite;
-};
+    /**
+     * Returns the union of the bounds of all of the composite's bodies.
+     * @method bounds
+     * @param {composite} composite The composite.
+     * @returns {bounds} The composite bounds.
+     */
+    static bounds(composite) {
+        const bodies = Composite.allBodies(composite),
+            vertices = [];
 
-/**
- * Removes a body from the given composite.
- * @private
- * @method removeBodyAt
- * @param {composite} composite
- * @param {number} position
- * @return {composite} The original composite with the body removed
- */
-Composite.removeBodyAt = function(composite, position) {
-    composite.bodies.splice(position, 1);
-    Composite.setModified(composite, true, true, false);
-    return composite;
-};
-
-/**
- * Adds a constraint to the given composite.
- * @private
- * @method addConstraint
- * @param {composite} composite
- * @param {constraint} constraint
- * @return {composite} The original composite with the constraint added
- */
-Composite.addConstraint = function(composite, constraint) {
-    composite.constraints.push(constraint);
-    Composite.setModified(composite, true, true, false);
-    return composite;
-};
-
-/**
- * Removes a constraint from the given composite, and optionally searching its children recursively.
- * @private
- * @method removeConstraint
- * @param {composite} composite
- * @param {constraint} constraint
- * @param {boolean} [deep=false]
- * @return {composite} The original composite with the constraint removed
- */
-Composite.removeConstraint = function(composite, constraint, deep) {
-    const position = composite.constraints.indexOf(constraint);
-
-    if (position !== -1) {
-        Composite.removeConstraintAt(composite, position);
-    }
-
-    if (deep) {
-        for (let i = 0; i < composite.composites.length; i++){
-            Composite.removeConstraint(composite.composites[i], constraint, true);
+        for (let i = 0; i < bodies.length; i += 1) {
+            const body = bodies[i];
+            vertices.push(body.bounds.min, body.bounds.max);
         }
+
+        return Bounds.create(vertices);
     }
 
-    return composite;
-};
-
-/**
- * Removes a body from the given composite.
- * @private
- * @method removeConstraintAt
- * @param {composite} composite
- * @param {number} position
- * @return {composite} The original composite with the constraint removed
- */
-Composite.removeConstraintAt = function(composite, position) {
-    composite.constraints.splice(position, 1);
-    Composite.setModified(composite, true, true, false);
-    return composite;
-};
-
-/**
- * Removes all bodies, constraints and composites from the given composite.
- * Optionally clearing its children recursively.
- * @method clear
- * @param {composite} composite
- * @param {boolean} keepStatic
- * @param {boolean} [deep=false]
- */
-Composite.clear = function(composite, keepStatic, deep) {
-    if (deep) {
-        for (let i = 0; i < composite.composites.length; i++){
-            Composite.clear(composite.composites[i], keepStatic, true);
-        }
-    }
-
-    if (keepStatic) {
-        composite.bodies = composite.bodies.filter((body) => body.isStatic);
-    } else {
-        composite.bodies.length = 0;
-    }
-
-    composite.constraints.length = 0;
-    composite.composites.length = 0;
-
-    Composite.setModified(composite, true, true, false);
-
-    return composite;
-};
-
-/**
- * Returns all bodies in the given composite, including all bodies in its children, recursively.
- * @method allBodies
- * @param {composite} composite
- * @return {body[]} All the bodies
- */
-Composite.allBodies = function(composite) {
-    if (composite.cache && composite.cache.allBodies) {
-        return composite.cache.allBodies;
-    }
-
-    let bodies = [].concat(composite.bodies);
-
-    for (let i = 0; i < composite.composites.length; i++)
-        bodies = bodies.concat(Composite.allBodies(composite.composites[i]));
-
-    if (composite.cache) {
-        composite.cache.allBodies = bodies;
-    }
-
-    return bodies;
-};
-
-/**
- * Returns all constraints in the given composite, including all constraints in its children, recursively.
- * @method allConstraints
- * @param {composite} composite
- * @return {constraint[]} All the constraints
- */
-Composite.allConstraints = function(composite) {
-    if (composite.cache && composite.cache.allConstraints) {
-        return composite.cache.allConstraints;
-    }
-
-    let constraints = [].concat(composite.constraints);
-
-    for (let i = 0; i < composite.composites.length; i++)
-        constraints = constraints.concat(Composite.allConstraints(composite.composites[i]));
-
-    if (composite.cache) {
-        composite.cache.allConstraints = constraints;
-    }
-
-    return constraints;
-};
-
-/**
- * Returns all composites in the given composite, including all composites in its children, recursively.
- * @method allComposites
- * @param {composite} composite
- * @return {composite[]} All the composites
- */
-Composite.allComposites = function(composite) {
-    if (composite.cache && composite.cache.allComposites) {
-        return composite.cache.allComposites;
-    }
-
-    let composites = [].concat(composite.composites);
-
-    for (let i = 0; i < composite.composites.length; i++)
-        composites = composites.concat(Composite.allComposites(composite.composites[i]));
-
-    if (composite.cache) {
-        composite.cache.allComposites = composites;
-    }
-
-    return composites;
-};
-
-/**
- * Searches the composite recursively for an object matching the type and id supplied, null if not found.
- * @method get
- * @param {composite} composite
- * @param {number} id
- * @param {string} type
- * @return {object} The requested object, if found
- */
-Composite.get = function(composite, id, type) {
-    let objects,
-        object;
-
-    switch (type) {
-    case 'body':
-        objects = Composite.allBodies(composite);
-        break;
-    case 'constraint':
-        objects = Composite.allConstraints(composite);
-        break;
-    case 'composite':
-        objects = Composite.allComposites(composite).concat(composite);
-        break;
-    }
-
-    if (!objects)
-        return null;
-
-    object = objects.filter((object) => object.id.toString() === id.toString());
-
-    return object.length === 0 ? null : object[0];
-};
-
-/**
- * Moves the given object(s) from compositeA to compositeB (equal to a remove followed by an add).
- * @method move
- * @param {compositeA} compositeA
- * @param {object[]} objects
- * @param {compositeB} compositeB
- * @return {composite} Returns compositeA
- */
-Composite.move = function(compositeA, objects, compositeB) {
-    Composite.remove(compositeA, objects);
-    Composite.add(compositeB, objects);
-    return compositeA;
-};
-
-/**
- * Assigns new ids for all objects in the composite, recursively.
- * @method rebase
- * @param {composite} composite
- * @return {composite} Returns composite
- */
-Composite.rebase = function(composite) {
-    const objects = Composite.allBodies(composite)
-        .concat(Composite.allConstraints(composite))
-        .concat(Composite.allComposites(composite));
-
-    for (let i = 0; i < objects.length; i++) {
-        objects[i].id = Common.nextId();
-    }
-
-    return composite;
-};
-
-/**
- * Translates all children in the composite by a given vector relative to their current positions,
- * without imparting any velocity.
- * @method translate
- * @param {composite} composite
- * @param {vector} translation
- * @param {bool} [recursive=true]
- */
-Composite.translate = function(composite, translation, recursive) {
-    const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
-
-    for (let i = 0; i < bodies.length; i++) {
-        Body.translate(bodies[i], translation);
-    }
-
-    return composite;
-};
-
-/**
- * Rotates all children in the composite by a given angle about the given point, without imparting any angular velocity.
- * @method rotate
- * @param {composite} composite
- * @param {number} rotation
- * @param {vector} point
- * @param {bool} [recursive=true]
- */
-Composite.rotate = function(composite, rotation, point, recursive) {
-    const cos = Math.cos(rotation),
-        sin = Math.sin(rotation),
-        bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
-
-    for (let i = 0; i < bodies.length; i++) {
-        const body = bodies[i],
-            dx = body.position.x - point.x,
-            dy = body.position.y - point.y;
-
-        Body.setPosition(body, {
-            x: point.x + (dx * cos - dy * sin),
-            y: point.y + (dx * sin + dy * cos)
-        });
-
-        Body.rotate(body, rotation);
-    }
-
-    return composite;
-};
-
-/**
- * Scales all children in the composite, including updating physical properties (mass, area, axes, inertia), from a world-space point.
- * @method scale
- * @param {composite} composite
- * @param {number} scaleX
- * @param {number} scaleY
- * @param {vector} point
- * @param {bool} [recursive=true]
- */
-Composite.scale = function(composite, scaleX, scaleY, point, recursive) {
-    const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
-
-    for (let i = 0; i < bodies.length; i++) {
-        const body = bodies[i],
-            dx = body.position.x - point.x,
-            dy = body.position.y - point.y;
-
-        Body.setPosition(body, {
-            x: point.x + dx * scaleX,
-            y: point.y + dy * scaleY
-        });
-
-        Body.scale(body, scaleX, scaleY);
-    }
-
-    return composite;
-};
-
-/**
- * Returns the union of the bounds of all of the composite's bodies.
- * @method bounds
- * @param {composite} composite The composite.
- * @returns {bounds} The composite bounds.
- */
-Composite.bounds = function(composite) {
-    const bodies = Composite.allBodies(composite),
-        vertices = [];
-
-    for (let i = 0; i < bodies.length; i += 1) {
-        const body = bodies[i];
-        vertices.push(body.bounds.min, body.bounds.max);
-    }
-
-    return Bounds.create(vertices);
-};
+}
 
 /*
 *

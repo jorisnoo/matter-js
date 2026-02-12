@@ -13,323 +13,321 @@ import Common from '../core/Common';
 import Body from '../body/Body';
 import Bodies from './Bodies';
 
-const Composites = {};
-
 const deprecated = Common.deprecated;
 
-/**
- * Create a new composite containing bodies created in the callback in a grid arrangement.
- * This function uses the body's bounds to prevent overlaps.
- * @method stack
- * @param {number} x Starting position in X.
- * @param {number} y Starting position in Y.
- * @param {number} columns
- * @param {number} rows
- * @param {number} columnGap
- * @param {number} rowGap
- * @param {function} callback
- * @return {composite} A new composite containing objects created in the callback
- */
-Composites.stack = function(x, y, columns, rows, columnGap, rowGap, callback) {
-    const stack = Composite.create({ label: 'Stack' });
-    let currentX = x,
-        currentY = y,
-        lastBody,
-        i = 0;
+class Composites {
+    /**
+     * Create a new composite containing bodies created in the callback in a grid arrangement.
+     * This function uses the body's bounds to prevent overlaps.
+     * @method stack
+     * @param {number} x Starting position in X.
+     * @param {number} y Starting position in Y.
+     * @param {number} columns
+     * @param {number} rows
+     * @param {number} columnGap
+     * @param {number} rowGap
+     * @param {function} callback
+     * @return {composite} A new composite containing objects created in the callback
+     */
+    static stack(x, y, columns, rows, columnGap, rowGap, callback) {
+        const stack = Composite.create({ label: 'Stack' });
+        let currentX = x,
+            currentY = y,
+            lastBody,
+            i = 0;
 
-    for (let row = 0; row < rows; row++) {
-        let maxHeight = 0;
+        for (let row = 0; row < rows; row++) {
+            let maxHeight = 0;
 
-        for (let column = 0; column < columns; column++) {
-            const body = callback(currentX, currentY, column, row, lastBody, i);
+            for (let column = 0; column < columns; column++) {
+                const body = callback(currentX, currentY, column, row, lastBody, i);
 
-            if (body) {
-                const bodyHeight = body.bounds.max.y - body.bounds.min.y,
-                    bodyWidth = body.bounds.max.x - body.bounds.min.x;
+                if (body) {
+                    const bodyHeight = body.bounds.max.y - body.bounds.min.y,
+                        bodyWidth = body.bounds.max.x - body.bounds.min.x;
 
-                if (bodyHeight > maxHeight)
-                    maxHeight = bodyHeight;
+                    if (bodyHeight > maxHeight)
+                        maxHeight = bodyHeight;
 
-                Body.translate(body, { x: bodyWidth * 0.5, y: bodyHeight * 0.5 });
+                    Body.translate(body, { x: bodyWidth * 0.5, y: bodyHeight * 0.5 });
 
-                currentX = body.bounds.max.x + columnGap;
+                    currentX = body.bounds.max.x + columnGap;
 
-                Composite.addBody(stack, body);
+                    Composite.addBody(stack, body);
 
-                lastBody = body;
-                i += 1;
-            } else {
-                currentX += columnGap;
+                    lastBody = body;
+                    i += 1;
+                } else {
+                    currentX += columnGap;
+                }
             }
+
+            currentY += maxHeight + rowGap;
+            currentX = x;
         }
 
-        currentY += maxHeight + rowGap;
-        currentX = x;
+        return stack;
     }
 
-    return stack;
-};
+    /**
+     * Chains all bodies in the given composite together using constraints.
+     * @method chain
+     * @param {composite} composite
+     * @param {number} xOffsetA
+     * @param {number} yOffsetA
+     * @param {number} xOffsetB
+     * @param {number} yOffsetB
+     * @param {object} options
+     * @return {composite} A new composite containing objects chained together with constraints
+     */
+    static chain(composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options) {
+        const bodies = composite.bodies;
 
-/**
- * Chains all bodies in the given composite together using constraints.
- * @method chain
- * @param {composite} composite
- * @param {number} xOffsetA
- * @param {number} yOffsetA
- * @param {number} xOffsetB
- * @param {number} yOffsetB
- * @param {object} options
- * @return {composite} A new composite containing objects chained together with constraints
- */
-Composites.chain = function(composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options) {
-    const bodies = composite.bodies;
+        for (let i = 1; i < bodies.length; i++) {
+            const bodyA = bodies[i - 1],
+                bodyB = bodies[i],
+                bodyAHeight = bodyA.bounds.max.y - bodyA.bounds.min.y,
+                bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x,
+                bodyBHeight = bodyB.bounds.max.y - bodyB.bounds.min.y,
+                bodyBWidth = bodyB.bounds.max.x - bodyB.bounds.min.x;
 
-    for (let i = 1; i < bodies.length; i++) {
-        const bodyA = bodies[i - 1],
-            bodyB = bodies[i],
-            bodyAHeight = bodyA.bounds.max.y - bodyA.bounds.min.y,
-            bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x,
-            bodyBHeight = bodyB.bounds.max.y - bodyB.bounds.min.y,
-            bodyBWidth = bodyB.bounds.max.x - bodyB.bounds.min.x;
+            const defaults = {
+                bodyA: bodyA,
+                pointA: { x: bodyAWidth * xOffsetA, y: bodyAHeight * yOffsetA },
+                bodyB: bodyB,
+                pointB: { x: bodyBWidth * xOffsetB, y: bodyBHeight * yOffsetB }
+            };
 
-        const defaults = {
-            bodyA: bodyA,
-            pointA: { x: bodyAWidth * xOffsetA, y: bodyAHeight * yOffsetA },
-            bodyB: bodyB,
-            pointB: { x: bodyBWidth * xOffsetB, y: bodyBHeight * yOffsetB }
-        };
+            const constraint = Common.extend(defaults, options);
 
-        const constraint = Common.extend(defaults, options);
-
-        Composite.addConstraint(composite, Constraint.create(constraint));
-    }
-
-    composite.label += ' Chain';
-
-    return composite;
-};
-
-/**
- * Connects bodies in the composite with constraints in a grid pattern, with optional cross braces.
- * @method mesh
- * @param {composite} composite
- * @param {number} columns
- * @param {number} rows
- * @param {boolean} crossBrace
- * @param {object} options
- * @return {composite} The composite containing objects meshed together with constraints
- */
-Composites.mesh = function(composite, columns, rows, crossBrace, options) {
-    const bodies = composite.bodies;
-    let row,
-        col,
-        bodyA,
-        bodyB,
-        bodyC;
-
-    for (row = 0; row < rows; row++) {
-        for (col = 1; col < columns; col++) {
-            bodyA = bodies[(col - 1) + (row * columns)];
-            bodyB = bodies[col + (row * columns)];
-            Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyA, bodyB: bodyB }, options)));
+            Composite.addConstraint(composite, Constraint.create(constraint));
         }
 
-        if (row > 0) {
-            for (col = 0; col < columns; col++) {
-                bodyA = bodies[col + ((row - 1) * columns)];
+        composite.label += ' Chain';
+
+        return composite;
+    }
+
+    /**
+     * Connects bodies in the composite with constraints in a grid pattern, with optional cross braces.
+     * @method mesh
+     * @param {composite} composite
+     * @param {number} columns
+     * @param {number} rows
+     * @param {boolean} crossBrace
+     * @param {object} options
+     * @return {composite} The composite containing objects meshed together with constraints
+     */
+    static mesh(composite, columns, rows, crossBrace, options) {
+        const bodies = composite.bodies;
+        let row,
+            col,
+            bodyA,
+            bodyB,
+            bodyC;
+
+        for (row = 0; row < rows; row++) {
+            for (col = 1; col < columns; col++) {
+                bodyA = bodies[(col - 1) + (row * columns)];
                 bodyB = bodies[col + (row * columns)];
                 Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyA, bodyB: bodyB }, options)));
+            }
 
-                if (crossBrace && col > 0) {
-                    bodyC = bodies[(col - 1) + ((row - 1) * columns)];
-                    Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyC, bodyB: bodyB }, options)));
-                }
+            if (row > 0) {
+                for (col = 0; col < columns; col++) {
+                    bodyA = bodies[col + ((row - 1) * columns)];
+                    bodyB = bodies[col + (row * columns)];
+                    Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyA, bodyB: bodyB }, options)));
 
-                if (crossBrace && col < columns - 1) {
-                    bodyC = bodies[(col + 1) + ((row - 1) * columns)];
-                    Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyC, bodyB: bodyB }, options)));
+                    if (crossBrace && col > 0) {
+                        bodyC = bodies[(col - 1) + ((row - 1) * columns)];
+                        Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyC, bodyB: bodyB }, options)));
+                    }
+
+                    if (crossBrace && col < columns - 1) {
+                        bodyC = bodies[(col + 1) + ((row - 1) * columns)];
+                        Composite.addConstraint(composite, Constraint.create(Common.extend({ bodyA: bodyC, bodyB: bodyB }, options)));
+                    }
                 }
             }
         }
+
+        composite.label += ' Mesh';
+
+        return composite;
     }
 
-    composite.label += ' Mesh';
+    /**
+     * Create a new composite containing bodies created in the callback in a pyramid arrangement.
+     * This function uses the body's bounds to prevent overlaps.
+     * @method pyramid
+     * @param {number} x Starting position in X.
+     * @param {number} y Starting position in Y.
+     * @param {number} columns
+     * @param {number} rows
+     * @param {number} columnGap
+     * @param {number} rowGap
+     * @param {function} callback
+     * @return {composite} A new composite containing objects created in the callback
+     */
+    static pyramid(x, y, columns, rows, columnGap, rowGap, callback) {
+        return Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY, column, row, lastBody, i) => {
+            const actualRows = Math.min(rows, Math.ceil(columns / 2)),
+                lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
 
-    return composite;
-};
+            if (row > actualRows)
+                return;
 
-/**
- * Create a new composite containing bodies created in the callback in a pyramid arrangement.
- * This function uses the body's bounds to prevent overlaps.
- * @method pyramid
- * @param {number} x Starting position in X.
- * @param {number} y Starting position in Y.
- * @param {number} columns
- * @param {number} rows
- * @param {number} columnGap
- * @param {number} rowGap
- * @param {function} callback
- * @return {composite} A new composite containing objects created in the callback
- */
-Composites.pyramid = function(x, y, columns, rows, columnGap, rowGap, callback) {
-    return Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY, column, row, lastBody, i) => {
-        const actualRows = Math.min(rows, Math.ceil(columns / 2)),
-            lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
+            // reverse row order
+            row = actualRows - row;
 
-        if (row > actualRows)
-            return;
+            const start = row,
+                end = columns - 1 - row;
 
-        // reverse row order
-        row = actualRows - row;
+            if (column < start || column > end)
+                return;
 
-        const start = row,
-            end = columns - 1 - row;
+            // retroactively fix the first body's position, since width was unknown
+            if (i === 1) {
+                Body.translate(lastBody, { x: (column + (columns % 2 === 1 ? 1 : -1)) * lastBodyWidth, y: 0 });
+            }
 
-        if (column < start || column > end)
-            return;
+            const xOffset = lastBody ? column * lastBodyWidth : 0;
 
-        // retroactively fix the first body's position, since width was unknown
-        if (i === 1) {
-            Body.translate(lastBody, { x: (column + (columns % 2 === 1 ? 1 : -1)) * lastBodyWidth, y: 0 });
+            return callback(x + xOffset + column * columnGap, stackY, column, row, lastBody, i);
+        });
+    }
+
+    /**
+     * This has now moved to the [newtonsCradle example](https://github.com/liabru/matter-js/blob/master/examples/newtonsCradle.js), follow that instead as this function is deprecated here.
+     * @deprecated moved to newtonsCradle example
+     * @method newtonsCradle
+     * @param {number} x Starting position in X.
+     * @param {number} y Starting position in Y.
+     * @param {number} number
+     * @param {number} size
+     * @param {number} length
+     * @return {composite} A new composite newtonsCradle body
+     */
+    static newtonsCradle(x, y, number, size, length) {
+        const newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
+
+        for (let i = 0; i < number; i++) {
+            const separation = 1.9,
+                circle = Bodies.circle(x + i * (size * separation), y + length, size,
+                    { inertia: Infinity, restitution: 1, friction: 0, frictionAir: 0.0001, slop: 1 }),
+                constraint = Constraint.create({ pointA: { x: x + i * (size * separation), y: y }, bodyB: circle });
+
+            Composite.addBody(newtonsCradle, circle);
+            Composite.addConstraint(newtonsCradle, constraint);
         }
 
-        const xOffset = lastBody ? column * lastBodyWidth : 0;
-
-        return callback(x + xOffset + column * columnGap, stackY, column, row, lastBody, i);
-    });
-};
-
-/**
- * This has now moved to the [newtonsCradle example](https://github.com/liabru/matter-js/blob/master/examples/newtonsCradle.js), follow that instead as this function is deprecated here.
- * @deprecated moved to newtonsCradle example
- * @method newtonsCradle
- * @param {number} x Starting position in X.
- * @param {number} y Starting position in Y.
- * @param {number} number
- * @param {number} size
- * @param {number} length
- * @return {composite} A new composite newtonsCradle body
- */
-Composites.newtonsCradle = function(x, y, number, size, length) {
-    const newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
-
-    for (let i = 0; i < number; i++) {
-        const separation = 1.9,
-            circle = Bodies.circle(x + i * (size * separation), y + length, size,
-                { inertia: Infinity, restitution: 1, friction: 0, frictionAir: 0.0001, slop: 1 }),
-            constraint = Constraint.create({ pointA: { x: x + i * (size * separation), y: y }, bodyB: circle });
-
-        Composite.addBody(newtonsCradle, circle);
-        Composite.addConstraint(newtonsCradle, constraint);
+        return newtonsCradle;
     }
 
-    return newtonsCradle;
-};
+    /**
+     * This has now moved to the [car example](https://github.com/liabru/matter-js/blob/master/examples/car.js), follow that instead as this function is deprecated here.
+     * @deprecated moved to car example
+     * @method car
+     * @param {number} x Starting position in X.
+     * @param {number} y Starting position in Y.
+     * @param {number} width
+     * @param {number} height
+     * @param {number} wheelSize
+     * @return {composite} A new composite car body
+     */
+    static car(x, y, width, height, wheelSize) {
+        const group = Body.nextGroup(true),
+            wheelBase = 20,
+            wheelAOffset = -width * 0.5 + wheelBase,
+            wheelBOffset = width * 0.5 - wheelBase,
+            wheelYOffset = 0;
 
-deprecated(Composites, 'newtonsCradle', 'Composites.newtonsCradle ➤ moved to newtonsCradle example');
+        const car = Composite.create({ label: 'Car' }),
+            body = Bodies.rectangle(x, y, width, height, {
+                collisionFilter: {
+                    group: group
+                },
+                chamfer: {
+                    radius: height * 0.5
+                },
+                density: 0.0002
+            });
 
-/**
- * This has now moved to the [car example](https://github.com/liabru/matter-js/blob/master/examples/car.js), follow that instead as this function is deprecated here.
- * @deprecated moved to car example
- * @method car
- * @param {number} x Starting position in X.
- * @param {number} y Starting position in Y.
- * @param {number} width
- * @param {number} height
- * @param {number} wheelSize
- * @return {composite} A new composite car body
- */
-Composites.car = function(x, y, width, height, wheelSize) {
-    const group = Body.nextGroup(true),
-        wheelBase = 20,
-        wheelAOffset = -width * 0.5 + wheelBase,
-        wheelBOffset = width * 0.5 - wheelBase,
-        wheelYOffset = 0;
-
-    const car = Composite.create({ label: 'Car' }),
-        body = Bodies.rectangle(x, y, width, height, {
+        const wheelA = Bodies.circle(x + wheelAOffset, y + wheelYOffset, wheelSize, {
             collisionFilter: {
                 group: group
             },
-            chamfer: {
-                radius: height * 0.5
-            },
-            density: 0.0002
+            friction: 0.8
         });
 
-    const wheelA = Bodies.circle(x + wheelAOffset, y + wheelYOffset, wheelSize, {
-        collisionFilter: {
-            group: group
-        },
-        friction: 0.8
-    });
+        const wheelB = Bodies.circle(x + wheelBOffset, y + wheelYOffset, wheelSize, {
+            collisionFilter: {
+                group: group
+            },
+            friction: 0.8
+        });
 
-    const wheelB = Bodies.circle(x + wheelBOffset, y + wheelYOffset, wheelSize, {
-        collisionFilter: {
-            group: group
-        },
-        friction: 0.8
-    });
+        const axelA = Constraint.create({
+            bodyB: body,
+            pointB: { x: wheelAOffset, y: wheelYOffset },
+            bodyA: wheelA,
+            stiffness: 1,
+            length: 0
+        });
 
-    const axelA = Constraint.create({
-        bodyB: body,
-        pointB: { x: wheelAOffset, y: wheelYOffset },
-        bodyA: wheelA,
-        stiffness: 1,
-        length: 0
-    });
+        const axelB = Constraint.create({
+            bodyB: body,
+            pointB: { x: wheelBOffset, y: wheelYOffset },
+            bodyA: wheelB,
+            stiffness: 1,
+            length: 0
+        });
 
-    const axelB = Constraint.create({
-        bodyB: body,
-        pointB: { x: wheelBOffset, y: wheelYOffset },
-        bodyA: wheelB,
-        stiffness: 1,
-        length: 0
-    });
+        Composite.addBody(car, body);
+        Composite.addBody(car, wheelA);
+        Composite.addBody(car, wheelB);
+        Composite.addConstraint(car, axelA);
+        Composite.addConstraint(car, axelB);
 
-    Composite.addBody(car, body);
-    Composite.addBody(car, wheelA);
-    Composite.addBody(car, wheelB);
-    Composite.addConstraint(car, axelA);
-    Composite.addConstraint(car, axelB);
+        return car;
+    }
 
-    return car;
-};
+    /**
+     * This has now moved to the [softBody example](https://github.com/liabru/matter-js/blob/master/examples/softBody.js)
+     * and the [cloth example](https://github.com/liabru/matter-js/blob/master/examples/cloth.js), follow those instead as this function is deprecated here.
+     * @deprecated moved to softBody and cloth examples
+     * @method softBody
+     * @param {number} x Starting position in X.
+     * @param {number} y Starting position in Y.
+     * @param {number} columns
+     * @param {number} rows
+     * @param {number} columnGap
+     * @param {number} rowGap
+     * @param {boolean} crossBrace
+     * @param {number} particleRadius
+     * @param {} particleOptions
+     * @param {} constraintOptions
+     * @return {composite} A new composite softBody
+     */
+    static softBody(x, y, columns, rows, columnGap, rowGap, crossBrace, particleRadius, particleOptions, constraintOptions) {
+        particleOptions = Common.extend({ inertia: Infinity }, particleOptions);
+        constraintOptions = Common.extend({ stiffness: 0.2, render: { type: 'line', anchors: false } }, constraintOptions);
 
+        const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY) => {
+            return Bodies.circle(stackX, stackY, particleRadius, particleOptions);
+        });
+
+        Composites.mesh(softBody, columns, rows, crossBrace, constraintOptions);
+
+        softBody.label = 'Soft Body';
+
+        return softBody;
+    }
+}
+
+deprecated(Composites, 'newtonsCradle', 'Composites.newtonsCradle ➤ moved to newtonsCradle example');
 deprecated(Composites, 'car', 'Composites.car ➤ moved to car example');
-
-/**
- * This has now moved to the [softBody example](https://github.com/liabru/matter-js/blob/master/examples/softBody.js)
- * and the [cloth example](https://github.com/liabru/matter-js/blob/master/examples/cloth.js), follow those instead as this function is deprecated here.
- * @deprecated moved to softBody and cloth examples
- * @method softBody
- * @param {number} x Starting position in X.
- * @param {number} y Starting position in Y.
- * @param {number} columns
- * @param {number} rows
- * @param {number} columnGap
- * @param {number} rowGap
- * @param {boolean} crossBrace
- * @param {number} particleRadius
- * @param {} particleOptions
- * @param {} constraintOptions
- * @return {composite} A new composite softBody
- */
-Composites.softBody = function(x, y, columns, rows, columnGap, rowGap, crossBrace, particleRadius, particleOptions, constraintOptions) {
-    particleOptions = Common.extend({ inertia: Infinity }, particleOptions);
-    constraintOptions = Common.extend({ stiffness: 0.2, render: { type: 'line', anchors: false } }, constraintOptions);
-
-    const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY) => {
-        return Bodies.circle(stackX, stackY, particleRadius, particleOptions);
-    });
-
-    Composites.mesh(softBody, columns, rows, crossBrace, constraintOptions);
-
-    softBody.label = 'Soft Body';
-
-    return softBody;
-};
-
 deprecated(Composites, 'softBody', 'Composites.softBody ➤ moved to softBody and cloth examples');
 
 export default Composites;
