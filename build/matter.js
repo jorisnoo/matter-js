@@ -185,26 +185,6 @@ class Common {
     }
 
     /**
-     * Returns true if the object is a function.
-     * @method isFunction
-     * @param {object} obj
-     * @return {boolean} True if the object is a function, otherwise false
-     */
-    static isFunction(obj) {
-        return typeof obj === "function";
-    }
-
-    /**
-     * Returns true if the object is a plain object.
-     * @method isPlainObject
-     * @param {object} obj
-     * @return {boolean} True if the object is a plain object, otherwise false
-     */
-    static isPlainObject(obj) {
-        return typeof obj === 'object' && obj.constructor === Object;
-    }
-
-    /**
      * Returns the given value clamped between a minimum and maximum value.
      * @method clamp
      * @param {number} value
@@ -260,24 +240,6 @@ class Common {
         // https://en.wikipedia.org/wiki/Linear_congruential_generator
         Common._seed = (Common._seed * 9301 + 49297) % 233280;
         return Common._seed / 233280;
-    }
-
-    /**
-     * Converts a CSS hex colour string into an integer.
-     * @method colorToNumber
-     * @param {string} colorString
-     * @return {number} An integer representing the CSS hex string
-     */
-    static colorToNumber(colorString) {
-        colorString = colorString.replace('#','');
-
-        if (colorString.length === 3) {
-            colorString = colorString.charAt(0) + colorString.charAt(0)
-                        + colorString.charAt(1) + colorString.charAt(1)
-                        + colorString.charAt(2) + colorString.charAt(2);
-        }
-
-        return parseInt(colorString, 16);
     }
 
     /**
@@ -4653,8 +4615,6 @@ class Constraint {
 */
 
 
-const deprecated$1 = Common.deprecated;
-
 class Composites {
     /**
      * Create a new composite containing bodies created in the callback in a grid arrangement.
@@ -4838,137 +4798,7 @@ class Composites {
         });
     }
 
-    /**
-     * This has now moved to the [newtonsCradle example](https://github.com/liabru/matter-js/blob/master/examples/newtonsCradle.js), follow that instead as this function is deprecated here.
-     * @deprecated moved to newtonsCradle example
-     * @method newtonsCradle
-     * @param {number} x Starting position in X.
-     * @param {number} y Starting position in Y.
-     * @param {number} number
-     * @param {number} size
-     * @param {number} length
-     * @return {composite} A new composite newtonsCradle body
-     */
-    static newtonsCradle(x, y, number, size, length) {
-        const newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
-
-        for (let i = 0; i < number; i++) {
-            const separation = 1.9,
-                circle = Bodies.circle(x + i * (size * separation), y + length, size,
-                    { inertia: Infinity, restitution: 1, friction: 0, frictionAir: 0.0001, slop: 1 }),
-                constraint = Constraint.create({ pointA: { x: x + i * (size * separation), y: y }, bodyB: circle });
-
-            Composite.addBody(newtonsCradle, circle);
-            Composite.addConstraint(newtonsCradle, constraint);
-        }
-
-        return newtonsCradle;
-    }
-
-    /**
-     * This has now moved to the [car example](https://github.com/liabru/matter-js/blob/master/examples/car.js), follow that instead as this function is deprecated here.
-     * @deprecated moved to car example
-     * @method car
-     * @param {number} x Starting position in X.
-     * @param {number} y Starting position in Y.
-     * @param {number} width
-     * @param {number} height
-     * @param {number} wheelSize
-     * @return {composite} A new composite car body
-     */
-    static car(x, y, width, height, wheelSize) {
-        const group = Body.nextGroup(true),
-            wheelBase = 20,
-            wheelAOffset = -width * 0.5 + wheelBase,
-            wheelBOffset = width * 0.5 - wheelBase,
-            wheelYOffset = 0;
-
-        const car = Composite.create({ label: 'Car' }),
-            body = Bodies.rectangle(x, y, width, height, {
-                collisionFilter: {
-                    group: group
-                },
-                chamfer: {
-                    radius: height * 0.5
-                },
-                density: 0.0002
-            });
-
-        const wheelA = Bodies.circle(x + wheelAOffset, y + wheelYOffset, wheelSize, {
-            collisionFilter: {
-                group: group
-            },
-            friction: 0.8
-        });
-
-        const wheelB = Bodies.circle(x + wheelBOffset, y + wheelYOffset, wheelSize, {
-            collisionFilter: {
-                group: group
-            },
-            friction: 0.8
-        });
-
-        const axelA = Constraint.create({
-            bodyB: body,
-            pointB: { x: wheelAOffset, y: wheelYOffset },
-            bodyA: wheelA,
-            stiffness: 1,
-            length: 0
-        });
-
-        const axelB = Constraint.create({
-            bodyB: body,
-            pointB: { x: wheelBOffset, y: wheelYOffset },
-            bodyA: wheelB,
-            stiffness: 1,
-            length: 0
-        });
-
-        Composite.addBody(car, body);
-        Composite.addBody(car, wheelA);
-        Composite.addBody(car, wheelB);
-        Composite.addConstraint(car, axelA);
-        Composite.addConstraint(car, axelB);
-
-        return car;
-    }
-
-    /**
-     * This has now moved to the [softBody example](https://github.com/liabru/matter-js/blob/master/examples/softBody.js)
-     * and the [cloth example](https://github.com/liabru/matter-js/blob/master/examples/cloth.js), follow those instead as this function is deprecated here.
-     * @deprecated moved to softBody and cloth examples
-     * @method softBody
-     * @param {number} x Starting position in X.
-     * @param {number} y Starting position in Y.
-     * @param {number} columns
-     * @param {number} rows
-     * @param {number} columnGap
-     * @param {number} rowGap
-     * @param {boolean} crossBrace
-     * @param {number} particleRadius
-     * @param {} particleOptions
-     * @param {} constraintOptions
-     * @return {composite} A new composite softBody
-     */
-    static softBody(x, y, columns, rows, columnGap, rowGap, crossBrace, particleRadius, particleOptions, constraintOptions) {
-        particleOptions = Common.extend({ inertia: Infinity }, particleOptions);
-        constraintOptions = Common.extend({ stiffness: 0.2, render: { type: 'line', anchors: false } }, constraintOptions);
-
-        const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY) => {
-            return Bodies.circle(stackX, stackY, particleRadius, particleOptions);
-        });
-
-        Composites.mesh(softBody, columns, rows, crossBrace, constraintOptions);
-
-        softBody.label = 'Soft Body';
-
-        return softBody;
-    }
 }
-
-deprecated$1(Composites, 'newtonsCradle', 'Composites.newtonsCradle ➤ moved to newtonsCradle example');
-deprecated$1(Composites, 'car', 'Composites.car ➤ moved to car example');
-deprecated$1(Composites, 'softBody', 'Composites.softBody ➤ moved to softBody and cloth examples');
 
 /**
 * The `Matter.Detector` module contains methods for efficiently detecting collisions between a list of bodies using a broadphase algorithm.
@@ -6566,8 +6396,6 @@ class Render {
             }
         };
 
-        this.options.showBroadphase = false;
-
         if (this.options.pixelRatio !== 1) {
             Render.setPixelRatio(this, this.options.pixelRatio);
         }
@@ -6804,7 +6632,7 @@ class Render {
     }
 
     /**
-     * Renders the given `engine`'s `Matter.World` object.
+     * Renders the given `engine`'s world composite.
      * This is the entry point for all rendering and should be called every time the scene changes.
      * @method world
      * @param {render} render
@@ -8294,7 +8122,9 @@ deprecated(SAT, 'collides', 'SAT.collides ➤ replaced by Collision.collides');
 /**
 * The `Matter.Svg` module contains methods for converting SVG images into an array of vector points.
 *
-* To use this module you also need the SVGPathSeg polyfill: https://github.com/progers/pathseg
+* **Requires external polyfill:** The `SVGPathElement.pathSegList` API has been removed from modern
+* browsers. To use this module, you must load the [pathseg polyfill](https://github.com/nicolo-ribaudo/pathseg-polyfill)
+* before calling any Svg methods. Install via npm (`npm install pathseg`) and import it at your entry point.
 *
 * See the included usage [examples](https://github.com/liabru/matter-js/tree/master/examples).
 *
@@ -8512,30 +8342,32 @@ class Svg {
 }
 
 /**
-* This module has now been replaced by `Matter.Composite`.
+* @deprecated Use `Matter.Composite` instead. This module is a thin re-export alias
+* and will be removed in a future release.
 *
 * All usage should be migrated to the equivalent functions found on `Matter.Composite`.
 * For example `World.add(world, body)` now becomes `Composite.add(world, body)`.
 *
 * The property `world.gravity` has been moved to `engine.gravity`.
 *
-* For back-compatibility purposes this module will remain as a direct alias to `Matter.Composite` in the short term during migration.
-* Eventually this alias module will be marked as deprecated and then later removed in a future release.
-*
 * @class World
 */
 
 
-/**
- * See above, aliases for back compatibility only
- */
 class World {
+    /** @deprecated Use Composite.create instead. */
     static create = Composite.create;
+    /** @deprecated Use Composite.add instead. */
     static add = Composite.add;
+    /** @deprecated Use Composite.remove instead. */
     static remove = Composite.remove;
+    /** @deprecated Use Composite.clear instead. */
     static clear = Composite.clear;
+    /** @deprecated Use Composite.addComposite instead. */
     static addComposite = Composite.addComposite;
+    /** @deprecated Use Composite.addBody instead. */
     static addBody = Composite.addBody;
+    /** @deprecated Use Composite.addConstraint instead. */
     static addConstraint = Composite.addConstraint;
 }
 
@@ -8568,10 +8400,6 @@ Matter.Svg = Svg;
 Matter.Vector = Vector;
 Matter.Vertices = Vertices;
 Matter.World = World;
-
-// temporary back compatibility
-Matter.Engine.run = Runner.run;
-Common.deprecated(Matter.Engine, 'run', 'Engine.run ➤ use Matter.Runner.run(engine) instead');
 
 export { Axes, Bodies, Body, Bounds, Collision, Common, Composite, Composites, Constraint, Contact, Detector, Engine, Events, Mouse, MouseConstraint, Pair, Pairs, Plugin, Query, Render, Resolver, Runner, SAT, Sleeping, Svg, Vector, Vertices, World, Matter as default };
 //# sourceMappingURL=matter.js.map

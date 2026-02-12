@@ -1,7 +1,9 @@
 /**
 * The `Matter.Svg` module contains methods for converting SVG images into an array of vector points.
 *
-* To use this module you also need the SVGPathSeg polyfill: https://github.com/progers/pathseg
+* **Requires external polyfill:** The `SVGPathElement.pathSegList` API has been removed from modern
+* browsers. To use this module, you must load the [pathseg polyfill](https://github.com/nicolo-ribaudo/pathseg-polyfill)
+* before calling any Svg methods. Install via npm (`npm install pathseg`) and import it at your entry point.
 *
 * See the included usage [examples](https://github.com/liabru/matter-js/tree/master/examples).
 *

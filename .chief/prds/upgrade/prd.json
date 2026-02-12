@@ -109,8 +109,8 @@
         "Types validate against a basic TypeScript consumer test file"
       ],
       "priority": 6,
-      "passes": false,
-      "inProgress": true
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-007",
@@ -125,7 +125,8 @@
         "All `@deprecated` JSDoc tags correspond to actually deprecated items, not already-removed ones"
       ],
       "priority": 7,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-008",

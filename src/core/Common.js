@@ -158,26 +158,6 @@ class Common {
     }
 
     /**
-     * Returns true if the object is a function.
-     * @method isFunction
-     * @param {object} obj
-     * @return {boolean} True if the object is a function, otherwise false
-     */
-    static isFunction(obj) {
-        return typeof obj === "function";
-    }
-
-    /**
-     * Returns true if the object is a plain object.
-     * @method isPlainObject
-     * @param {object} obj
-     * @return {boolean} True if the object is a plain object, otherwise false
-     */
-    static isPlainObject(obj) {
-        return typeof obj === 'object' && obj.constructor === Object;
-    }
-
-    /**
      * Returns the given value clamped between a minimum and maximum value.
      * @method clamp
      * @param {number} value
@@ -233,24 +213,6 @@ class Common {
         // https://en.wikipedia.org/wiki/Linear_congruential_generator
         Common._seed = (Common._seed * 9301 + 49297) % 233280;
         return Common._seed / 233280;
-    }
-
-    /**
-     * Converts a CSS hex colour string into an integer.
-     * @method colorToNumber
-     * @param {string} colorString
-     * @return {number} An integer representing the CSS hex string
-     */
-    static colorToNumber(colorString) {
-        colorString = colorString.replace('#','');
-
-        if (colorString.length === 3) {
-            colorString = colorString.charAt(0) + colorString.charAt(0)
-                        + colorString.charAt(1) + colorString.charAt(1)
-                        + colorString.charAt(2) + colorString.charAt(2);
-        }
-
-        return parseInt(colorString, 16);
     }
 
     /**

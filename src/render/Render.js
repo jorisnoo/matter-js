@@ -112,8 +112,6 @@ class Render {
             }
         };
 
-        this.options.showBroadphase = false;
-
         if (this.options.pixelRatio !== 1) {
             Render.setPixelRatio(this, this.options.pixelRatio);
         }
@@ -350,7 +348,7 @@ class Render {
     }
 
     /**
-     * Renders the given `engine`'s `Matter.World` object.
+     * Renders the given `engine`'s world composite.
      * This is the entry point for all rendering and should be called every time the scene changes.
      * @method world
      * @param {render} render
@@ -1765,15 +1763,6 @@ class Render {
  * A flag to enable or disable the debug information overlay.
  *
  * @property options.showDebug
- * @type boolean
- * @default false
- */
-
-/**
- * A flag to enable or disable the collision broadphase debug overlay.
- *
- * @deprecated no longer implemented
- * @property options.showBroadphase
  * @type boolean
  * @default false
  */

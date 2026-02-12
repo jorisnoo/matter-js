@@ -291,9 +291,6 @@ const rand: number = Common.random(0, 10);
 const clamped: number = Common.clamp(5, 0, 10);
 const sign: number = Common.sign(-5);
 const isElem: boolean = Common.isElement(document.body);
-const isFunc: boolean = Common.isFunction(() => {});
-const isPlain: boolean = Common.isPlainObject({});
-const color: number = Common.colorToNumber('#ff0000');
 Common.log('test');
 Common.warn('test');
 Common.info('test');
@@ -314,10 +311,6 @@ const chain: Composite = Composites.chain(stack, 0.5, 0, -0.5, 0, { stiffness: 1
 const pyramid: Composite = Composites.pyramid(0, 0, 10, 5, 0, 0, (x, y) => {
     return Bodies.rectangle(x, y, 40, 40);
 });
-const cradle: Composite = Composites.newtonsCradle(300, 100, 5, 30, 200);
-const car: Composite = Composites.car(150, 100, 150, 30, 30);
-const soft: Composite = Composites.softBody(250, 100, 5, 5, 0, 0, true, 18);
-
 // ---- World (deprecated) ----
 const world: Composite = World.create({ label: 'World' });
 World.add(world, body);

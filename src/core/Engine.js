@@ -336,13 +336,6 @@ class Engine {
 }
 
 /**
- * A deprecated alias for `Runner.run`, use `Matter.Runner.run(engine)` instead and see `Matter.Runner` for more information.
- * @deprecated use Matter.Runner.run(engine) instead
- * @method run
- * @param {engine} engine
- */
-
-/**
 * Fired just before an update
 *
 * @event beforeUpdate

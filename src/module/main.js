@@ -58,10 +58,6 @@ Matter.Vector = Vector;
 Matter.Vertices = Vertices;
 Matter.World = World;
 
-// temporary back compatibility
-Matter.Engine.run = Runner.run;
-Common.deprecated(Matter.Engine, 'run', 'Engine.run ➤ use Matter.Runner.run(engine) instead');
-
 // Named exports for tree-shaking
 export {
     Axes,

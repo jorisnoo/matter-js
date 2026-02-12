@@ -674,9 +674,6 @@ export class Composites {
     static chain(composite: Composite, xOffsetA: number, yOffsetA: number, xOffsetB: number, yOffsetB: number, options?: ConstraintOptions): Composite;
     static mesh(composite: Composite, columns: number, rows: number, crossBrace: boolean, options?: ConstraintOptions): Composite;
     static pyramid(x: number, y: number, columns: number, rows: number, columnGap: number, rowGap: number, callback: (x: number, y: number, column: number, row: number, lastBody: Body | undefined, i: number) => Body | null): Composite;
-    static newtonsCradle(x: number, y: number, number: number, size: number, length: number): Composite;
-    static car(x: number, y: number, width: number, height: number, wheelSize: number): Composite;
-    static softBody(x: number, y: number, columns: number, rows: number, columnGap: number, rowGap: number, crossBrace: boolean, particleRadius: number, particleOptions?: BodyOptions, constraintOptions?: ConstraintOptions): Composite;
 }
 
 /**
@@ -829,13 +826,10 @@ export class Common {
     static shuffle<T>(array: T[]): T[];
     static choose<T>(choices: T[]): T;
     static isElement(obj: unknown): boolean;
-    static isFunction(obj: unknown): boolean;
-    static isPlainObject(obj: unknown): boolean;
     static clamp(value: number, min: number, max: number): number;
     static sign(value: number): number;
     static now(): number;
     static random(min?: number, max?: number): number;
-    static colorToNumber(colorString: string): number;
     static log(...args: unknown[]): void;
     static info(...args: unknown[]): void;
     static warn(...args: unknown[]): void;
