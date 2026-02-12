@@ -9,7 +9,7 @@
 * @module Demo
 */
 
-var MatterTools = require('matter-tools');
+import MatterTools from 'matter-tools';
 
 var demo = function(examples, isDev) {
     var demo = MatterTools.Demo.create({
@@ -100,4 +100,4 @@ var demo = function(examples, isDev) {
     MatterTools.Demo.start(demo);
 };
 
-module.exports = { demo: demo };
+export { demo };

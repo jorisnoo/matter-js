@@ -2,9 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
-import { createRequire } from 'module';
 import {
-    requireUncached,
     comparisonReport,
     logReport,
     toMatchExtrinsics,
@@ -13,10 +11,10 @@ import {
 } from './TestTools.js';
 import { runExample } from './ExampleWorker.js';
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
-const Example = requireUncached('../examples/index.cjs');
+const examplesUrl = url.pathToFileURL(path.resolve(__dirname, '../examples/index.js')).href;
+const ExamplePromise = import(examplesUrl);
 
 const buildUrl = url.pathToFileURL(path.resolve(__dirname, '../build/matter.js')).href;
 const MatterBuildPromise = import(buildUrl).then(m => m.default || m);
@@ -37,6 +35,7 @@ let capturesDev;
 let capturesBuild;
 
 beforeAll(async () => {
+    const Example = await ExamplePromise;
     MatterBuild = await MatterBuildPromise;
     const { versionSatisfies } = MatterBuild.Plugin;
 

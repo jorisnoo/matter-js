@@ -27,24 +27,22 @@ module.exports = [
         }
     },
     {
-        files: ['examples/*.cjs'],
+        files: ['examples/*.js'],
         languageOptions: {
-            sourceType: 'script',
+            sourceType: 'module',
             globals: {
                 Matter: 'readonly',
-                Example: 'writable',
                 MatterTools: 'readonly'
             }
         },
         rules: {
-            'no-unused-vars': 'off',
-            'no-redeclare': 'off'
+            'no-unused-vars': 'off'
         }
     },
     {
         files: ['demo/src/**/*.js'],
         languageOptions: {
-            sourceType: 'script',
+            sourceType: 'module',
             globals: {
                 Matter: 'readonly',
                 MatterTools: 'writable',

@@ -1,9 +1,15 @@
-import { createRequire } from 'module';
-import { requireUncached, importUncached, serialize, smoothExp } from './TestTools.js';
+import { importUncached, serialize, smoothExp } from './TestTools.js';
 
-const require = createRequire(import.meta.url);
 const consoleOriginal = global.console;
 const DateOriginal = global.Date;
+
+let Examples;
+const getExamples = async () => {
+    if (!Examples) {
+        Examples = await import('../examples/index.js');
+    }
+    return Examples;
+};
 
 const runExample = async (options) => {
     const {
@@ -35,7 +41,7 @@ const runExample = async (options) => {
                 global.gc();
             }
 
-            const Examples = requireUncached('../examples/index.cjs');
+            const Examples = await getExamples();
             const example = Examples[options.name]();
 
             runner = example.runner;

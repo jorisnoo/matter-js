@@ -10,9 +10,9 @@
 * @module Compare
 */
 
-var MatterTools = require('matter-tools');
-var MatterDev = require('MatterDev');
-var MatterBuild = require('MatterBuild');
+import MatterTools from 'matter-tools';
+import MatterDev from 'MatterDev';
+import MatterBuild from 'MatterBuild';
 
 var compare = function(examples, isDev) {
     // create primary demo for dev build
@@ -169,4 +169,4 @@ var compare = function(examples, isDev) {
     );
 };
 
-module.exports = { compare: compare };
+export { compare };

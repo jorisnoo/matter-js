@@ -9,7 +9,7 @@
 * @module Multi
 */
 
-var MatterTools = require('matter-tools');
+import MatterTools from 'matter-tools';
 
 var multi = function(examples, isDev) {
     var demo = MatterTools.Demo.create({
@@ -94,4 +94,4 @@ var multi = function(examples, isDev) {
     });
 };
 
-module.exports = { multi: multi };
+export { multi };

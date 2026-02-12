@@ -142,8 +142,8 @@
         "New import syntax documented"
       ],
       "priority": 8,
-      "passes": false,
-      "inProgress": true
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-009",
@@ -156,7 +156,8 @@
         "At least one example verified to run correctly in a browser"
       ],
       "priority": 9,
-      "passes": false
+      "passes": false,
+      "inProgress": true
     }
   ]
 }

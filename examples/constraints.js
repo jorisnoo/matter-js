@@ -1,0 +1,174 @@
+const constraints = function() {
+    const { Engine, Render, Runner, Composites, Common, Constraint, MouseConstraint, Mouse, Composite, Bodies } = Matter;
+
+    // create engine
+    const engine = new Engine(),
+        world = engine.world;
+
+    // create renderer
+    const render = new Render({
+        element: document.body,
+        engine: engine,
+        options: {
+            width: 800,
+            height: 600,
+            showAngleIndicator: true
+        }
+    });
+
+    Render.run(render);
+
+    // create runner
+    const runner = new Runner();
+    Runner.run(runner, engine);
+
+    // add stiff global constraint
+    let body = Bodies.polygon(150, 200, 5, 30);
+
+    let constraint = new Constraint({
+        pointA: { x: 150, y: 100 },
+        bodyB: body,
+        pointB: { x: -10, y: -10 }
+    });
+
+    Composite.add(world, [body, constraint]);
+
+    // add soft global constraint
+    body = Bodies.polygon(280, 100, 3, 30);
+
+    constraint = new Constraint({
+        pointA: { x: 280, y: 120 },
+        bodyB: body,
+        pointB: { x: -10, y: -7 },
+        stiffness: 0.001
+    });
+
+    Composite.add(world, [body, constraint]);
+
+    // add damped soft global constraint
+    body = Bodies.polygon(400, 100, 4, 30);
+
+    constraint = new Constraint({
+        pointA: { x: 400, y: 120 },
+        bodyB: body,
+        pointB: { x: -10, y: -10 },
+        stiffness: 0.001,
+        damping: 0.05
+    });
+
+    Composite.add(world, [body, constraint]);
+
+    // add revolute constraint
+    body = Bodies.rectangle(600, 200, 200, 20);
+    let ball = Bodies.circle(550, 150, 20);
+
+    constraint = new Constraint({
+        pointA: { x: 600, y: 200 },
+        bodyB: body,
+        length: 0
+    });
+
+    Composite.add(world, [body, ball, constraint]);
+
+    // add revolute multi-body constraint
+    body = Bodies.rectangle(500, 400, 100, 20, { collisionFilter: { group: -1 } });
+    ball = Bodies.circle(600, 400, 20, { collisionFilter: { group: -1 } });
+
+    constraint = new Constraint({
+        bodyA: body,
+        bodyB: ball
+    });
+
+    Composite.add(world, [body, ball, constraint]);
+
+    // add stiff multi-body constraint
+    let bodyA = Bodies.polygon(100, 400, 6, 20);
+    let bodyB = Bodies.polygon(200, 400, 1, 50);
+
+    constraint = new Constraint({
+        bodyA: bodyA,
+        pointA: { x: -10, y: -10 },
+        bodyB: bodyB,
+        pointB: { x: -10, y: -10 }
+    });
+
+    Composite.add(world, [bodyA, bodyB, constraint]);
+
+    // add soft global constraint
+    bodyA = Bodies.polygon(300, 400, 4, 20);
+    bodyB = Bodies.polygon(400, 400, 3, 30);
+
+    constraint = new Constraint({
+        bodyA: bodyA,
+        pointA: { x: -10, y: -10 },
+        bodyB: bodyB,
+        pointB: { x: -10, y: -7 },
+        stiffness: 0.001
+    });
+
+    Composite.add(world, [bodyA, bodyB, constraint]);
+
+    // add damped soft global constraint
+    bodyA = Bodies.polygon(500, 400, 6, 30);
+    bodyB = Bodies.polygon(600, 400, 7, 60);
+
+    constraint = new Constraint({
+        bodyA: bodyA,
+        pointA: { x: -10, y: -10 },
+        bodyB: bodyB,
+        pointB: { x: -10, y: -10 },
+        stiffness: 0.001,
+        damping: 0.1
+    });
+
+    Composite.add(world, [bodyA, bodyB, constraint]);
+
+    Composite.add(world, [
+        // walls
+        Bodies.rectangle(400, 0, 800, 50, { isStatic: true }),
+        Bodies.rectangle(400, 600, 800, 50, { isStatic: true }),
+        Bodies.rectangle(800, 300, 50, 600, { isStatic: true }),
+        Bodies.rectangle(0, 300, 50, 600, { isStatic: true })
+    ]);
+
+    // add mouse control
+    const mouse = new Mouse(render.canvas),
+        mouseConstraint = new MouseConstraint(engine, {
+            mouse: mouse,
+            constraint: {
+                // allow bodies on mouse to rotate
+                angularStiffness: 0,
+                render: {
+                    visible: false
+                }
+            }
+        });
+
+    Composite.add(world, mouseConstraint);
+
+    // keep the mouse in sync with rendering
+    render.mouse = mouse;
+
+    // fit the render viewport to the scene
+    Render.lookAt(render, {
+        min: { x: 0, y: 0 },
+        max: { x: 800, y: 600 }
+    });
+
+    // context for MatterTools.Demo
+    return {
+        engine: engine,
+        runner: runner,
+        render: render,
+        canvas: render.canvas,
+        stop() {
+            Render.stop(render);
+            Runner.stop(runner);
+        }
+    };
+};
+
+constraints.title = 'Constraints';
+constraints.for = '>=0.14.2';
+
+export default constraints;
