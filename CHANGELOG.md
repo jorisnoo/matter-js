@@ -1,3 +1,168 @@
+## 1.0.0 (2026-02-12)
+
+This is a breaking major release that modernizes the entire matter-js codebase. The physics engine behavior is unchanged, but the module system, syntax, and public API surface have been significantly updated.
+
+### Breaking Changes
+
+#### Module System & Build Output
+
+- **ESM-only package**: `package.json` now has `"type": "module"`. The build output is ES module format only — UMD bundles are no longer produced.
+- **No CommonJS support**: `require('matter-js')` no longer works. Use `import` syntax instead.
+- **`"main"` field removed**: Replaced by `"exports"` field with ESM entry point.
+- **Source maps included**: `build/matter.js.map` and `build/matter.min.js.map` are now generated.
+- **Node.js 18+ required**: The `engines` field now specifies `"node": ">=18"`.
+
+```js
+// Before (CommonJS / UMD)
+const Matter = require('matter-js');
+const { Engine, Render, Body } = Matter;
+
+// After (ES Modules)
+import Matter from 'matter-js';
+// or with tree-shaking:
+import { Engine, Render, Body } from 'matter-js';
+```
+
+#### ES6 Classes
+
+All modules have been converted from factory/object-literal patterns to ES6 classes. Instance modules (Body, Engine, Composite, etc.) now use `class` syntax with constructors.
+
+- **`Body.create(options)` → `new Body(options)`**: All instance modules support direct construction. The `static create()` factory methods are kept for backward compatibility.
+
+```js
+// Before
+const body = Matter.Body.create({ mass: 5, position: { x: 100, y: 100 } });
+
+// After (either works)
+const body = new Matter.Body({ mass: 5, position: { x: 100, y: 100 } });
+const body = Matter.Body.create({ mass: 5, position: { x: 100, y: 100 } }); // still works
+```
+
+This applies to: `Body`, `Composite`, `Constraint`, `MouseConstraint`, `Engine`, `Runner`, `Render`, `Mouse`, `Collision`, `Contact`, `Detector`, `Pair`, `Pairs`.
+
+#### Removed Modules
+
+- **`Grid.js` removed**: The grid-based broadphase collision detection module has been removed entirely. Use `Detector` instead (the default since 0.19.0).
+
+```js
+// Before
+const grid = Matter.Grid.create();
+Matter.Engine.create({ broadphase: grid });
+
+// After
+// No action needed — Detector is used by default.
+// Access via engine.detector if needed.
+```
+
+#### Removed Polyfill Helpers from `Common`
+
+The following `Common` utility methods that wrapped native JavaScript APIs have been removed. Replace with their native equivalents:
+
+| Removed Method | Replacement |
+|---|---|
+| `Common.keys(obj)` | `Object.keys(obj)` |
+| `Common.values(obj)` | `Object.values(obj)` |
+| `Common.isArray(x)` | `Array.isArray(x)` |
+| `Common.isString(x)` | `typeof x === 'string'` |
+| `Common.isFunction(x)` | `typeof x === 'function'` |
+| `Common.isPlainObject(x)` | *(removed, no direct replacement needed)* |
+| `Common.colorToNumber(color)` | *(removed, no direct replacement needed)* |
+| `Common.indexOf(arr, item)` | `arr.indexOf(item)` |
+| `Common.map(arr, fn)` | `arr.map(fn)` |
+
+#### Removed Back-Compatibility Properties
+
+- **`engine.grid`** — Removed. The `Grid` module no longer exists.
+- **`engine.broadphase`** — Removed. Use `engine.detector` instead.
+- **`engine.metrics`** — Removed. The `Metrics` module was previously deprecated.
+- **`render.controller`** — Removed. This back-compatibility reference is no longer needed.
+- **`render.options.showBroadphase`** — Removed. The broadphase debug visualization was tied to the removed `Grid` module.
+
+```js
+// Before
+const grid = engine.broadphase;
+const metrics = engine.metrics;
+
+// After
+const detector = engine.detector;
+// engine.metrics — no replacement, feature removed
+```
+
+#### Removed `Engine.run` Alias
+
+- **`Engine.run()` removed**: Use `Runner.run()` directly.
+
+```js
+// Before
+Matter.Engine.run(engine);
+
+// After
+const runner = Matter.Runner.create();
+Matter.Runner.run(runner, engine);
+```
+
+#### Removed Factory Methods from `Composites`
+
+The following convenience factory methods have been removed from `Composites` and moved to standalone example files:
+
+- **`Composites.newtonsCradle()`** — See `examples/newtonsCradle.cjs`
+- **`Composites.car()`** — See `examples/car.cjs`
+- **`Composites.softBody()`** — See `examples/softBody.cjs`
+
+The remaining `Composites` methods (`stack`, `chain`, `mesh`, `pyramid`) are unchanged.
+
+#### Deprecated Modules (Still Available, Will Be Removed)
+
+- **`World`** — All methods are thin re-exports of `Composite` equivalents. Use `Composite` directly. The `world.gravity` property has moved to `engine.gravity`.
+
+```js
+// Before
+Matter.World.add(world, body);
+const gravity = world.gravity;
+
+// After
+Matter.Composite.add(engine.world, body);
+const gravity = engine.gravity;
+```
+
+- **`SAT`** — The `SAT.collides()` method now delegates to `Collision.collides()`. Use `Collision` directly.
+
+```js
+// Before
+const collision = Matter.SAT.collides(bodyA, bodyB);
+
+// After
+const collision = Matter.Collision.collides(bodyA, bodyB);
+```
+
+#### Internal / Syntax Changes
+
+- **`var` → `const`/`let`**: All source files use block-scoped declarations. If you were extending or monkey-patching internal variables, references may need updating.
+- **Modern JavaScript syntax**: Arrow functions, template literals, destructuring, `for...of` loops, optional chaining, nullish coalescing, default parameters, and spread syntax are used throughout.
+- **Private internals prefixed with `_`**: Internal properties and methods use `_` prefix convention.
+
+### New Features
+
+- **TypeScript type definitions**: Comprehensive `.d.ts` file included at `types/matter-js.d.ts`. The `package.json` includes a `"types"` field and conditional `"types"` export for automatic TypeScript resolution.
+- **Tree-shaking support**: Named exports allow bundlers to eliminate unused modules.
+- **Source maps**: Generated for both `build/matter.js` and `build/matter.min.js`.
+- **Vitest test suite**: Tests migrated from Jest to Vitest for faster ESM-native testing.
+
+### Migration Checklist
+
+1. Update Node.js to 18 or later
+2. Change `require('matter-js')` to `import Matter from 'matter-js'` (or use named imports)
+3. Replace `Common.keys/values/isArray/isString/isFunction/indexOf/map` with native equivalents
+4. Replace `engine.broadphase` with `engine.detector`
+5. Replace `Engine.run(engine)` with `Runner.run(Runner.create(), engine)`
+6. Replace `World.add(...)` with `Composite.add(...)`
+7. Replace `SAT.collides(...)` with `Collision.collides(...)`
+8. Replace `Composites.newtonsCradle/car/softBody` with inline implementations (see examples/)
+9. Remove any references to `engine.grid`, `engine.metrics`, `render.controller`
+10. If using TypeScript, remove any third-party `@types/matter-js` in favor of the bundled types
+
+---
+
 ## 0.20.0 (2024-06-23)
 
 * added event passive options to Matter.Mouse, closes #930, closes #976 ([e888f3c](https://github.com/liabru/matter-js/commit/e888f3c)), closes [#930](https://github.com/liabru/matter-js/issues/930) [#976](https://github.com/liabru/matter-js/issues/976)

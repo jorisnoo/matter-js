@@ -1,5 +1,5 @@
 /**
- * matter-js 0.20.0 by @liabru
+ * matter-js 1.0.0 by @liabru
  * http://brm.io/matter-js/
  * License MIT
  *
@@ -843,7 +843,7 @@ class Matter {
      * @readOnly
      * @type {String}
      */
-    static version = "0.20.0" ;
+    static version = "1.0.0" ;
 
     /**
      * A list of plugin dependencies to be installed. These are normally set and installed through `Matter.use`.

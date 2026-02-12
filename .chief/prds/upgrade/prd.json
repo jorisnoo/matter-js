@@ -142,7 +142,8 @@
         "New import syntax documented"
       ],
       "priority": 8,
-      "passes": false
+      "passes": false,
+      "inProgress": true
     },
     {
       "id": "US-009",
