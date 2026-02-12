@@ -109,7 +109,8 @@
         "Types validate against a basic TypeScript consumer test file"
       ],
       "priority": 6,
-      "passes": false
+      "passes": false,
+      "inProgress": true
     },
     {
       "id": "US-007",

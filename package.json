@@ -8,10 +8,14 @@
   "description": "a 2D rigid body physics engine for the web",
   "exports": {
     ".": {
-      "import": "./build/matter.js"
+      "import": {
+        "types": "./types/matter-js.d.ts",
+        "default": "./build/matter.js"
+      }
     }
   },
   "module": "build/matter.js",
+  "types": "types/matter-js.d.ts",
   "engines": {
     "node": ">=18"
   },
@@ -46,6 +50,7 @@
     "prettier": "^3.0.0",
     "puppeteer-core": "^5.5.0",
     "rollup": "^4.0.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.18",
     "webpack": "^4.46.0",
     "webpack-bundle-analyzer": "^4.4.0",
@@ -83,6 +88,7 @@
     "build/matter.min.js",
     "build/matter.js.map",
     "build/matter.min.js.map",
+    "types",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
