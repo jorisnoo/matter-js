@@ -1,0 +1,158 @@
+{
+  "project": "Matter.js Full Modernization",
+  "description": "Comprehensive modernization of the matter-js 2D physics engine codebase. This is a breaking major version that transforms the legacy ES5 codebase into idiomatic modern JavaScript with ES modules, ES6 classes, modern syntax, TypeScript type definitions, ESM-only build output via Rollup, and Vitest as the test runner. All breaking changes must be documented in a changelog. Phase 1 (var→const/let, polyfill removal, tooling upgrade) is already complete.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Modern JavaScript Syntax",
+      "description": "As a contributor, I want the codebase to use modern JavaScript syntax so that the code is more readable, concise, and idiomatic.",
+      "acceptanceCriteria": [
+        "Arrow functions used for all anonymous callbacks and short functions (preserving `this`-dependent functions as regular functions where needed)",
+        "Template literals replace string concatenation",
+        "Destructuring used for object/array unpacking where it improves clarity",
+        "`for...of` loops replace index-based `for` loops where iterating values (keep index loops for performance-critical collision/physics code)",
+        "Optional chaining (`?.`) and nullish coalescing (`??`) used where appropriate",
+        "Shorthand property/method syntax used in object literals",
+        "Default parameters replace manual `typeof` / `||` defaults",
+        "Spread syntax replaces `Array.prototype.slice.call` and manual array copying",
+        "All 31 source files updated",
+        "Build succeeds and all existing tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "inProgress": false
+    },
+    {
+      "id": "US-002",
+      "title": "Convert to ES Modules",
+      "description": "As a developer, I want the codebase to use ES module `import`/`export` syntax so that it works natively with modern bundlers and runtimes without wrapper patterns.",
+      "acceptanceCriteria": [
+        "Each source file uses `import` / `export` instead of the current `module.exports` / `require` or global assignment pattern",
+        "Circular dependency chains identified and resolved or documented",
+        "`src/module/main.js` becomes the package entry point with named exports for all public modules",
+        "Internal cross-module references use direct imports instead of `Matter.ModuleName` lookup",
+        "The `Matter` namespace object is still available as a default export for convenience",
+        "Build succeeds and all existing tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "inProgress": false
+    },
+    {
+      "id": "US-003",
+      "title": "Convert to ES6 Classes",
+      "description": "As a contributor, I want physics objects (Body, Composite, Constraint, etc.) to use ES6 class syntax so that the code structure is clear and extensible.",
+      "acceptanceCriteria": [
+        "`Body`, `Composite`, `Constraint`, `MouseConstraint` converted from factory/object pattern to classes with constructors",
+        "`Engine`, `Runner`, `Render`, `Mouse` converted to classes",
+        "Static utility modules (`Vector`, `Vertices`, `Bounds`, `Axes`, `SAT`, `Collision`, `Resolver`, `Detector`, `Query`, `Pairs`, `Pair`, `Contact`, `Sleeping`, `Events`, `Common`, `Plugin`) converted to classes with static methods or remain as plain module exports (whichever is more appropriate per module)",
+        "Factory modules (`Bodies`, `Composites`) converted appropriately",
+        "`Body.create(options)` pattern replaced with `new Body(options)` constructor",
+        "Default property values set in constructors instead of `create` functions",
+        "Private/internal properties identified and prefixed with `_` or use `#` private fields",
+        "`World` deprecated module handled (it extends `Composite`) - either merged or clearly re-exported",
+        "Build succeeds and all existing tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "inProgress": false
+    },
+    {
+      "id": "US-004",
+      "title": "ESM-Only Rollup Build",
+      "description": "As a consumer, I want matter-js distributed as an ES module built with Rollup so that I can use tree-shaking and native module loading.",
+      "acceptanceCriteria": [
+        "Rollup config updated to output ESM format only (remove UMD)",
+        "`package.json` updated: `\"type\": \"module\"`, `\"exports\"` field with ESM entry",
+        "Remove `\"main\"` field or point it to ESM bundle",
+        "`build/matter.js` is an ES module bundle",
+        "Minified bundle `build/matter.min.js` also ESM",
+        "Source maps generated for both bundles",
+        "Named exports available for tree-shaking (`import { Body, Engine } from 'matter-js'`)",
+        "Default export available for compatibility (`import Matter from 'matter-js'`)",
+        "Build succeeds and all existing tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "inProgress": false
+    },
+    {
+      "id": "US-005",
+      "title": "Migrate Test Suite to Vitest",
+      "description": "As a contributor, I want the test suite to use Vitest so that tests run fast, support ES modules natively, and provide a modern developer experience.",
+      "acceptanceCriteria": [
+        "Vitest installed and configured (`vitest.config.js` or config in `vite.config.js`)",
+        "Existing test files migrated from current test runner to Vitest syntax (`describe`, `it`, `expect`)",
+        "Test files use ES module `import` syntax",
+        "All existing physics simulation tests pass with identical results",
+        "`npm test` runs Vitest",
+        "`npm run test:watch` available for development",
+        "CI workflow updated to run Vitest on Node 20 and 22",
+        "Lint and format checks pass in CI",
+        "Old test runner dependencies removed from `package.json`"
+      ],
+      "priority": 5,
+      "passes": false
+    },
+    {
+      "id": "US-006",
+      "title": "TypeScript Type Definitions",
+      "description": "As a TypeScript user, I want accurate type definitions so that I get autocomplete and type checking when using matter-js.",
+      "acceptanceCriteria": [
+        "JSDoc type annotations added to all public API functions, methods, and properties",
+        "A generated `.d.ts` file produced from JSDoc (or hand-written `.d.ts` if generation is insufficient)",
+        "`package.json` includes `\"types\"` field pointing to the type definitions",
+        "Types cover: Body, Composite, Constraint, Engine, Runner, Render, Mouse, MouseConstraint, Events, Vector, Vertices, Bounds, Bodies, Composites, Query, Common, Plugin, Detector, Collision, Pair, Pairs, SAT, Sleeping",
+        "Generic event types for `Events.on` / `Events.off` / `Events.trigger`",
+        "Options/config objects have typed interfaces",
+        "Types validate against a basic TypeScript consumer test file"
+      ],
+      "priority": 6,
+      "passes": false
+    },
+    {
+      "id": "US-007",
+      "title": "Clean Up Deprecated APIs and Dead Code",
+      "description": "As a maintainer, I want all deprecated code paths, compatibility shims, and dead code removed so that the codebase is lean and maintainable.",
+      "acceptanceCriteria": [
+        "`World.js` either removed (merged into Composite) or clearly marked as a thin re-export with no duplicate logic",
+        "Any remaining `Common.warn` deprecation messages for removed features cleaned up",
+        "`Svg.js` dependency on external `SVGPathSeg` polyfill documented or replaced",
+        "Unused internal helper functions in `Common.js` identified and removed",
+        "No `arguments` object usage remains (replaced by rest parameters in US-001)",
+        "All `@deprecated` JSDoc tags correspond to actually deprecated items, not already-removed ones"
+      ],
+      "priority": 7,
+      "passes": false
+    },
+    {
+      "id": "US-008",
+      "title": "Breaking Changes Changelog",
+      "description": "As a user upgrading matter-js, I want a detailed changelog documenting all breaking changes so that I can migrate my code confidently.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` created or updated with a new major version section",
+        "Every breaking change categorized: API removals, API renames, behavioral changes, build output changes",
+        "Migration guide for each breaking change (before → after code examples)",
+        "Documents: removal of `Grid.js`, removal of polyfill helpers (`Common.keys`, `Common.values`, `Common.isArray`, `Common.isString`), removal of `World` (if applicable), `Body.create()` → `new Body()`, UMD → ESM output, Node 18+ requirement, `var` → `const`/`let` (for anyone extending internals)",
+        "Documents removal of back-compat properties (`render.controller`, `engine.grid`, `engine.broadphase`, `engine.metrics`)",
+        "New minimum Node.js version documented",
+        "New import syntax documented"
+      ],
+      "priority": 8,
+      "passes": false
+    },
+    {
+      "id": "US-009",
+      "title": "Update Examples and Demo",
+      "description": "As a user exploring matter-js, I want examples and the demo app to work with the modernized API so that I can learn from up-to-date code.",
+      "acceptanceCriteria": [
+        "Example files updated to use `import` and `new Body()` class constructor syntax",
+        "Demo app updated to work with ESM build",
+        "`demo/` build/serve scripts work correctly",
+        "At least one example verified to run correctly in a browser"
+      ],
+      "priority": 9,
+      "passes": false
+    }
+  ]
+}

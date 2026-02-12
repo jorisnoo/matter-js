@@ -1,12 +1,15 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const { nodeResolve } = require('@rollup/plugin-node-resolve');
-const replace = require('@rollup/plugin-replace');
-const terser = require('@rollup/plugin-terser');
+import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { createRequire } from 'module';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
+import replace from '@rollup/plugin-replace';
+import terser from '@rollup/plugin-terser';
+
+const require = createRequire(import.meta.url);
 const pkg = require('./package.json');
 
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim();
-const license = fs.readFileSync('LICENSE', 'utf8');
+const license = readFileSync('LICENSE', 'utf8');
 
 const kind = process.env.KIND || null;
 const version = !kind ? pkg.version : `${pkg.version}-${kind}+${commitHash}`;
@@ -27,11 +30,10 @@ const makeConfig = (minimize) => ({
     input: 'src/module/main.js',
     output: {
         file: `build/matter${suffix}${minimize ? '.min' : ''}.js`,
-        format: 'umd',
-        name: 'Matter',
+        format: 'es',
         exports: 'named',
         banner: makeBanner(minimize),
-        globals: externals
+        sourcemap: true,
     },
     external: Object.keys(externals),
     plugins: [
@@ -50,4 +52,4 @@ const makeConfig = (minimize) => ({
     ].filter(Boolean)
 });
 
-module.exports = [makeConfig(false), makeConfig(true)];
+export default [makeConfig(false), makeConfig(true)];

@@ -334,6 +334,14 @@ const requireUncached = path => {
     return module;
 };
 
+let _importCounter = 0;
+const importUncached = async (path) => {
+    const resolved = require.resolve(path);
+    const url = require('url').pathToFileURL(resolved).href;
+    const module = await import(`${url}?v=${++_importCounter}`);
+    return module;
+};
+
 const getArg = (name, defaultValue=null, parser=(v) => v) => {
     const value = process.argv.find(arg => arg.startsWith(`--${name}=`));
     return value ? parser(value.split('=')[1]) : defaultValue;
@@ -371,6 +379,6 @@ const toMatchIntrinsics = {
 };
 
 module.exports = {
-    requireUncached, comparisonReport, logReport, getArg, smoothExp,
+    requireUncached, importUncached, comparisonReport, logReport, getArg, smoothExp,
     serialize, toMatchExtrinsics, toMatchIntrinsics
 };

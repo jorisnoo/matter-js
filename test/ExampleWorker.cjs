@@ -3,16 +3,16 @@
 "use strict";
 
 const mock = require('mock-require');
-const { requireUncached, serialize, smoothExp } = require('./TestTools');
+const { requireUncached, importUncached, serialize, smoothExp } = require('./TestTools.cjs');
 const consoleOriginal = global.console;
 const DateOriginal = global.Date;
 
-const runExample = options => {
-  const { 
+const runExample = async (options) => {
+  const {
     Matter,
     logs,
     frameCallbacks
-  } = prepareEnvironment(options);
+  } = await prepareEnvironment(options);
 
   let memoryDeltaAverage = 0;
   let timeDeltaAverage = 0;
@@ -37,7 +37,7 @@ const runExample = options => {
         global.gc();
       }
 
-      const Examples = requireUncached('../examples/index');
+      const Examples = requireUncached('../examples/index.cjs');
       const example = Examples[options.name]();
 
       runner = example.runner;
@@ -116,8 +116,9 @@ const runExample = options => {
   }
 };
 
-const prepareMatter = (options) => {
-  const MatterExports = requireUncached(options.useDev ? '../build/matter.dev' : '../build/matter');
+const prepareMatter = async (options) => {
+  const buildPath = options.useDev ? '../build/matter.dev.js' : '../build/matter.js';
+  const MatterExports = await importUncached(buildPath);
   const Matter = MatterExports.default || MatterExports;
 
   if (Matter.Common._nextId !== 0) {
@@ -159,17 +160,17 @@ const prepareMatter = (options) => {
 
   if (options.jitter) {
     Matter.after('Body.create', function() {
-      Matter.Body.applyForce(this, this.position, { 
-        x: Math.cos(this.id * this.id) * options.jitter * this.mass, 
+      Matter.Body.applyForce(this, this.position, {
+        x: Math.cos(this.id * this.id) * options.jitter * this.mass,
         y: Math.sin(this.id * this.id) * options.jitter * this.mass
       });
     });
   }
-  
+
   return Matter;
 };
 
-const prepareEnvironment = options => {
+const prepareEnvironment = async (options) => {
   const logs = [];
   const frameCallbacks = [];
 
@@ -200,7 +201,7 @@ const prepareEnvironment = options => {
 
   global.Image = function Image() { };
 
-  global.console = { 
+  global.console = {
     log: (...args) => {
       logs.push(args.join(' '));
     }
@@ -221,7 +222,7 @@ const prepareEnvironment = options => {
 
   global.Date.now = () => global.timeNow;
 
-  const Matter = prepareMatter(options);
+  const Matter = await prepareMatter(options);
   mock('matter-js', Matter);
   global.Matter = Matter;
 
@@ -269,8 +270,8 @@ const captureIntrinsics = ({ world, timing }, Matter) => serialize({
   }, {}),
   composites: Matter.Composite.allComposites(world).reduce((composites, composite) => {
       composites[composite.id] = {
-          bodies: Matter.Composite.allBodies(composite).map(body => body.id), 
-          constraints: Matter.Composite.allConstraints(composite).map(constraint => constraint.id), 
+          bodies: Matter.Composite.allBodies(composite).map(body => body.id),
+          constraints: Matter.Composite.allConstraints(composite).map(constraint => constraint.id),
           composites: Matter.Composite.allComposites(composite).map(composite => composite.id)
       };
       return composites;
@@ -286,15 +287,15 @@ const intrinsicProperties = [
   'bodies', 'constraints', 'composites',
 
   // Common
-  'id', 'label', 
+  'id', 'label',
 
   // Constraint
   'angularStiffness', 'bodyA', 'bodyB', 'damping', 'length', 'stiffness',
 
   // Body
-  'area', 'collisionFilter', 'category', 'mask', 'group', 'density', 'friction', 
-  'frictionAir', 'frictionStatic', 'inertia', 'inverseInertia', 'inverseMass', 
-  'isSensor', 'isSleeping', 'isStatic', 'mass', 'parent', 'parts', 'restitution', 
+  'area', 'collisionFilter', 'category', 'mask', 'group', 'density', 'friction',
+  'frictionAir', 'frictionStatic', 'inertia', 'inverseInertia', 'inverseMass',
+  'isSensor', 'isSleeping', 'isStatic', 'mass', 'parent', 'parts', 'restitution',
   'sleepThreshold', 'slop', 'timeScale',
 
   // Composite
@@ -335,7 +336,7 @@ const excludeStateProperties = [
   'timestampElapsedHistory',
 ].concat(extrinsicProperties);
 
-const collisionId = (collision) => 
+const collisionId = (collision) =>
   Math.min(collision.bodyA.id, collision.bodyB.id) + Math.max(collision.bodyA.id, collision.bodyB.id) * 10000;
 
 const collisionCompareId = (collisionA, collisionB) => collisionId(collisionA) - collisionId(collisionB);
