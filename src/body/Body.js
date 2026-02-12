@@ -140,8 +140,7 @@ const Axes = require('../geometry/Axes');
      * @param {body} body
      * @param {} [options]
      */
-    const _initProperties = function(body, options) {
-        options = options || {};
+    const _initProperties = (body, options = {}) => {
 
         // init required properties (order is important)
         Body.set(body, {
@@ -415,7 +414,7 @@ const Axes = require('../geometry/Axes');
         if (body.parts.length === 1)
             return;
 
-        autoHull = typeof autoHull !== 'undefined' ? autoHull : true;
+        autoHull = autoHull ?? true;
 
         // find the convex hull of all parts to set on the parent body
         if (autoHull) {
@@ -745,7 +744,7 @@ const Axes = require('../geometry/Axes');
      * @param {number} [deltaTime=16.666]
      */
     Body.update = function(body, deltaTime) {
-        deltaTime = (typeof deltaTime !== 'undefined' ? deltaTime : (1000 / 60)) * body.timeScale;
+        deltaTime = (deltaTime ?? (1000 / 60)) * body.timeScale;
 
         const deltaTimeSquared = deltaTime * deltaTime,
             correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;

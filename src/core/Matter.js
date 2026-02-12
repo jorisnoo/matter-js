@@ -53,8 +53,8 @@ const Common = require('./Common');
      * @method use
      * @param ...plugin {Function} The plugin(s) to install on `base` (multi-argument).
      */
-    Matter.use = function() {
-        Plugin.use(Matter, Array.prototype.slice.call(arguments));
+    Matter.use = function(...args) {
+        Plugin.use(Matter, args);
     };
 
     /**

@@ -102,7 +102,7 @@ const Common = require('./Common');
                     eventClone.source = object;
 
                     for (let j = 0; j < callbacks.length; j++) {
-                        callbacks[j].apply(object, [eventClone]);
+                        callbacks[j].call(object, eventClone);
                     }
                 }
             }

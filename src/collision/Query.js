@@ -65,8 +65,7 @@ const Vertices = require('../geometry/Vertices');
      * @param {number} [rayWidth]
      * @return {collision[]} Collisions
      */
-    Query.ray = function(bodies, startPoint, endPoint, rayWidth) {
-        rayWidth = rayWidth || 1e-100;
+    Query.ray = function(bodies, startPoint, endPoint, rayWidth = 1e-100) {
 
         const rayAngle = Vector.angle(startPoint, endPoint),
             rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint)),

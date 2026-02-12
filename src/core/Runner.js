@@ -258,7 +258,7 @@ const Common = require('./Common');
      * @param {Number[]} values
      * @return {Number} the mean of given values.
      */
-    const _mean = function(values) {
+    const _mean = (values) => {
         let result = 0;
         const valuesLength = values.length;
 

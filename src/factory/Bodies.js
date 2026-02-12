@@ -33,13 +33,12 @@ const Vector = require('../geometry/Vector');
      * @param {object} [options]
      * @return {body} A new rectangle body
      */
-    Bodies.rectangle = function(x, y, width, height, options) {
-        options = options || {};
+    Bodies.rectangle = function(x, y, width, height, options = {}) {
 
         const rectangle = {
             label: 'Rectangle Body',
             position: { x: x, y: y },
-            vertices: Vertices.fromPath('L 0 0 L ' + width + ' 0 L ' + width + ' ' + height + ' L 0 ' + height)
+            vertices: Vertices.fromPath(`L 0 0 L ${width} 0 L ${width} ${height} L 0 ${height}`)
         };
 
         if (options.chamfer) {
@@ -66,8 +65,7 @@ const Vector = require('../geometry/Vector');
      * @param {object} [options]
      * @return {body} A new trapezoid body
      */
-    Bodies.trapezoid = function(x, y, width, height, slope, options) {
-        options = options || {};
+    Bodies.trapezoid = function(x, y, width, height, slope, options = {}) {
 
         if (slope >= 1) {
             Common.warn('Bodies.trapezoid: slope parameter must be < 1.');
@@ -82,9 +80,9 @@ const Vector = require('../geometry/Vector');
         let verticesPath;
 
         if (slope < 0.5) {
-            verticesPath = 'L 0 0 L ' + x1 + ' ' + (-height) + ' L ' + x2 + ' ' + (-height) + ' L ' + x3 + ' 0';
+            verticesPath = `L 0 0 L ${x1} ${-height} L ${x2} ${-height} L ${x3} 0`;
         } else {
-            verticesPath = 'L 0 0 L ' + x2 + ' ' + (-height) + ' L ' + x3 + ' 0';
+            verticesPath = `L 0 0 L ${x2} ${-height} L ${x3} 0`;
         }
 
         const trapezoid = {
@@ -115,8 +113,7 @@ const Vector = require('../geometry/Vector');
      * @param {number} [maxSides]
      * @return {body} A new circle body
      */
-    Bodies.circle = function(x, y, radius, options, maxSides) {
-        options = options || {};
+    Bodies.circle = function(x, y, radius, options = {}, maxSides) {
 
         const circle = {
             label: 'Circle Body',
@@ -146,8 +143,7 @@ const Vector = require('../geometry/Vector');
      * @param {object} [options]
      * @return {body} A new regular polygon body
      */
-    Bodies.polygon = function(x, y, sides, radius, options) {
-        options = options || {};
+    Bodies.polygon = function(x, y, sides, radius, options = {}) {
 
         if (sides < 3)
             return Bodies.circle(x, y, radius, options);
@@ -161,7 +157,7 @@ const Vector = require('../geometry/Vector');
                 xx = Math.cos(angle) * radius,
                 yy = Math.sin(angle) * radius;
 
-            path += 'L ' + xx.toFixed(3) + ' ' + yy.toFixed(3) + ' ';
+            path += `L ${xx.toFixed(3)} ${yy.toFixed(3)} `;
         }
 
         const polygon = {
@@ -214,7 +210,7 @@ const Vector = require('../geometry/Vector');
      * @param {number} [removeDuplicatePoints=0.01] Threshold when simplifying nearby vertices.
      * @return {body}
      */
-    Bodies.fromVertices = function(x, y, vertexSets, options, flagInternal, removeCollinear, minimumArea, removeDuplicatePoints) {
+    Bodies.fromVertices = function(x, y, vertexSets, options = {}, flagInternal = false, removeCollinear = 0.01, minimumArea = 10, removeDuplicatePoints = 0.01) {
         const decomp = Common.getDecomp();
         let canDecomp,
             body,
@@ -231,13 +227,7 @@ const Vector = require('../geometry/Vector');
         // check decomp is as expected
         canDecomp = Boolean(decomp && decomp.quickDecomp);
 
-        options = options || {};
         parts = [];
-
-        flagInternal = typeof flagInternal !== 'undefined' ? flagInternal : false;
-        removeCollinear = typeof removeCollinear !== 'undefined' ? removeCollinear : 0.01;
-        minimumArea = typeof minimumArea !== 'undefined' ? minimumArea : 10;
-        removeDuplicatePoints = typeof removeDuplicatePoints !== 'undefined' ? removeDuplicatePoints : 0.01;
 
         // ensure vertexSets is an array of arrays
         if (!Array.isArray(vertexSets[0])) {
@@ -269,9 +259,7 @@ const Vector = require('../geometry/Vector');
                 });
             } else {
                 // initialise a decomposition
-                const concave = vertices.map(function(vertex) {
-                    return [vertex.x, vertex.y];
-                });
+                const concave = vertices.map((vertex) => [vertex.x, vertex.y]);
 
                 // vertices are concave and simple, we can decompose into parts
                 decomp.makeCCW(concave);
@@ -288,12 +276,10 @@ const Vector = require('../geometry/Vector');
                     const chunk = decomposed[i];
 
                     // convert vertices into the correct structure
-                    const chunkVertices = chunk.map(function(vertices) {
-                        return {
-                            x: vertices[0],
-                            y: vertices[1]
-                        };
-                    });
+                    const chunkVertices = chunk.map((vertices) => ({
+                        x: vertices[0],
+                        y: vertices[1]
+                    }));
 
                     // skip small chunks
                     if (minimumArea > 0 && Vertices.area(chunkVertices) < minimumArea)

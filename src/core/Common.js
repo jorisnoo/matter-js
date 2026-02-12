@@ -213,13 +213,11 @@ module.exports = Common;
      * @param {number} max
      * @return {number} A random number between min and max inclusive
      */
-    Common.random = function(min, max) {
-        min = (typeof min !== "undefined") ? min : 0;
-        max = (typeof max !== "undefined") ? max : 1;
+    Common.random = function(min = 0, max = 1) {
         return min + _seededRandom() * (max - min);
     };
 
-    const _seededRandom = function() {
+    const _seededRandom = () => {
         // https://en.wikipedia.org/wiki/Linear_congruential_generator
         Common._seed = (Common._seed * 9301 + 49297) % 233280;
         return Common._seed / 233280;
@@ -400,7 +398,7 @@ module.exports = Common;
 
             if (func._chained) {
                 // flatten already chained functions
-                funcs.push.apply(funcs, func._chained);
+                funcs.push(...func._chained);
             } else {
                 funcs.push(func);
             }

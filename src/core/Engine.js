@@ -34,8 +34,7 @@ const Body = require('../body/Body');
      * @param {object} [options]
      * @return {engine} engine
      */
-    Engine.create = function(options) {
-        options = options || {};
+    Engine.create = function(options = {}) {
 
         const defaults = {
             positionIterations: 6,
@@ -95,7 +94,7 @@ const Body = require('../body/Body');
             );
         }
 
-        delta = typeof delta !== 'undefined' ? delta : Common._baseDelta;
+        delta = delta ?? Common._baseDelta;
         delta *= timing.timeScale;
 
         // increment timestamp
@@ -105,7 +104,7 @@ const Body = require('../body/Body');
         // create an event object
         const event = {
             timestamp: timing.timestamp,
-            delta: delta
+            delta
         };
 
         Events.trigger(engine, 'beforeUpdate', event);

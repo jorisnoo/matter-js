@@ -12,7 +12,6 @@ const Svg = {};
 
 module.exports = Svg;
 
-const Bounds = require('../geometry/Bounds');
 const Common = require('../core/Common');
 
 (function() {
@@ -28,7 +27,7 @@ const Common = require('../core/Common');
      * @param {Number} [sampleLength=15]
      * @return {Vector[]} points
      */
-    Svg.pathToVertices = function(path, sampleLength) {
+    Svg.pathToVertices = function(path, sampleLength = 15) {
         if (typeof window !== 'undefined' && !('SVGPathSeg' in window)) {
             Common.warn('Svg.pathToVertices: SVGPathSeg not defined, a polyfill is required.');
         }
@@ -40,9 +39,7 @@ const Common = require('../core/Common');
             lx, ly, length = 0, x = 0, y = 0;
         const points = [];
 
-        sampleLength = sampleLength || 15;
-
-        const addPoint = function(px, py, pathSegType) {
+        const addPoint = (px, py, pathSegType) => {
             // all odd-numbered path types are relative except PATHSEG_CLOSEPATH (1)
             const isRelative = pathSegType % 2 === 1 && pathSegType > 1;
 
@@ -73,7 +70,7 @@ const Common = require('../core/Common');
             }
         };
 
-        const addSegmentPoint = function(segment) {
+        const addSegmentPoint = (segment) => {
             const segType = segment.pathSegTypeAsLetter.toUpperCase();
 
             // skip path ends

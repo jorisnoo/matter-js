@@ -66,7 +66,7 @@ const Common = require('../core/Common');
         const pathPattern = /L?\s*([-\d.e]+)[\s,]*([-\d.e]+)*/ig,
             points = [];
 
-        path.replace(pathPattern, function(match, x, y) {
+        path.replace(pathPattern, (match, x, y) => {
             points.push({ x: parseFloat(x), y: parseFloat(y) });
         });
 
@@ -168,8 +168,7 @@ const Common = require('../core/Common');
      * @param {vector} vector
      * @param {number} scalar
      */
-    Vertices.translate = function(vertices, vector, scalar) {
-        scalar = typeof scalar !== 'undefined' ? scalar : 1;
+    Vertices.translate = function(vertices, vector, scalar = 1) {
 
         const verticesLength = vertices.length,
             translateX = vector.x * scalar,
@@ -281,17 +280,12 @@ const Common = require('../core/Common');
      * @param {number} qualityMin
      * @param {number} qualityMax
      */
-    Vertices.chamfer = function(vertices, radius, quality, qualityMin, qualityMax) {
+    Vertices.chamfer = function(vertices, radius, quality = -1, qualityMin = 2, qualityMax = 14) {
         if (typeof radius === 'number') {
             radius = [radius];
         } else {
             radius = radius || [8];
         }
-
-        // quality defaults to -1, which is auto
-        quality = (typeof quality !== 'undefined') ? quality : -1;
-        qualityMin = qualityMin || 2;
-        qualityMax = qualityMax || 14;
 
         const newVertices = [];
 
@@ -354,9 +348,7 @@ const Common = require('../core/Common');
     Vertices.clockwiseSort = function(vertices) {
         const centre = Vertices.mean(vertices);
 
-        vertices.sort(function(vertexA, vertexB) {
-            return Vector.angle(centre, vertexA) - Vector.angle(centre, vertexB);
-        });
+        vertices.sort((vertexA, vertexB) => Vector.angle(centre, vertexA) - Vector.angle(centre, vertexB));
 
         return vertices;
     };
@@ -421,7 +413,7 @@ const Common = require('../core/Common');
 
         // sort vertices on x-axis (y-axis for ties)
         vertices = vertices.slice(0);
-        vertices.sort(function(vertexA, vertexB) {
+        vertices.sort((vertexA, vertexB) => {
             const dx = vertexA.x - vertexB.x;
             return dx !== 0 ? dx : vertexA.y - vertexB.y;
         });

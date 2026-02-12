@@ -116,8 +116,8 @@ const Contact = require('./Contact');
      * @return {string} Unique pairId
      */
     Pair.id = function(bodyA, bodyB) {
-        return bodyA.id < bodyB.id ? bodyA.id.toString(36) + ':' + bodyB.id.toString(36) 
-            : bodyB.id.toString(36) + ':' + bodyA.id.toString(36);
+        return bodyA.id < bodyB.id ? `${bodyA.id.toString(36)}:${bodyB.id.toString(36)}`
+            : `${bodyB.id.toString(36)}:${bodyA.id.toString(36)}`;
     };
 
 })();

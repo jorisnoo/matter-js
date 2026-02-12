@@ -175,7 +175,7 @@ const deprecated = Common.deprecated;
      * @return {composite} A new composite containing objects created in the callback
      */
     Composites.pyramid = function(x, y, columns, rows, columnGap, rowGap, callback) {
-        return Composites.stack(x, y, columns, rows, columnGap, rowGap, function(stackX, stackY, column, row, lastBody, i) {
+        return Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY, column, row, lastBody, i) => {
             const actualRows = Math.min(rows, Math.ceil(columns / 2)),
                 lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
             
@@ -322,7 +322,7 @@ const deprecated = Common.deprecated;
         particleOptions = Common.extend({ inertia: Infinity }, particleOptions);
         constraintOptions = Common.extend({ stiffness: 0.2, render: { type: 'line', anchors: false } }, constraintOptions);
 
-        const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, function(stackX, stackY) {
+        const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY) => {
             return Bodies.circle(stackX, stackY, particleRadius, particleOptions);
         });
 

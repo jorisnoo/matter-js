@@ -63,7 +63,7 @@ const Common = require('./Common');
      * @return {string} Pretty printed plugin name and version.
      */
     Plugin.toString = function(plugin) {
-        return typeof plugin === 'string' ? plugin : (plugin.name || 'anonymous') + '@' + (plugin.version || plugin.range || '0.0.0');
+        return typeof plugin === 'string' ? plugin : `${plugin.name || 'anonymous'}@${plugin.version || plugin.range || '0.0.0'}`;
     };
 
     /**
@@ -141,7 +141,7 @@ const Common = require('./Common');
             const plugin = Plugin.resolve(sortedDependencies[i]);
 
             if (!plugin) {
-                status.push('❌ ' + sortedDependencies[i]);
+                status.push(`❌ ${sortedDependencies[i]}`);
                 continue;
             }
 
@@ -150,7 +150,7 @@ const Common = require('./Common');
             }
 
             if (!Plugin.isFor(plugin, module)) {
-                Common.warn('Plugin.use:', Plugin.toString(plugin), 'is for', plugin.for, 'but installed on', Plugin.toString(module) + '.');
+                Common.warn('Plugin.use:', Plugin.toString(plugin), 'is for', plugin.for, 'but installed on', `${Plugin.toString(module)}.`);
                 plugin._warned = true;
             }
 
@@ -162,10 +162,10 @@ const Common = require('./Common');
             }
 
             if (plugin._warned) {
-                status.push('🔶 ' + Plugin.toString(plugin));
+                status.push(`🔶 ${Plugin.toString(plugin)}`);
                 delete plugin._warned;
             } else {
-                status.push('✅ ' + Plugin.toString(plugin));
+                status.push(`✅ ${Plugin.toString(plugin)}`);
             }
 
             module.used.push(plugin.name);
@@ -182,11 +182,9 @@ const Common = require('./Common');
      * @param module {} The module.
      * @return {object} A dependency graph.
      */
-    Plugin.dependencies = function(module, tracked) {
+    Plugin.dependencies = function(module, tracked = {}) {
         const parsedBase = Plugin.dependencyParse(module),
             name = parsedBase.name;
-
-        tracked = tracked || {};
 
         if (name in tracked) {
             return;
@@ -194,7 +192,7 @@ const Common = require('./Common');
 
         module = Plugin.resolve(module) || module;
 
-        tracked[name] = (module.uses || []).map(function(dependency) {
+        tracked[name] = (module.uses || []).map((dependency) => {
             if (Plugin.isPlugin(dependency)) {
                 Plugin.register(dependency);
             }
@@ -205,7 +203,7 @@ const Common = require('./Common');
             if (resolved && !Plugin.versionSatisfies(resolved.version, parsed.range)) {
                 Common.warn(
                     'Plugin.dependencies:', Plugin.toString(resolved), 'does not satisfy',
-                    Plugin.toString(parsed), 'used by', Plugin.toString(parsedBase) + '.'
+                    Plugin.toString(parsed), 'used by', `${Plugin.toString(parsedBase)}.`
                 );
 
                 resolved._warned = true;

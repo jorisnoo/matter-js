@@ -349,7 +349,7 @@ const Body = require('./Body');
         }
         
         if (keepStatic) {
-            composite.bodies = composite.bodies.filter(function(body) { return body.isStatic; });
+            composite.bodies = composite.bodies.filter((body) => body.isStatic);
         } else {
             composite.bodies.length = 0;
         }
@@ -458,9 +458,7 @@ const Body = require('./Body');
         if (!objects)
             return null;
 
-        object = objects.filter(function(object) { 
-            return object.id.toString() === id.toString(); 
-        });
+        object = objects.filter((object) => object.id.toString() === id.toString());
 
         return object.length === 0 ? null : object[0];
     };
