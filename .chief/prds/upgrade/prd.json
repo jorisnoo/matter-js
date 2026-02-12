@@ -92,7 +92,8 @@
         "Old test runner dependencies removed from `package.json`"
       ],
       "priority": 5,
-      "passes": false
+      "passes": true,
+      "inProgress": false
     },
     {
       "id": "US-006",
