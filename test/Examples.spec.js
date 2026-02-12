@@ -15,8 +15,9 @@ const {
 } = require('./TestTools');
 
 const Example = requireUncached('../examples/index');
-const MatterBuild = requireUncached('../build/matter');
-const { versionSatisfies } = requireUncached('../src/core/Plugin');
+const MatterBuildExports = requireUncached('../build/matter');
+const MatterBuild = MatterBuildExports.default || MatterBuildExports;
+const { versionSatisfies } = MatterBuild.Plugin;
 const Worker = require('jest-worker').Worker;
 
 const testComparison = getArg('compare', null) === 'true';

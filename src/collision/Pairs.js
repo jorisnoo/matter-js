@@ -4,137 +4,133 @@
 * @class Pairs
 */
 
+import Pair from './Pair';
+import Common from '../core/Common';
+
 const Pairs = {};
 
-module.exports = Pairs;
+/**
+ * Creates a new pairs structure.
+ * @method create
+ * @param {object} options
+ * @return {pairs} A new pairs structure
+ */
+Pairs.create = function(options) {
+    return Common.extend({
+        table: {},
+        list: [],
+        collisionStart: [],
+        collisionActive: [],
+        collisionEnd: []
+    }, options);
+};
 
-const Pair = require('./Pair');
-const Common = require('../core/Common');
+/**
+ * Updates pairs given a list of collisions.
+ * @method update
+ * @param {object} pairs
+ * @param {collision[]} collisions
+ * @param {number} timestamp
+ */
+Pairs.update = function(pairs, collisions, timestamp) {
+    const pairUpdate = Pair.update,
+        pairCreate = Pair.create,
+        pairSetActive = Pair.setActive,
+        pairsTable = pairs.table,
+        pairsList = pairs.list,
+        collisionStart = pairs.collisionStart,
+        collisionEnd = pairs.collisionEnd,
+        collisionActive = pairs.collisionActive,
+        collisionsLength = collisions.length;
+    let pairsListLength = pairsList.length,
+        pairsListIndex = pairsListLength,
+        collisionStartIndex = 0,
+        collisionEndIndex = 0,
+        collisionActiveIndex = 0,
+        collision,
+        pair,
+        i;
 
-(function() {
+    for (i = 0; i < collisionsLength; i++) {
+        collision = collisions[i];
+        pair = collision.pair;
 
-    /**
-     * Creates a new pairs structure.
-     * @method create
-     * @param {object} options
-     * @return {pairs} A new pairs structure
-     */
-    Pairs.create = function(options) {
-        return Common.extend({ 
-            table: {},
-            list: [],
-            collisionStart: [],
-            collisionActive: [],
-            collisionEnd: []
-        }, options);
-    };
+        if (pair) {
+            // pair already exists (but may or may not be active)
+            if (pair.isActive) {
+                // pair exists and is active
+                collisionActive[collisionActiveIndex++] = pair;
+            }
 
-    /**
-     * Updates pairs given a list of collisions.
-     * @method update
-     * @param {object} pairs
-     * @param {collision[]} collisions
-     * @param {number} timestamp
-     */
-    Pairs.update = function(pairs, collisions, timestamp) {
-        const pairUpdate = Pair.update,
-            pairCreate = Pair.create,
-            pairSetActive = Pair.setActive,
-            pairsTable = pairs.table,
-            pairsList = pairs.list,
-            collisionStart = pairs.collisionStart,
-            collisionEnd = pairs.collisionEnd,
-            collisionActive = pairs.collisionActive,
-            collisionsLength = collisions.length;
-        let pairsListLength = pairsList.length,
-            pairsListIndex = pairsListLength,
-            collisionStartIndex = 0,
-            collisionEndIndex = 0,
-            collisionActiveIndex = 0,
-            collision,
-            pair,
-            i;
+            // update the pair
+            pairUpdate(pair, collision, timestamp);
+        } else {
+            // pair did not exist, create a new pair
+            pair = pairCreate(collision, timestamp);
+            pairsTable[pair.id] = pair;
 
-        for (i = 0; i < collisionsLength; i++) {
-            collision = collisions[i];
-            pair = collision.pair;
+            // add the new pair
+            collisionStart[collisionStartIndex++] = pair;
+            pairsList[pairsListIndex++] = pair;
+        }
+    }
 
-            if (pair) {
-                // pair already exists (but may or may not be active)
-                if (pair.isActive) {
-                    // pair exists and is active
-                    collisionActive[collisionActiveIndex++] = pair;
-                }
+    // find pairs that are no longer active
+    pairsListIndex = 0;
+    pairsListLength = pairsList.length;
 
-                // update the pair
-                pairUpdate(pair, collision, timestamp);
-            } else {
-                // pair did not exist, create a new pair
-                pair = pairCreate(collision, timestamp);
-                pairsTable[pair.id] = pair;
+    for (i = 0; i < pairsListLength; i++) {
+        pair = pairsList[i];
 
-                // add the new pair
-                collisionStart[collisionStartIndex++] = pair;
+        // pair is active if updated this timestep
+        if (pair.timeUpdated >= timestamp) {
+            // keep active pairs
+            pairsList[pairsListIndex++] = pair;
+        } else {
+            pairSetActive(pair, false, timestamp);
+
+            // keep inactive pairs if both bodies may be sleeping
+            if (pair.collision.bodyA.sleepCounter > 0 && pair.collision.bodyB.sleepCounter > 0) {
                 pairsList[pairsListIndex++] = pair;
+            } else {
+                // remove inactive pairs if either body awake
+                collisionEnd[collisionEndIndex++] = pair;
+                delete pairsTable[pair.id];
             }
         }
+    }
 
-        // find pairs that are no longer active
-        pairsListIndex = 0;
-        pairsListLength = pairsList.length;
+    // update array lengths if changed
+    if (pairsList.length !== pairsListIndex) {
+        pairsList.length = pairsListIndex;
+    }
 
-        for (i = 0; i < pairsListLength; i++) {
-            pair = pairsList[i];
-            
-            // pair is active if updated this timestep
-            if (pair.timeUpdated >= timestamp) {
-                // keep active pairs
-                pairsList[pairsListIndex++] = pair;
-            } else {
-                pairSetActive(pair, false, timestamp);
+    if (collisionStart.length !== collisionStartIndex) {
+        collisionStart.length = collisionStartIndex;
+    }
 
-                // keep inactive pairs if both bodies may be sleeping
-                if (pair.collision.bodyA.sleepCounter > 0 && pair.collision.bodyB.sleepCounter > 0) {
-                    pairsList[pairsListIndex++] = pair;
-                } else {
-                    // remove inactive pairs if either body awake
-                    collisionEnd[collisionEndIndex++] = pair;
-                    delete pairsTable[pair.id];
-                }
-            }
-        }
+    if (collisionEnd.length !== collisionEndIndex) {
+        collisionEnd.length = collisionEndIndex;
+    }
 
-        // update array lengths if changed
-        if (pairsList.length !== pairsListIndex) {
-            pairsList.length = pairsListIndex;
-        }
+    if (collisionActive.length !== collisionActiveIndex) {
+        collisionActive.length = collisionActiveIndex;
+    }
+};
 
-        if (collisionStart.length !== collisionStartIndex) {
-            collisionStart.length = collisionStartIndex;
-        }
+/**
+ * Clears the given pairs structure.
+ * @method clear
+ * @param {pairs} pairs
+ * @return {pairs} pairs
+ */
+Pairs.clear = function(pairs) {
+    pairs.table = {};
+    pairs.list.length = 0;
+    pairs.collisionStart.length = 0;
+    pairs.collisionActive.length = 0;
+    pairs.collisionEnd.length = 0;
+    return pairs;
+};
 
-        if (collisionEnd.length !== collisionEndIndex) {
-            collisionEnd.length = collisionEndIndex;
-        }
-
-        if (collisionActive.length !== collisionActiveIndex) {
-            collisionActive.length = collisionActiveIndex;
-        }
-    };
-
-    /**
-     * Clears the given pairs structure.
-     * @method clear
-     * @param {pairs} pairs
-     * @return {pairs} pairs
-     */
-    Pairs.clear = function(pairs) {
-        pairs.table = {};
-        pairs.list.length = 0;
-        pairs.collisionStart.length = 0;
-        pairs.collisionActive.length = 0;
-        pairs.collisionEnd.length = 0;
-        return pairs;
-    };
-
-})();
+export default Pairs;

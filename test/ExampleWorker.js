@@ -117,7 +117,8 @@ const runExample = options => {
 };
 
 const prepareMatter = (options) => {
-  const Matter = requireUncached(options.useDev ? '../build/matter.dev' : '../build/matter');
+  const MatterExports = requireUncached(options.useDev ? '../build/matter.dev' : '../build/matter');
+  const Matter = MatterExports.default || MatterExports;
 
   if (Matter.Common._nextId !== 0) {
     throw 'Matter instance has already been used.';

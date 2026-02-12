@@ -4,60 +4,56 @@
 * @class Axes
 */
 
+import Vector from './Vector';
+
 const Axes = {};
 
-module.exports = Axes;
+/**
+ * Creates a new set of axes from the given vertices.
+ * @method fromVertices
+ * @param {vertices} vertices
+ * @return {axes} A new axes from the given vertices
+ */
+Axes.fromVertices = function(vertices) {
+    const axes = {};
 
-const Vector = require('../geometry/Vector');
+    // find the unique axes, using edge normal gradients
+    for (let i = 0; i < vertices.length; i++) {
+        const j = (i + 1) % vertices.length,
+            normal = Vector.normalise({
+                x: vertices[j].y - vertices[i].y,
+                y: vertices[i].x - vertices[j].x
+            });
+        let gradient = (normal.y === 0) ? Infinity : (normal.x / normal.y);
 
-(function() {
+        // limit precision
+        gradient = gradient.toFixed(3).toString();
+        axes[gradient] = normal;
+    }
 
-    /**
-     * Creates a new set of axes from the given vertices.
-     * @method fromVertices
-     * @param {vertices} vertices
-     * @return {axes} A new axes from the given vertices
-     */
-    Axes.fromVertices = function(vertices) {
-        const axes = {};
+    return Object.values(axes);
+};
 
-        // find the unique axes, using edge normal gradients
-        for (let i = 0; i < vertices.length; i++) {
-            const j = (i + 1) % vertices.length,
-                normal = Vector.normalise({
-                    x: vertices[j].y - vertices[i].y,
-                    y: vertices[i].x - vertices[j].x
-                });
-            let gradient = (normal.y === 0) ? Infinity : (normal.x / normal.y);
+/**
+ * Rotates a set of axes by the given angle.
+ * @method rotate
+ * @param {axes} axes
+ * @param {number} angle
+ */
+Axes.rotate = function(axes, angle) {
+    if (angle === 0)
+        return;
 
-            // limit precision
-            gradient = gradient.toFixed(3).toString();
-            axes[gradient] = normal;
-        }
+    const cos = Math.cos(angle),
+        sin = Math.sin(angle);
 
-        return Object.values(axes);
-    };
+    for (let i = 0; i < axes.length; i++) {
+        const axis = axes[i];
+        let xx;
+        xx = axis.x * cos - axis.y * sin;
+        axis.y = axis.x * sin + axis.y * cos;
+        axis.x = xx;
+    }
+};
 
-    /**
-     * Rotates a set of axes by the given angle.
-     * @method rotate
-     * @param {axes} axes
-     * @param {number} angle
-     */
-    Axes.rotate = function(axes, angle) {
-        if (angle === 0)
-            return;
-        
-        const cos = Math.cos(angle),
-            sin = Math.sin(angle);
-
-        for (let i = 0; i < axes.length; i++) {
-            const axis = axes[i];
-            let xx;
-            xx = axis.x * cos - axis.y * sin;
-            axis.y = axis.x * sin + axis.y * cos;
-            axis.x = xx;
-        }
-    };
-
-})();
+export default Axes;

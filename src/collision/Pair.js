@@ -4,120 +4,116 @@
 * @class Pair
 */
 
+import Contact from './Contact';
+
 const Pair = {};
 
-module.exports = Pair;
+/**
+ * Creates a pair.
+ * @method create
+ * @param {collision} collision
+ * @param {number} timestamp
+ * @return {pair} A new pair
+ */
+Pair.create = function(collision, timestamp) {
+    const bodyA = collision.bodyA,
+        bodyB = collision.bodyB;
 
-const Contact = require('./Contact');
-
-(function() {
-    
-    /**
-     * Creates a pair.
-     * @method create
-     * @param {collision} collision
-     * @param {number} timestamp
-     * @return {pair} A new pair
-     */
-    Pair.create = function(collision, timestamp) {
-        const bodyA = collision.bodyA,
-            bodyB = collision.bodyB;
-
-        const pair = {
-            id: Pair.id(bodyA, bodyB),
-            bodyA: bodyA,
-            bodyB: bodyB,
-            collision: collision,
-            contacts: [Contact.create(), Contact.create()],
-            contactCount: 0,
-            separation: 0,
-            isActive: true,
-            isSensor: bodyA.isSensor || bodyB.isSensor,
-            timeCreated: timestamp,
-            timeUpdated: timestamp,
-            inverseMass: 0,
-            friction: 0,
-            frictionStatic: 0,
-            restitution: 0,
-            slop: 0
-        };
-
-        Pair.update(pair, collision, timestamp);
-
-        return pair;
+    const pair = {
+        id: Pair.id(bodyA, bodyB),
+        bodyA: bodyA,
+        bodyB: bodyB,
+        collision: collision,
+        contacts: [Contact.create(), Contact.create()],
+        contactCount: 0,
+        separation: 0,
+        isActive: true,
+        isSensor: bodyA.isSensor || bodyB.isSensor,
+        timeCreated: timestamp,
+        timeUpdated: timestamp,
+        inverseMass: 0,
+        friction: 0,
+        frictionStatic: 0,
+        restitution: 0,
+        slop: 0
     };
 
-    /**
-     * Updates a pair given a collision.
-     * @method update
-     * @param {pair} pair
-     * @param {collision} collision
-     * @param {number} timestamp
-     */
-    Pair.update = function(pair, collision, timestamp) {
-        const supports = collision.supports,
-            supportCount = collision.supportCount,
-            contacts = pair.contacts,
-            parentA = collision.parentA,
-            parentB = collision.parentB;
-        
+    Pair.update(pair, collision, timestamp);
+
+    return pair;
+};
+
+/**
+ * Updates a pair given a collision.
+ * @method update
+ * @param {pair} pair
+ * @param {collision} collision
+ * @param {number} timestamp
+ */
+Pair.update = function(pair, collision, timestamp) {
+    const supports = collision.supports,
+        supportCount = collision.supportCount,
+        contacts = pair.contacts,
+        parentA = collision.parentA,
+        parentB = collision.parentB;
+
+    pair.isActive = true;
+    pair.timeUpdated = timestamp;
+    pair.collision = collision;
+    pair.separation = collision.depth;
+    pair.inverseMass = parentA.inverseMass + parentB.inverseMass;
+    pair.friction = parentA.friction < parentB.friction ? parentA.friction : parentB.friction;
+    pair.frictionStatic = parentA.frictionStatic > parentB.frictionStatic ? parentA.frictionStatic : parentB.frictionStatic;
+    pair.restitution = parentA.restitution > parentB.restitution ? parentA.restitution : parentB.restitution;
+    pair.slop = parentA.slop > parentB.slop ? parentA.slop : parentB.slop;
+
+    pair.contactCount = supportCount;
+    collision.pair = pair;
+
+    const supportA = supports[0],
+        supportB = supports[1];
+    let contactA = contacts[0],
+        contactB = contacts[1];
+
+    // match contacts to supports
+    if (contactB.vertex === supportA || contactA.vertex === supportB) {
+        contacts[1] = contactA;
+        contacts[0] = contactA = contactB;
+        contactB = contacts[1];
+    }
+
+    // update contacts
+    contactA.vertex = supportA;
+    contactB.vertex = supportB;
+};
+
+/**
+ * Set a pair as active or inactive.
+ * @method setActive
+ * @param {pair} pair
+ * @param {bool} isActive
+ * @param {number} timestamp
+ */
+Pair.setActive = function(pair, isActive, timestamp) {
+    if (isActive) {
         pair.isActive = true;
         pair.timeUpdated = timestamp;
-        pair.collision = collision;
-        pair.separation = collision.depth;
-        pair.inverseMass = parentA.inverseMass + parentB.inverseMass;
-        pair.friction = parentA.friction < parentB.friction ? parentA.friction : parentB.friction;
-        pair.frictionStatic = parentA.frictionStatic > parentB.frictionStatic ? parentA.frictionStatic : parentB.frictionStatic;
-        pair.restitution = parentA.restitution > parentB.restitution ? parentA.restitution : parentB.restitution;
-        pair.slop = parentA.slop > parentB.slop ? parentA.slop : parentB.slop;
+    } else {
+        pair.isActive = false;
+        pair.contactCount = 0;
+    }
+};
 
-        pair.contactCount = supportCount;
-        collision.pair = pair;
+/**
+ * Get the id for the given pair.
+ * @method id
+ * @param {body} bodyA
+ * @param {body} bodyB
+ * @return {string} Unique pairId
+ */
+Pair.id = function(bodyA, bodyB) {
+    return bodyA.id < bodyB.id ? `${bodyA.id.toString(36)}:${bodyB.id.toString(36)}`
+        : `${bodyB.id.toString(36)}:${bodyA.id.toString(36)}`;
+};
 
-        const supportA = supports[0],
-            supportB = supports[1];
-        let contactA = contacts[0],
-            contactB = contacts[1];
-
-        // match contacts to supports
-        if (contactB.vertex === supportA || contactA.vertex === supportB) {
-            contacts[1] = contactA;
-            contacts[0] = contactA = contactB;
-            contactB = contacts[1];
-        }
-
-        // update contacts
-        contactA.vertex = supportA;
-        contactB.vertex = supportB;
-    };
-    
-    /**
-     * Set a pair as active or inactive.
-     * @method setActive
-     * @param {pair} pair
-     * @param {bool} isActive
-     * @param {number} timestamp
-     */
-    Pair.setActive = function(pair, isActive, timestamp) {
-        if (isActive) {
-            pair.isActive = true;
-            pair.timeUpdated = timestamp;
-        } else {
-            pair.isActive = false;
-            pair.contactCount = 0;
-        }
-    };
-
-    /**
-     * Get the id for the given pair.
-     * @method id
-     * @param {body} bodyA
-     * @param {body} bodyB
-     * @return {string} Unique pairId
-     */
-    Pair.id = function(bodyA, bodyB) {
-        return bodyA.id < bodyB.id ? `${bodyA.id.toString(36)}:${bodyB.id.toString(36)}`
-            : `${bodyB.id.toString(36)}:${bodyA.id.toString(36)}`;
-    };
-
-})();
+export default Pair;

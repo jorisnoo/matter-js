@@ -1,34 +1,98 @@
-const Matter = module.exports = require('../core/Matter');
+import Matter from '../core/Matter';
+import Axes from '../geometry/Axes';
+import Bodies from '../factory/Bodies';
+import Body from '../body/Body';
+import Bounds from '../geometry/Bounds';
+import Collision from '../collision/Collision';
+import Common from '../core/Common';
+import Composite from '../body/Composite';
+import Composites from '../factory/Composites';
+import Constraint from '../constraint/Constraint';
+import Contact from '../collision/Contact';
+import Detector from '../collision/Detector';
+import Engine from '../core/Engine';
+import Events from '../core/Events';
+import Mouse from '../core/Mouse';
+import MouseConstraint from '../constraint/MouseConstraint';
+import Pair from '../collision/Pair';
+import Pairs from '../collision/Pairs';
+import Plugin from '../core/Plugin';
+import Query from '../collision/Query';
+import Render from '../render/Render';
+import Resolver from '../collision/Resolver';
+import Runner from '../core/Runner';
+import SAT from '../collision/SAT';
+import Sleeping from '../core/Sleeping';
+import Svg from '../geometry/Svg';
+import Vector from '../geometry/Vector';
+import Vertices from '../geometry/Vertices';
+import World from '../body/World';
 
-Matter.Axes = require('../geometry/Axes');
-Matter.Bodies = require('../factory/Bodies');
-Matter.Body = require('../body/Body');
-Matter.Bounds = require('../geometry/Bounds');
-Matter.Collision = require('../collision/Collision');
-Matter.Common = require('../core/Common');
-Matter.Composite = require('../body/Composite');
-Matter.Composites = require('../factory/Composites');
-Matter.Constraint = require('../constraint/Constraint');
-Matter.Contact = require('../collision/Contact');
-Matter.Detector = require('../collision/Detector');
-Matter.Engine = require('../core/Engine');
-Matter.Events = require('../core/Events');
-Matter.Mouse = require('../core/Mouse');
-Matter.MouseConstraint = require('../constraint/MouseConstraint');
-Matter.Pair = require('../collision/Pair');
-Matter.Pairs = require('../collision/Pairs');
-Matter.Plugin = require('../core/Plugin');
-Matter.Query = require('../collision/Query');
-Matter.Render = require('../render/Render');
-Matter.Resolver = require('../collision/Resolver');
-Matter.Runner = require('../core/Runner');
-Matter.SAT = require('../collision/SAT');
-Matter.Sleeping = require('../core/Sleeping');
-Matter.Svg = require('../geometry/Svg');
-Matter.Vector = require('../geometry/Vector');
-Matter.Vertices = require('../geometry/Vertices');
-Matter.World = require('../body/World');
+// Assemble the Matter namespace
+Matter.Axes = Axes;
+Matter.Bodies = Bodies;
+Matter.Body = Body;
+Matter.Bounds = Bounds;
+Matter.Collision = Collision;
+Matter.Common = Common;
+Matter.Composite = Composite;
+Matter.Composites = Composites;
+Matter.Constraint = Constraint;
+Matter.Contact = Contact;
+Matter.Detector = Detector;
+Matter.Engine = Engine;
+Matter.Events = Events;
+Matter.Mouse = Mouse;
+Matter.MouseConstraint = MouseConstraint;
+Matter.Pair = Pair;
+Matter.Pairs = Pairs;
+Matter.Plugin = Plugin;
+Matter.Query = Query;
+Matter.Render = Render;
+Matter.Resolver = Resolver;
+Matter.Runner = Runner;
+Matter.SAT = SAT;
+Matter.Sleeping = Sleeping;
+Matter.Svg = Svg;
+Matter.Vector = Vector;
+Matter.Vertices = Vertices;
+Matter.World = World;
 
 // temporary back compatibility
-Matter.Engine.run = Matter.Runner.run;
-Matter.Common.deprecated(Matter.Engine, 'run', 'Engine.run ➤ use Matter.Runner.run(engine) instead');
+Matter.Engine.run = Runner.run;
+Common.deprecated(Matter.Engine, 'run', 'Engine.run ➤ use Matter.Runner.run(engine) instead');
+
+// Named exports for tree-shaking
+export {
+    Axes,
+    Bodies,
+    Body,
+    Bounds,
+    Collision,
+    Common,
+    Composite,
+    Composites,
+    Constraint,
+    Contact,
+    Detector,
+    Engine,
+    Events,
+    Mouse,
+    MouseConstraint,
+    Pair,
+    Pairs,
+    Plugin,
+    Query,
+    Render,
+    Resolver,
+    Runner,
+    SAT,
+    Sleeping,
+    Svg,
+    Vector,
+    Vertices,
+    World
+};
+
+// Default export for convenience
+export default Matter;
