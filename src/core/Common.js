@@ -4,7 +4,7 @@
 * @class Common
 */
 
-var Common = {};
+const Common = {};
 
 module.exports = Common;
 
@@ -13,7 +13,6 @@ module.exports = Common;
     Common._baseDelta = 1000 / 60;
     Common._nextId = 0;
     Common._seed = 0;
-    Common._nowStartTime = +(new Date());
     Common._warnedOnce = {};
     Common._decomp = null;
     
@@ -24,24 +23,23 @@ module.exports = Common;
      * @param {boolean} deep
      * @return {} obj extended
      */
-    Common.extend = function(obj, deep) {
-        var argsStart,
-            args,
+    Common.extend = function(obj, deep, ...rest) {
+        let sources,
             deepClone;
 
         if (typeof deep === 'boolean') {
-            argsStart = 2;
             deepClone = deep;
+            sources = rest;
         } else {
-            argsStart = 1;
             deepClone = true;
+            sources = [deep, ...rest];
         }
 
-        for (var i = argsStart; i < arguments.length; i++) {
-            var source = arguments[i];
+        for (let i = 0; i < sources.length; i++) {
+            const source = sources[i];
 
             if (source) {
-                for (var prop in source) {
+                for (const prop in source) {
                     if (deepClone && source[prop] && source[prop].constructor === Object) {
                         if (!obj[prop] || obj[prop].constructor === Object) {
                             obj[prop] = obj[prop] || {};
@@ -71,46 +69,6 @@ module.exports = Common;
     };
 
     /**
-     * Returns the list of keys for the given object.
-     * @method keys
-     * @param {} obj
-     * @return {string[]} keys
-     */
-    Common.keys = function(obj) {
-        if (Object.keys)
-            return Object.keys(obj);
-
-        // avoid hasOwnProperty for performance
-        var keys = [];
-        for (var key in obj)
-            keys.push(key);
-        return keys;
-    };
-
-    /**
-     * Returns the list of values for the given object.
-     * @method values
-     * @param {} obj
-     * @return {array} Array of the objects property values
-     */
-    Common.values = function(obj) {
-        var values = [];
-        
-        if (Object.keys) {
-            var keys = Object.keys(obj);
-            for (var i = 0; i < keys.length; i++) {
-                values.push(obj[keys[i]]);
-            }
-            return values;
-        }
-        
-        // avoid hasOwnProperty for performance
-        for (var key in obj)
-            values.push(obj[key]);
-        return values;
-    };
-
-    /**
      * Gets a value from `base` relative to the `path` string.
      * @method get
      * @param {} obj The base object
@@ -122,7 +80,7 @@ module.exports = Common;
     Common.get = function(obj, path, begin, end) {
         path = path.split('.').slice(begin, end);
 
-        for (var i = 0; i < path.length; i += 1) {
+        for (let i = 0; i < path.length; i += 1) {
             obj = obj[path[i]];
         }
 
@@ -140,7 +98,7 @@ module.exports = Common;
      * @return {} Pass through `val` for chaining
      */
     Common.set = function(obj, path, val, begin, end) {
-        var parts = path.split('.').slice(begin, end);
+        const parts = path.split('.').slice(begin, end);
         Common.get(obj, path, 0, -1)[parts[parts.length - 1]] = val;
         return val;
     };
@@ -153,9 +111,9 @@ module.exports = Common;
      * @return {array} array shuffled randomly
      */
     Common.shuffle = function(array) {
-        for (var i = array.length - 1; i > 0; i--) {
-            var j = Math.floor(Common.random() * (i + 1));
-            var temp = array[i];
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Common.random() * (i + 1));
+            const temp = array[i];
             array[i] = array[j];
             array[j] = temp;
         }
@@ -188,16 +146,6 @@ module.exports = Common;
     };
 
     /**
-     * Returns true if the object is an array.
-     * @method isArray
-     * @param {object} obj
-     * @return {boolean} True if the object is an array, otherwise false
-     */
-    Common.isArray = function(obj) {
-        return Object.prototype.toString.call(obj) === '[object Array]';
-    };
-
-    /**
      * Returns true if the object is a function.
      * @method isFunction
      * @param {object} obj
@@ -217,16 +165,6 @@ module.exports = Common;
         return typeof obj === 'object' && obj.constructor === Object;
     };
 
-    /**
-     * Returns true if the object is a string.
-     * @method isString
-     * @param {object} obj
-     * @return {boolean} True if the object is a string, otherwise false
-     */
-    Common.isString = function(obj) {
-        return toString.call(obj) === '[object String]';
-    };
-    
     /**
      * Returns the given value clamped between a minimum and maximum value.
      * @method clamp
@@ -260,19 +198,11 @@ module.exports = Common;
      * @return {number} the current timestamp in milliseconds
      */
     Common.now = function() {
-        if (typeof window !== 'undefined' && window.performance) {
-            if (window.performance.now) {
-                return window.performance.now();
-            } else if (window.performance.webkitNow) {
-                return window.performance.webkitNow();
-            }
+        if (typeof performance !== 'undefined' && performance.now) {
+            return performance.now();
         }
 
-        if (Date.now) {
-            return Date.now();
-        }
-
-        return (new Date()) - Common._nowStartTime;
+        return Date.now();
     };
     
     /**
@@ -289,7 +219,7 @@ module.exports = Common;
         return min + _seededRandom() * (max - min);
     };
 
-    var _seededRandom = function() {
+    const _seededRandom = function() {
         // https://en.wikipedia.org/wiki/Linear_congruential_generator
         Common._seed = (Common._seed * 9301 + 49297) % 233280;
         return Common._seed / 233280;
@@ -304,7 +234,7 @@ module.exports = Common;
     Common.colorToNumber = function(colorString) {
         colorString = colorString.replace('#','');
 
-        if (colorString.length == 3) {
+        if (colorString.length === 3) {
             colorString = colorString.charAt(0) + colorString.charAt(0)
                         + colorString.charAt(1) + colorString.charAt(1)
                         + colorString.charAt(2) + colorString.charAt(2);
@@ -336,9 +266,9 @@ module.exports = Common;
      * @method log
      * @param ...objs {} The objects to log.
      */
-    Common.log = function() {
+    Common.log = function(...args) {
         if (console && Common.logLevel > 0 && Common.logLevel <= 3) {
-            console.log.apply(console, ['matter-js:'].concat(Array.prototype.slice.call(arguments)));
+            console.log('matter-js:', ...args);
         }
     };
 
@@ -348,9 +278,9 @@ module.exports = Common;
      * @method info
      * @param ...objs {} The objects to log.
      */
-    Common.info = function() {
+    Common.info = function(...args) {
         if (console && Common.logLevel > 0 && Common.logLevel <= 2) {
-            console.info.apply(console, ['matter-js:'].concat(Array.prototype.slice.call(arguments)));
+            console.info('matter-js:', ...args);
         }
     };
 
@@ -360,9 +290,9 @@ module.exports = Common;
      * @method warn
      * @param ...objs {} The objects to log.
      */
-    Common.warn = function() {
+    Common.warn = function(...args) {
         if (console && Common.logLevel > 0 && Common.logLevel <= 3) {
-            console.warn.apply(console, ['matter-js:'].concat(Array.prototype.slice.call(arguments)));
+            console.warn('matter-js:', ...args);
         }
     };
 
@@ -371,8 +301,8 @@ module.exports = Common;
      * @method warnOnce
      * @param ...objs {} The objects to log.
      */
-    Common.warnOnce = function() {
-        var message = Array.prototype.slice.call(arguments).join(' ');
+    Common.warnOnce = function(...args) {
+        const message = args.join(' ');
 
         if (!Common._warnedOnce[message]) {
             Common.warn(message);
@@ -405,46 +335,6 @@ module.exports = Common;
     };
 
     /**
-     * A cross browser compatible indexOf implementation.
-     * @method indexOf
-     * @param {array} haystack
-     * @param {object} needle
-     * @return {number} The position of needle in haystack, otherwise -1.
-     */
-    Common.indexOf = function(haystack, needle) {
-        if (haystack.indexOf)
-            return haystack.indexOf(needle);
-
-        for (var i = 0; i < haystack.length; i++) {
-            if (haystack[i] === needle)
-                return i;
-        }
-
-        return -1;
-    };
-
-    /**
-     * A cross browser compatible array map implementation.
-     * @method map
-     * @param {array} list
-     * @param {function} func
-     * @return {array} Values from list transformed by func.
-     */
-    Common.map = function(list, func) {
-        if (list.map) {
-            return list.map(func);
-        }
-
-        var mapped = [];
-
-        for (var i = 0; i < list.length; i += 1) {
-            mapped.push(func(list[i]));
-        }
-
-        return mapped;
-    };
-
-    /**
      * Takes a directed graph and returns the partially ordered set of vertices in topological order.
      * Circular dependencies are allowed.
      * @method topologicalSort
@@ -455,11 +345,11 @@ module.exports = Common;
         // https://github.com/mgechev/javascript-algorithms
         // Copyright (c) Minko Gechev (MIT license)
         // Modifications: tidy formatting and naming
-        var result = [],
+        const result = [],
             visited = [],
             temp = [];
 
-        for (var node in graph) {
+        for (const node in graph) {
             if (!visited[node] && !temp[node]) {
                 Common._topologicalSort(node, visited, temp, graph, result);
             }
@@ -469,11 +359,11 @@ module.exports = Common;
     };
 
     Common._topologicalSort = function(node, visited, temp, graph, result) {
-        var neighbors = graph[node] || [];
+        const neighbors = graph[node] || [];
         temp[node] = true;
 
-        for (var i = 0; i < neighbors.length; i += 1) {
-            var neighbor = neighbors[i];
+        for (let i = 0; i < neighbors.length; i += 1) {
+            const neighbor = neighbors[i];
 
             if (temp[neighbor]) {
                 // skip circular dependencies
@@ -502,11 +392,11 @@ module.exports = Common;
      * @param ...funcs {function} The functions to chain.
      * @return {function} A new function that calls the passed functions in order.
      */
-    Common.chain = function() {
-        var funcs = [];
+    Common.chain = function(...chainArgs) {
+        const funcs = [];
 
-        for (var i = 0; i < arguments.length; i += 1) {
-            var func = arguments[i];
+        for (let i = 0; i < chainArgs.length; i += 1) {
+            const func = chainArgs[i];
 
             if (func._chained) {
                 // flatten already chained functions
@@ -516,17 +406,11 @@ module.exports = Common;
             }
         }
 
-        var chain = function() {
-            // https://github.com/GoogleChrome/devtools-docs/issues/53#issuecomment-51941358
-            var lastResult,
-                args = new Array(arguments.length);
+        const chain = function(...args) {
+            let lastResult;
 
-            for (var i = 0, l = arguments.length; i < l; i++) {
-                args[i] = arguments[i];
-            }
-
-            for (i = 0; i < funcs.length; i += 1) {
-                var result = funcs[i].apply(lastResult, args);
+            for (let i = 0; i < funcs.length; i += 1) {
+                const result = funcs[i].apply(lastResult, args);
 
                 if (typeof result !== 'undefined') {
                     lastResult = result;
@@ -591,7 +475,7 @@ module.exports = Common;
      */
     Common.getDecomp = function() {
         // get user provided decomp if set
-        var decomp = Common._decomp;
+        let decomp = Common._decomp;
 
         try {
             // otherwise from window global

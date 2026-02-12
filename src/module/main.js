@@ -1,4 +1,4 @@
-var Matter = module.exports = require('../core/Matter');
+const Matter = module.exports = require('../core/Matter');
 
 Matter.Axes = require('../geometry/Axes');
 Matter.Bodies = require('../factory/Bodies');
@@ -13,7 +13,6 @@ Matter.Contact = require('../collision/Contact');
 Matter.Detector = require('../collision/Detector');
 Matter.Engine = require('../core/Engine');
 Matter.Events = require('../core/Events');
-Matter.Grid = require('../collision/Grid');
 Matter.Mouse = require('../core/Mouse');
 Matter.MouseConstraint = require('../constraint/MouseConstraint');
 Matter.Pair = require('../collision/Pair');

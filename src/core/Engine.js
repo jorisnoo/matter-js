@@ -8,19 +8,19 @@
 * @class Engine
 */
 
-var Engine = {};
+const Engine = {};
 
 module.exports = Engine;
 
-var Sleeping = require('./Sleeping');
-var Resolver = require('../collision/Resolver');
-var Detector = require('../collision/Detector');
-var Pairs = require('../collision/Pairs');
-var Events = require('./Events');
-var Composite = require('../body/Composite');
-var Constraint = require('../constraint/Constraint');
-var Common = require('./Common');
-var Body = require('../body/Body');
+const Sleeping = require('./Sleeping');
+const Resolver = require('../collision/Resolver');
+const Detector = require('../collision/Detector');
+const Pairs = require('../collision/Pairs');
+const Events = require('./Events');
+const Composite = require('../body/Composite');
+const Constraint = require('../constraint/Constraint');
+const Common = require('./Common');
+const Body = require('../body/Body');
 
 (function() {
 
@@ -37,7 +37,7 @@ var Body = require('../body/Body');
     Engine.create = function(options) {
         options = options || {};
 
-        var defaults = {
+        const defaults = {
             positionIterations: 6,
             velocityIterations: 4,
             constraintIterations: 2,
@@ -58,18 +58,14 @@ var Body = require('../body/Body');
             }
         };
 
-        var engine = Common.extend(defaults, options);
+        const engine = Common.extend(defaults, options);
 
         engine.world = options.world || Composite.create({ label: 'World' });
         engine.pairs = options.pairs || Pairs.create();
         engine.detector = options.detector || Detector.create();
         engine.detector.pairs = engine.pairs;
 
-        // for temporary back compatibility only
-        engine.grid = { buckets: [] };
         engine.world.gravity = engine.gravity;
-        engine.broadphase = engine.grid;
-        engine.metrics = {};
         
         return engine;
     };
@@ -83,14 +79,14 @@ var Body = require('../body/Body');
      * @param {number} [delta=16.666]
      */
     Engine.update = function(engine, delta) {
-        var startTime = Common.now();
+        const startTime = Common.now();
 
-        var world = engine.world,
+        const world = engine.world,
             detector = engine.detector,
             pairs = engine.pairs,
             timing = engine.timing,
-            timestamp = timing.timestamp,
-            i;
+            timestamp = timing.timestamp;
+        let i;
 
         // warn if high delta
         if (delta > Engine._deltaMax) {
@@ -107,7 +103,7 @@ var Body = require('../body/Body');
         timing.lastDelta = delta;
 
         // create an event object
-        var event = {
+        const event = {
             timestamp: timing.timestamp,
             delta: delta
         };
@@ -115,7 +111,7 @@ var Body = require('../body/Body');
         Events.trigger(engine, 'beforeUpdate', event);
 
         // get all bodies and all constraints in the world
-        var allBodies = Composite.allBodies(world),
+        const allBodies = Composite.allBodies(world),
             allConstraints = Composite.allConstraints(world);
 
         // if the world has changed
@@ -149,7 +145,7 @@ var Body = require('../body/Body');
         Constraint.postSolveAll(allBodies);
 
         // find all collisions
-        var collisions = Detector.collisions(detector);
+        const collisions = Detector.collisions(detector);
 
         // update collision pairs
         Pairs.update(pairs, collisions, timestamp);
@@ -168,7 +164,7 @@ var Body = require('../body/Body');
         }
 
         // iteratively resolve position between collisions
-        var positionDamping = Common.clamp(20 / engine.positionIterations, 0, 1);
+        const positionDamping = Common.clamp(20 / engine.positionIterations, 0, 1);
         
         Resolver.preSolvePosition(pairs.list);
         for (i = 0; i < engine.positionIterations; i++) {
@@ -234,10 +230,10 @@ var Body = require('../body/Body');
 
             Engine.clear(engineA);
 
-            var bodies = Composite.allBodies(engineA.world);
+            const bodies = Composite.allBodies(engineA.world);
 
-            for (var i = 0; i < bodies.length; i++) {
-                var body = bodies[i];
+            for (let i = 0; i < bodies.length; i++) {
+                const body = bodies[i];
                 Sleeping.set(body, false);
                 body.id = Common.nextId();
             }
@@ -261,10 +257,10 @@ var Body = require('../body/Body');
      * @param {body[]} bodies
      */
     Engine._bodiesClearForces = function(bodies) {
-        var bodiesLength = bodies.length;
+        const bodiesLength = bodies.length;
 
-        for (var i = 0; i < bodiesLength; i++) {
-            var body = bodies[i];
+        for (let i = 0; i < bodiesLength; i++) {
+            const body = bodies[i];
 
             // reset force buffers
             body.force.x = 0;
@@ -283,15 +279,15 @@ var Body = require('../body/Body');
      * @param {vector} gravity
      */
     Engine._bodiesApplyGravity = function(bodies, gravity) {
-        var gravityScale = typeof gravity.scale !== 'undefined' ? gravity.scale : 0.001,
+        const gravityScale = typeof gravity.scale !== 'undefined' ? gravity.scale : 0.001,
             bodiesLength = bodies.length;
 
         if ((gravity.x === 0 && gravity.y === 0) || gravityScale === 0) {
             return;
         }
         
-        for (var i = 0; i < bodiesLength; i++) {
-            var body = bodies[i];
+        for (let i = 0; i < bodiesLength; i++) {
+            const body = bodies[i];
 
             if (body.isStatic || body.isSleeping)
                 continue;
@@ -310,10 +306,10 @@ var Body = require('../body/Body');
      * @param {number} delta The amount of time elapsed between updates
      */
     Engine._bodiesUpdate = function(bodies, delta) {
-        var bodiesLength = bodies.length;
+        const bodiesLength = bodies.length;
 
-        for (var i = 0; i < bodiesLength; i++) {
-            var body = bodies[i];
+        for (let i = 0; i < bodiesLength; i++) {
+            const body = bodies[i];
 
             if (body.isStatic || body.isSleeping)
                 continue;
@@ -329,9 +325,9 @@ var Body = require('../body/Body');
      * @param {body[]} bodies
      */
     Engine._bodiesUpdateVelocities = function(bodies) {
-        var bodiesLength = bodies.length;
+        const bodiesLength = bodies.length;
 
-        for (var i = 0; i < bodiesLength; i++) {
+        for (let i = 0; i < bodiesLength; i++) {
             Body.updateVelocities(bodies[i]);
         }
     };
@@ -507,24 +503,6 @@ var Body = require('../body/Body');
      * @property detector
      * @type detector
      * @default a Matter.Detector instance
-     */
-
-    /**
-     * A `Matter.Grid` instance.
-     *
-     * @deprecated replaced by `engine.detector`
-     * @property grid
-     * @type grid
-     * @default a Matter.Grid instance
-     */
-
-    /**
-     * Replaced by and now alias for `engine.grid`.
-     *
-     * @deprecated replaced by `engine.detector`
-     * @property broadphase
-     * @type grid
-     * @default a Matter.Grid instance
      */
 
     /**

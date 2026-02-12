@@ -12,12 +12,12 @@
 * @class World
 */
 
-var World = {};
+const World = {};
 
 module.exports = World;
 
-var Composite = require('./Composite');
-var Common = require('../core/Common');
+const Composite = require('./Composite');
+const Common = require('../core/Common');
 
 (function() {
 

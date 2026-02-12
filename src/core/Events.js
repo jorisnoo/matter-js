@@ -6,11 +6,11 @@
 * @class Events
 */
 
-var Events = {};
+const Events = {};
 
 module.exports = Events;
 
-var Common = require('./Common');
+const Common = require('./Common');
 
 (function() {
 
@@ -22,10 +22,10 @@ var Common = require('./Common');
      * @param {function} callback
      */
     Events.on = function(object, eventNames, callback) {
-        var names = eventNames.split(' '),
-            name;
+        const names = eventNames.split(' ');
+        let name;
 
-        for (var i = 0; i < names.length; i++) {
+        for (let i = 0; i < names.length; i++) {
             name = names[i];
             object.events = object.events || {};
             object.events[name] = object.events[name] || [];
@@ -51,17 +51,17 @@ var Common = require('./Common');
         // handle Events.off(object, callback)
         if (typeof eventNames === 'function') {
             callback = eventNames;
-            eventNames = Common.keys(object.events).join(' ');
+            eventNames = Object.keys(object.events).join(' ');
         }
 
-        var names = eventNames.split(' ');
+        const names = eventNames.split(' ');
 
-        for (var i = 0; i < names.length; i++) {
-            var callbacks = object.events[names[i]],
+        for (let i = 0; i < names.length; i++) {
+            const callbacks = object.events[names[i]],
                 newCallbacks = [];
 
             if (callback && callbacks) {
-                for (var j = 0; j < callbacks.length; j++) {
+                for (let j = 0; j < callbacks.length; j++) {
                     if (callbacks[j] !== callback)
                         newCallbacks.push(callbacks[j]);
                 }
@@ -79,20 +79,20 @@ var Common = require('./Common');
      * @param {} event
      */
     Events.trigger = function(object, eventNames, event) {
-        var names,
+        let names,
             name,
             callbacks,
             eventClone;
 
-        var events = object.events;
+        const events = object.events;
         
-        if (events && Common.keys(events).length > 0) {
+        if (events && Object.keys(events).length > 0) {
             if (!event)
                 event = {};
 
             names = eventNames.split(' ');
 
-            for (var i = 0; i < names.length; i++) {
+            for (let i = 0; i < names.length; i++) {
                 name = names[i];
                 callbacks = events[name];
 
@@ -101,7 +101,7 @@ var Common = require('./Common');
                     eventClone.name = name;
                     eventClone.source = object;
 
-                    for (var j = 0; j < callbacks.length; j++) {
+                    for (let j = 0; j < callbacks.length; j++) {
                         callbacks[j].apply(object, [eventClone]);
                     }
                 }

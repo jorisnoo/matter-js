@@ -4,12 +4,11 @@
 * @class Axes
 */
 
-var Axes = {};
+const Axes = {};
 
 module.exports = Axes;
 
-var Vector = require('../geometry/Vector');
-var Common = require('../core/Common');
+const Vector = require('../geometry/Vector');
 
 (function() {
 
@@ -20,23 +19,23 @@ var Common = require('../core/Common');
      * @return {axes} A new axes from the given vertices
      */
     Axes.fromVertices = function(vertices) {
-        var axes = {};
+        const axes = {};
 
         // find the unique axes, using edge normal gradients
-        for (var i = 0; i < vertices.length; i++) {
-            var j = (i + 1) % vertices.length, 
-                normal = Vector.normalise({ 
-                    x: vertices[j].y - vertices[i].y, 
+        for (let i = 0; i < vertices.length; i++) {
+            const j = (i + 1) % vertices.length,
+                normal = Vector.normalise({
+                    x: vertices[j].y - vertices[i].y,
                     y: vertices[i].x - vertices[j].x
-                }),
-                gradient = (normal.y === 0) ? Infinity : (normal.x / normal.y);
-            
+                });
+            let gradient = (normal.y === 0) ? Infinity : (normal.x / normal.y);
+
             // limit precision
             gradient = gradient.toFixed(3).toString();
             axes[gradient] = normal;
         }
 
-        return Common.values(axes);
+        return Object.values(axes);
     };
 
     /**
@@ -49,12 +48,12 @@ var Common = require('../core/Common');
         if (angle === 0)
             return;
         
-        var cos = Math.cos(angle),
+        const cos = Math.cos(angle),
             sin = Math.sin(angle);
 
-        for (var i = 0; i < axes.length; i++) {
-            var axis = axes[i],
-                xx;
+        for (let i = 0; i < axes.length; i++) {
+            const axis = axes[i];
+            let xx;
             xx = axis.x * cos - axis.y * sin;
             axis.y = axis.x * sin + axis.y * cos;
             axis.x = xx;

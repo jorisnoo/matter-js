@@ -10,7 +10,7 @@
 
 // TODO: consider params for reusing vector objects
 
-var Vector = {};
+const Vector = {};
 
 module.exports = Vector;
 
@@ -66,9 +66,9 @@ module.exports = Vector;
      * @return {vector} The vector rotated about (0, 0)
      */
     Vector.rotate = function(vector, angle, output) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        const cos = Math.cos(angle), sin = Math.sin(angle);
         if (!output) output = {};
-        var x = vector.x * cos - vector.y * sin;
+        const x = vector.x * cos - vector.y * sin;
         output.y = vector.x * sin + vector.y * cos;
         output.x = x;
         return output;
@@ -84,9 +84,9 @@ module.exports = Vector;
      * @return {vector} A new vector rotated about the point
      */
     Vector.rotateAbout = function(vector, angle, point, output) {
-        var cos = Math.cos(angle), sin = Math.sin(angle);
+        const cos = Math.cos(angle), sin = Math.sin(angle);
         if (!output) output = {};
-        var x = point.x + ((vector.x - point.x) * cos - (vector.y - point.y) * sin);
+        const x = point.x + ((vector.x - point.x) * cos - (vector.y - point.y) * sin);
         output.y = point.y + ((vector.x - point.x) * sin + (vector.y - point.y) * cos);
         output.x = x;
         return output;
@@ -99,7 +99,7 @@ module.exports = Vector;
      * @return {vector} A new vector normalised
      */
     Vector.normalise = function(vector) {
-        var magnitude = Vector.magnitude(vector);
+        const magnitude = Vector.magnitude(vector);
         if (magnitude === 0)
             return { x: 0, y: 0 };
         return { x: vector.x / magnitude, y: vector.y / magnitude };

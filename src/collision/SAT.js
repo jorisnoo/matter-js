@@ -10,13 +10,13 @@
 * @deprecated
 */
 
-var SAT = {};
+const SAT = {};
 
 module.exports = SAT;
 
-var Collision = require('./Collision');
-var Common = require('../core/Common');
-var deprecated = Common.deprecated;
+const Collision = require('./Collision');
+const Common = require('../core/Common');
+const deprecated = Common.deprecated;
 
 (function() {
 

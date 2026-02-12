@@ -4,11 +4,11 @@
 * @class Pair
 */
 
-var Pair = {};
+const Pair = {};
 
 module.exports = Pair;
 
-var Contact = require('./Contact');
+const Contact = require('./Contact');
 
 (function() {
     
@@ -20,10 +20,10 @@ var Contact = require('./Contact');
      * @return {pair} A new pair
      */
     Pair.create = function(collision, timestamp) {
-        var bodyA = collision.bodyA,
+        const bodyA = collision.bodyA,
             bodyB = collision.bodyB;
 
-        var pair = {
+        const pair = {
             id: Pair.id(bodyA, bodyB),
             bodyA: bodyA,
             bodyB: bodyB,
@@ -55,7 +55,7 @@ var Contact = require('./Contact');
      * @param {number} timestamp
      */
     Pair.update = function(pair, collision, timestamp) {
-        var supports = collision.supports,
+        const supports = collision.supports,
             supportCount = collision.supportCount,
             contacts = pair.contacts,
             parentA = collision.parentA,
@@ -74,9 +74,9 @@ var Contact = require('./Contact');
         pair.contactCount = supportCount;
         collision.pair = pair;
 
-        var supportA = supports[0],
-            contactA = contacts[0],
-            supportB = supports[1],
+        const supportA = supports[0],
+            supportB = supports[1];
+        let contactA = contacts[0],
             contactB = contacts[1];
 
         // match contacts to supports

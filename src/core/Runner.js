@@ -10,13 +10,13 @@
 * @class Runner
 */
 
-var Runner = {};
+const Runner = {};
 
 module.exports = Runner;
 
-var Events = require('./Events');
-var Engine = require('./Engine');
-var Common = require('./Common');
+const Events = require('./Events');
+const Engine = require('./Engine');
+const Common = require('./Common');
 
 (function() {
 
@@ -34,7 +34,7 @@ var Common = require('./Common');
      * @param {} options
      */
     Runner.create = function(options) {
-        var defaults = {
+        const defaults = {
             delta: 1000 / 60,
             frameDelta: null,
             frameDeltaSmoothing: true,
@@ -50,7 +50,7 @@ var Common = require('./Common');
             enabled: true
         };
 
-        var runner = Common.extend(defaults, options);
+        const runner = Common.extend(defaults, options);
 
         // for temporary back compatibility only
         runner.fps = 0;
@@ -92,12 +92,12 @@ var Common = require('./Common');
      * @param {number} time
      */
     Runner.tick = function(runner, engine, time) {
-        var tickStartTime = Common.now(),
-            engineDelta = runner.delta,
-            updateCount = 0;
+        const tickStartTime = Common.now(),
+            engineDelta = runner.delta;
+        let updateCount = 0;
 
         // find frame delta time since last call
-        var frameDelta = time - runner.timeLastTick;
+        let frameDelta = time - runner.timeLastTick;
 
         // fallback for unusable frame delta values (e.g. 0, NaN, on first frame or long pauses)
         if (!frameDelta || !runner.timeLastTick || frameDelta > Math.max(Runner._maxFrameDelta, runner.maxFrameTime)) {
@@ -111,16 +111,16 @@ var Common = require('./Common');
             runner.frameDeltaHistory = runner.frameDeltaHistory.slice(-runner.frameDeltaHistorySize);
 
             // sort frame delta history
-            var deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
+            const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
 
             // sample a central window to limit outliers
-            var deltaHistoryWindow = runner.frameDeltaHistory.slice(
+            const deltaHistoryWindow = runner.frameDeltaHistory.slice(
                 deltaHistorySorted.length * Runner._smoothingLowerBound, 
                 deltaHistorySorted.length * Runner._smoothingUpperBound
             );
 
             // take the mean of the central window
-            var frameDeltaSmoothed = _mean(deltaHistoryWindow);
+            const frameDeltaSmoothed = _mean(deltaHistoryWindow);
             frameDelta = frameDeltaSmoothed || frameDelta;
         }
 
@@ -145,10 +145,10 @@ var Common = require('./Common');
         runner.lastUpdatesDeferred = 0;
 
         // get max updates per frame
-        var maxUpdates = runner.maxUpdates || Math.ceil(runner.maxFrameTime / engineDelta);
+        const maxUpdates = runner.maxUpdates || Math.ceil(runner.maxFrameTime / engineDelta);
 
         // create event object
-        var event = {
+        const event = {
             timestamp: engine.timing.timestamp
         };
 
@@ -156,7 +156,7 @@ var Common = require('./Common');
         Events.trigger(runner, 'beforeTick', event);
         Events.trigger(runner, 'tick', event);
 
-        var updateStartTime = Common.now();
+        const updateStartTime = Common.now();
 
         // simulate time elapsed between calls
         while (engineDelta > 0 && runner.timeBuffer >= engineDelta * Runner._timeBufferMargin) {
@@ -170,7 +170,7 @@ var Common = require('./Common');
             updateCount += 1;
 
             // find elapsed time during this tick
-            var elapsedTimeTotal = Common.now() - tickStartTime,
+            const elapsedTimeTotal = Common.now() - tickStartTime,
                 elapsedTimeUpdates = Common.now() - updateStartTime,
                 elapsedNextEstimate = elapsedTimeTotal + Runner._elapsedNextEstimate * elapsedTimeUpdates / updateCount;
 
@@ -258,11 +258,11 @@ var Common = require('./Common');
      * @param {Number[]} values
      * @return {Number} the mean of given values.
      */
-    var _mean = function(values) {
-        var result = 0,
-            valuesLength = values.length;
+    const _mean = function(values) {
+        let result = 0;
+        const valuesLength = values.length;
 
-        for (var i = 0; i < valuesLength; i += 1) {
+        for (let i = 0; i < valuesLength; i += 1) {
             result += values[i];
         }
 

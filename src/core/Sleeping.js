@@ -4,13 +4,13 @@
 * @class Sleeping
 */
 
-var Sleeping = {};
+const Sleeping = {};
 
 module.exports = Sleeping;
 
-var Body = require('../body/Body');
-var Events = require('./Events');
-var Common = require('./Common');
+const Body = require('../body/Body');
+const Events = require('./Events');
+const Common = require('./Common');
 
 (function() {
 
@@ -25,12 +25,12 @@ var Common = require('./Common');
      * @param {number} delta
      */
     Sleeping.update = function(bodies, delta) {
-        var timeScale = delta / Common._baseDelta,
+        const timeScale = delta / Common._baseDelta,
             motionSleepThreshold = Sleeping._motionSleepThreshold;
-        
+
         // update bodies sleeping status
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i],
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i],
                 speed = Body.getSpeed(body),
                 angularSpeed = Body.getAngularSpeed(body),
                 motion = speed * speed + angularSpeed * angularSpeed;
@@ -41,7 +41,7 @@ var Common = require('./Common');
                 continue;
             }
 
-            var minMotion = Math.min(body.motion, motion),
+            const minMotion = Math.min(body.motion, motion),
                 maxMotion = Math.max(body.motion, motion);
         
             // biased average motion estimation between frames
@@ -65,18 +65,18 @@ var Common = require('./Common');
      * @param {pair[]} pairs
      */
     Sleeping.afterCollisions = function(pairs) {
-        var motionSleepThreshold = Sleeping._motionSleepThreshold;
+        const motionSleepThreshold = Sleeping._motionSleepThreshold;
 
         // wake up bodies involved in collisions
-        for (var i = 0; i < pairs.length; i++) {
-            var pair = pairs[i];
+        for (let i = 0; i < pairs.length; i++) {
+            const pair = pairs[i];
             
             // don't wake inactive pairs
             if (!pair.isActive)
                 continue;
 
-            var collision = pair.collision,
-                bodyA = collision.bodyA.parent, 
+            const collision = pair.collision,
+                bodyA = collision.bodyA.parent,
                 bodyB = collision.bodyB.parent;
         
             // don't wake if at least one body is static
@@ -84,7 +84,7 @@ var Common = require('./Common');
                 continue;
         
             if (bodyA.isSleeping || bodyB.isSleeping) {
-                var sleepingBody = (bodyA.isSleeping && !bodyA.isStatic) ? bodyA : bodyB,
+                const sleepingBody = (bodyA.isSleeping && !bodyA.isStatic) ? bodyA : bodyB,
                     movingBody = sleepingBody === bodyA ? bodyB : bodyA;
 
                 if (!sleepingBody.isStatic && movingBody.motion > motionSleepThreshold) {
@@ -101,7 +101,7 @@ var Common = require('./Common');
      * @param {boolean} isSleeping
      */
     Sleeping.set = function(body, isSleeping) {
-        var wasSleeping = body.isSleeping;
+        const wasSleeping = body.isSleeping;
 
         if (isSleeping) {
             body.isSleeping = true;

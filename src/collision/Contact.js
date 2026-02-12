@@ -4,7 +4,7 @@
 * @class Contact
 */
 
-var Contact = {};
+const Contact = {};
 
 module.exports = Contact;
 

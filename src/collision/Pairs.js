@@ -4,12 +4,12 @@
 * @class Pairs
 */
 
-var Pairs = {};
+const Pairs = {};
 
 module.exports = Pairs;
 
-var Pair = require('./Pair');
-var Common = require('../core/Common');
+const Pair = require('./Pair');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -37,17 +37,17 @@ var Common = require('../core/Common');
      * @param {number} timestamp
      */
     Pairs.update = function(pairs, collisions, timestamp) {
-        var pairUpdate = Pair.update,
+        const pairUpdate = Pair.update,
             pairCreate = Pair.create,
             pairSetActive = Pair.setActive,
             pairsTable = pairs.table,
             pairsList = pairs.list,
-            pairsListLength = pairsList.length,
-            pairsListIndex = pairsListLength,
             collisionStart = pairs.collisionStart,
             collisionEnd = pairs.collisionEnd,
             collisionActive = pairs.collisionActive,
-            collisionsLength = collisions.length,
+            collisionsLength = collisions.length;
+        let pairsListLength = pairsList.length,
+            pairsListIndex = pairsListLength,
             collisionStartIndex = 0,
             collisionEndIndex = 0,
             collisionActiveIndex = 0,

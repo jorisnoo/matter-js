@@ -4,7 +4,7 @@
 * @class Bounds
 */
 
-var Bounds = {};
+const Bounds = {};
 
 module.exports = Bounds;
 
@@ -17,8 +17,8 @@ module.exports = Bounds;
      * @return {bounds} A new bounds object
      */
     Bounds.create = function(vertices) {
-        var bounds = { 
-            min: { x: 0, y: 0 }, 
+        const bounds = {
+            min: { x: 0, y: 0 },
             max: { x: 0, y: 0 }
         };
 
@@ -41,8 +41,8 @@ module.exports = Bounds;
         bounds.min.y = Infinity;
         bounds.max.y = -Infinity;
 
-        for (var i = 0; i < vertices.length; i++) {
-            var vertex = vertices[i];
+        for (let i = 0; i < vertices.length; i++) {
+            const vertex = vertices[i];
             if (vertex.x > bounds.max.x) bounds.max.x = vertex.x;
             if (vertex.x < bounds.min.x) bounds.min.x = vertex.x;
             if (vertex.y > bounds.max.y) bounds.max.y = vertex.y;
@@ -108,7 +108,7 @@ module.exports = Bounds;
      * @param {vector} position
      */
     Bounds.shift = function(bounds, position) {
-        var deltaX = bounds.max.x - bounds.min.x,
+        const deltaX = bounds.max.x - bounds.min.x,
             deltaY = bounds.max.y - bounds.min.y;
             
         bounds.min.x = position.x;

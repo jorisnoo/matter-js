@@ -7,16 +7,16 @@
 * @class Composites
 */
 
-var Composites = {};
+const Composites = {};
 
 module.exports = Composites;
 
-var Composite = require('../body/Composite');
-var Constraint = require('../constraint/Constraint');
-var Common = require('../core/Common');
-var Body = require('../body/Body');
-var Bodies = require('./Bodies');
-var deprecated = Common.deprecated;
+const Composite = require('../body/Composite');
+const Constraint = require('../constraint/Constraint');
+const Common = require('../core/Common');
+const Body = require('../body/Body');
+const Bodies = require('./Bodies');
+const deprecated = Common.deprecated;
 
 (function() {
 
@@ -34,21 +34,21 @@ var deprecated = Common.deprecated;
      * @return {composite} A new composite containing objects created in the callback
      */
     Composites.stack = function(x, y, columns, rows, columnGap, rowGap, callback) {
-        var stack = Composite.create({ label: 'Stack' }),
-            currentX = x,
+        const stack = Composite.create({ label: 'Stack' });
+        let currentX = x,
             currentY = y,
             lastBody,
             i = 0;
 
-        for (var row = 0; row < rows; row++) {
-            var maxHeight = 0;
-            
-            for (var column = 0; column < columns; column++) {
-                var body = callback(currentX, currentY, column, row, lastBody, i);
-                    
+        for (let row = 0; row < rows; row++) {
+            let maxHeight = 0;
+
+            for (let column = 0; column < columns; column++) {
+                const body = callback(currentX, currentY, column, row, lastBody, i);
+
                 if (body) {
-                    var bodyHeight = body.bounds.max.y - body.bounds.min.y,
-                        bodyWidth = body.bounds.max.x - body.bounds.min.x; 
+                    const bodyHeight = body.bounds.max.y - body.bounds.min.y,
+                        bodyWidth = body.bounds.max.x - body.bounds.min.x;
 
                     if (bodyHeight > maxHeight)
                         maxHeight = bodyHeight;
@@ -85,24 +85,24 @@ var deprecated = Common.deprecated;
      * @return {composite} A new composite containing objects chained together with constraints
      */
     Composites.chain = function(composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options) {
-        var bodies = composite.bodies;
-        
-        for (var i = 1; i < bodies.length; i++) {
-            var bodyA = bodies[i - 1],
+        const bodies = composite.bodies;
+
+        for (let i = 1; i < bodies.length; i++) {
+            const bodyA = bodies[i - 1],
                 bodyB = bodies[i],
                 bodyAHeight = bodyA.bounds.max.y - bodyA.bounds.min.y,
-                bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x, 
+                bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x,
                 bodyBHeight = bodyB.bounds.max.y - bodyB.bounds.min.y,
                 bodyBWidth = bodyB.bounds.max.x - bodyB.bounds.min.x;
-        
-            var defaults = {
+
+            const defaults = {
                 bodyA: bodyA,
                 pointA: { x: bodyAWidth * xOffsetA, y: bodyAHeight * yOffsetA },
                 bodyB: bodyB,
                 pointB: { x: bodyBWidth * xOffsetB, y: bodyBHeight * yOffsetB }
             };
             
-            var constraint = Common.extend(defaults, options);
+            const constraint = Common.extend(defaults, options);
         
             Composite.addConstraint(composite, Constraint.create(constraint));
         }
@@ -123,8 +123,8 @@ var deprecated = Common.deprecated;
      * @return {composite} The composite containing objects meshed together with constraints
      */
     Composites.mesh = function(composite, columns, rows, crossBrace, options) {
-        var bodies = composite.bodies,
-            row,
+        const bodies = composite.bodies;
+        let row,
             col,
             bodyA,
             bodyB,
@@ -176,7 +176,7 @@ var deprecated = Common.deprecated;
      */
     Composites.pyramid = function(x, y, columns, rows, columnGap, rowGap, callback) {
         return Composites.stack(x, y, columns, rows, columnGap, rowGap, function(stackX, stackY, column, row, lastBody, i) {
-            var actualRows = Math.min(rows, Math.ceil(columns / 2)),
+            const actualRows = Math.min(rows, Math.ceil(columns / 2)),
                 lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
             
             if (row > actualRows)
@@ -185,7 +185,7 @@ var deprecated = Common.deprecated;
             // reverse row order
             row = actualRows - row;
             
-            var start = row,
+            const start = row,
                 end = columns - 1 - row;
 
             if (column < start || column > end)
@@ -196,7 +196,7 @@ var deprecated = Common.deprecated;
                 Body.translate(lastBody, { x: (column + (columns % 2 === 1 ? 1 : -1)) * lastBodyWidth, y: 0 });
             }
 
-            var xOffset = lastBody ? column * lastBodyWidth : 0;
+            const xOffset = lastBody ? column * lastBodyWidth : 0;
             
             return callback(x + xOffset + column * columnGap, stackY, column, row, lastBody, i);
         });
@@ -214,11 +214,11 @@ var deprecated = Common.deprecated;
      * @return {composite} A new composite newtonsCradle body
      */
     Composites.newtonsCradle = function(x, y, number, size, length) {
-        var newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
+        const newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
 
-        for (var i = 0; i < number; i++) {
-            var separation = 1.9,
-                circle = Bodies.circle(x + i * (size * separation), y + length, size, 
+        for (let i = 0; i < number; i++) {
+            const separation = 1.9,
+                circle = Bodies.circle(x + i * (size * separation), y + length, size,
                     { inertia: Infinity, restitution: 1, friction: 0, frictionAir: 0.0001, slop: 1 }),
                 constraint = Constraint.create({ pointA: { x: x + i * (size * separation), y: y }, bodyB: circle });
 
@@ -243,14 +243,14 @@ var deprecated = Common.deprecated;
      * @return {composite} A new composite car body
      */
     Composites.car = function(x, y, width, height, wheelSize) {
-        var group = Body.nextGroup(true),
+        const group = Body.nextGroup(true),
             wheelBase = 20,
             wheelAOffset = -width * 0.5 + wheelBase,
             wheelBOffset = width * 0.5 - wheelBase,
             wheelYOffset = 0;
-    
-        var car = Composite.create({ label: 'Car' }),
-            body = Bodies.rectangle(x, y, width, height, { 
+
+        const car = Composite.create({ label: 'Car' }),
+            body = Bodies.rectangle(x, y, width, height, {
                 collisionFilter: {
                     group: group
                 },
@@ -260,21 +260,21 @@ var deprecated = Common.deprecated;
                 density: 0.0002
             });
     
-        var wheelA = Bodies.circle(x + wheelAOffset, y + wheelYOffset, wheelSize, { 
+        const wheelA = Bodies.circle(x + wheelAOffset, y + wheelYOffset, wheelSize, {
             collisionFilter: {
                 group: group
             },
             friction: 0.8
         });
                     
-        var wheelB = Bodies.circle(x + wheelBOffset, y + wheelYOffset, wheelSize, { 
+        const wheelB = Bodies.circle(x + wheelBOffset, y + wheelYOffset, wheelSize, {
             collisionFilter: {
                 group: group
             },
             friction: 0.8
         });
                     
-        var axelA = Constraint.create({
+        const axelA = Constraint.create({
             bodyB: body,
             pointB: { x: wheelAOffset, y: wheelYOffset },
             bodyA: wheelA,
@@ -282,7 +282,7 @@ var deprecated = Common.deprecated;
             length: 0
         });
                         
-        var axelB = Constraint.create({
+        const axelB = Constraint.create({
             bodyB: body,
             pointB: { x: wheelBOffset, y: wheelYOffset },
             bodyA: wheelB,
@@ -322,7 +322,7 @@ var deprecated = Common.deprecated;
         particleOptions = Common.extend({ inertia: Infinity }, particleOptions);
         constraintOptions = Common.extend({ stiffness: 0.2, render: { type: 'line', anchors: false } }, constraintOptions);
 
-        var softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, function(stackX, stackY) {
+        const softBody = Composites.stack(x, y, columns, rows, columnGap, rowGap, function(stackX, stackY) {
             return Bodies.circle(stackX, stackY, particleRadius, particleOptions);
         });
 

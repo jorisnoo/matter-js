@@ -4,12 +4,12 @@
 * @class Detector
 */
 
-var Detector = {};
+const Detector = {};
 
 module.exports = Detector;
 
-var Common = require('../core/Common');
-var Collision = require('./Collision');
+const Common = require('../core/Common');
+const Collision = require('./Collision');
 
 (function() {
 
@@ -20,7 +20,7 @@ var Collision = require('./Collision');
      * @return {detector} A new collision detector
      */
     Detector.create = function(options) {
-        var defaults = {
+        const defaults = {
             bodies: [],
             collisions: [],
             pairs: null
@@ -59,20 +59,20 @@ var Collision = require('./Collision');
      * @return {collision[]} collisions
      */
     Detector.collisions = function(detector) {
-        var pairs = detector.pairs,
+        const pairs = detector.pairs,
             bodies = detector.bodies,
             bodiesLength = bodies.length,
             canCollide = Detector.canCollide,
             collides = Collision.collides,
-            collisions = detector.collisions,
-            collisionIndex = 0,
+            collisions = detector.collisions;
+        let collisionIndex = 0,
             i,
             j;
 
         bodies.sort(Detector._compareBoundsX);
 
         for (i = 0; i < bodiesLength; i++) {
-            var bodyA = bodies[i],
+            const bodyA = bodies[i],
                 boundsA = bodyA.bounds,
                 boundXMax = bodyA.bounds.max.x,
                 boundYMax = bodyA.bounds.max.y,
@@ -82,7 +82,7 @@ var Collision = require('./Collision');
                 partsASingle = partsALength === 1;
 
             for (j = i + 1; j < bodiesLength; j++) {
-                var bodyB = bodies[j],
+                const bodyB = bodies[j],
                     boundsB = bodyB.bounds;
 
                 if (boundsB.min.x > boundXMax) {
@@ -101,24 +101,24 @@ var Collision = require('./Collision');
                     continue;
                 }
 
-                var partsBLength = bodyB.parts.length;
+                const partsBLength = bodyB.parts.length;
 
                 if (partsASingle && partsBLength === 1) {
-                    var collision = collides(bodyA, bodyB, pairs);
+                    const collision = collides(bodyA, bodyB, pairs);
 
                     if (collision) {
                         collisions[collisionIndex++] = collision;
                     }
                 } else {
-                    var partsAStart = partsALength > 1 ? 1 : 0,
+                    const partsAStart = partsALength > 1 ? 1 : 0,
                         partsBStart = partsBLength > 1 ? 1 : 0;
-                    
-                    for (var k = partsAStart; k < partsALength; k++) {
-                        var partA = bodyA.parts[k],
+
+                    for (let k = partsAStart; k < partsALength; k++) {
+                        const partA = bodyA.parts[k],
                             boundsA = partA.bounds;
 
-                        for (var z = partsBStart; z < partsBLength; z++) {
-                            var partB = bodyB.parts[z],
+                        for (let z = partsBStart; z < partsBLength; z++) {
+                            const partB = bodyB.parts[z],
                                 boundsB = partB.bounds;
 
                             if (boundsA.min.x > boundsB.max.x || boundsA.max.x < boundsB.min.x
@@ -126,7 +126,7 @@ var Collision = require('./Collision');
                                 continue;
                             }
 
-                            var collision = collides(partA, partB, pairs);
+                            const collision = collides(partA, partB, pairs);
 
                             if (collision) {
                                 collisions[collisionIndex++] = collision;

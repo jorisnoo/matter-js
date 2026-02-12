@@ -7,16 +7,16 @@
 * @class Body
 */
 
-var Body = {};
+const Body = {};
 
 module.exports = Body;
 
-var Vertices = require('../geometry/Vertices');
-var Vector = require('../geometry/Vector');
-var Sleeping = require('../core/Sleeping');
-var Common = require('../core/Common');
-var Bounds = require('../geometry/Bounds');
-var Axes = require('../geometry/Axes');
+const Vertices = require('../geometry/Vertices');
+const Vector = require('../geometry/Vector');
+const Sleeping = require('../core/Sleeping');
+const Common = require('../core/Common');
+const Bounds = require('../geometry/Bounds');
+const Axes = require('../geometry/Axes');
 
 (function() {
 
@@ -37,7 +37,7 @@ var Axes = require('../geometry/Axes');
      * @return {body} body
      */
     Body.create = function(options) {
-        var defaults = {
+        const defaults = {
             id: Common.nextId(),
             type: 'body',
             label: 'Body',
@@ -100,7 +100,7 @@ var Axes = require('../geometry/Axes');
             _original: null
         };
 
-        var body = Common.extend(defaults, options);
+        const body = Common.extend(defaults, options);
 
         _initProperties(body, options);
 
@@ -140,7 +140,7 @@ var Axes = require('../geometry/Axes');
      * @param {body} body
      * @param {} [options]
      */
-    var _initProperties = function(body, options) {
+    const _initProperties = function(body, options) {
         options = options || {};
 
         // init required properties (order is important)
@@ -168,7 +168,7 @@ var Axes = require('../geometry/Axes');
         });
 
         // render properties
-        var defaultFillStyle = (body.isStatic ? '#14151f' : Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1'])),
+        const defaultFillStyle = (body.isStatic ? '#14151f' : Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1'])),
             defaultStrokeStyle = body.isStatic ? '#555' : '#ccc',
             defaultLineWidth = body.isStatic && body.render.fillStyle === null ? 1 : 0;
         body.render.fillStyle = body.render.fillStyle || defaultFillStyle;
@@ -187,7 +187,7 @@ var Axes = require('../geometry/Axes');
      * @param {} value The value to set if `settings` is a single property name.
      */
     Body.set = function(body, settings, value) {
-        var property;
+        let property;
 
         if (typeof settings === 'string') {
             property = settings;
@@ -258,8 +258,8 @@ var Axes = require('../geometry/Axes');
      * @param {bool} isStatic
      */
     Body.setStatic = function(body, isStatic) {
-        for (var i = 0; i < body.parts.length; i++) {
-            var part = body.parts[i];
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
 
             if (isStatic) {
                 if (!part.isStatic) {
@@ -309,7 +309,7 @@ var Axes = require('../geometry/Axes');
      * @param {number} mass
      */
     Body.setMass = function(body, mass) {
-        var moment = body.inertia / (body.mass / 6);
+        const moment = body.inertia / (body.mass / 6);
         body.inertia = moment * (mass / 6);
         body.inverseInertia = 1 / body.inertia;
 
@@ -367,7 +367,7 @@ var Axes = require('../geometry/Axes');
         Body.setMass(body, body.density * body.area);
 
         // orient vertices around the centre of mass at origin (0, 0)
-        var centre = Vertices.centre(body.vertices);
+        const centre = Vertices.centre(body.vertices);
         Vertices.translate(body.vertices, centre, -1);
 
         // update inertia while vertices are at origin (0, 0)
@@ -396,7 +396,7 @@ var Axes = require('../geometry/Axes');
      * @param {bool} [autoHull=true]
      */
     Body.setParts = function(body, parts, autoHull) {
-        var i;
+        let i;
 
         // add all the parts, ensuring that the first part is always the parent body
         parts = parts.slice(0);
@@ -405,7 +405,7 @@ var Axes = require('../geometry/Axes');
         body.parent = body;
 
         for (i = 0; i < parts.length; i++) {
-            var part = parts[i];
+            const part = parts[i];
             if (part !== body) {
                 part.parent = body;
                 body.parts.push(part);
@@ -419,14 +419,14 @@ var Axes = require('../geometry/Axes');
 
         // find the convex hull of all parts to set on the parent body
         if (autoHull) {
-            var vertices = [];
+            let vertices = [];
             for (i = 0; i < parts.length; i++) {
                 vertices = vertices.concat(parts[i].vertices);
             }
 
             Vertices.clockwiseSort(vertices);
 
-            var hull = Vertices.hull(vertices),
+            const hull = Vertices.hull(vertices),
                 hullCentre = Vertices.centre(hull);
 
             Body.setVertices(body, hull);
@@ -434,7 +434,7 @@ var Axes = require('../geometry/Axes');
         }
 
         // sum the properties of all compound parts of the parent body
-        var total = Body._totalProperties(body);
+        const total = Body._totalProperties(body);
 
         body.area = total.area;
         body.parent = body;
@@ -482,7 +482,7 @@ var Axes = require('../geometry/Axes');
      * @param {boolean} [updateVelocity=false]
      */
     Body.setPosition = function(body, position, updateVelocity) {
-        var delta = Vector.sub(position, body.position);
+        const delta = Vector.sub(position, body.position);
 
         if (updateVelocity) {
             body.positionPrev.x = body.position.x;
@@ -495,8 +495,8 @@ var Axes = require('../geometry/Axes');
             body.positionPrev.y += delta.y;
         }
 
-        for (var i = 0; i < body.parts.length; i++) {
-            var part = body.parts[i];
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
             part.position.x += delta.x;
             part.position.y += delta.y;
             Vertices.translate(part.vertices, delta);
@@ -513,8 +513,8 @@ var Axes = require('../geometry/Axes');
      * @param {boolean} [updateVelocity=false]
      */
     Body.setAngle = function(body, angle, updateVelocity) {
-        var delta = angle - body.angle;
-        
+        const delta = angle - body.angle;
+
         if (updateVelocity) {
             body.anglePrev = body.angle;
             body.angularVelocity = delta;
@@ -523,8 +523,8 @@ var Axes = require('../geometry/Axes');
             body.anglePrev += delta;
         }
 
-        for (var i = 0; i < body.parts.length; i++) {
-            var part = body.parts[i];
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
             part.angle += delta;
             Vertices.rotate(part.vertices, delta, body.position);
             Axes.rotate(part.axes, delta);
@@ -543,7 +543,7 @@ var Axes = require('../geometry/Axes');
      * @param {vector} velocity
      */
     Body.setVelocity = function(body, velocity) {
-        var timeScale = body.deltaTime / Body._baseDelta;
+        const timeScale = body.deltaTime / Body._baseDelta;
         body.positionPrev.x = body.position.x - velocity.x * timeScale;
         body.positionPrev.y = body.position.y - velocity.y * timeScale;
         body.velocity.x = (body.position.x - body.positionPrev.x) / timeScale;
@@ -558,7 +558,7 @@ var Axes = require('../geometry/Axes');
      * @return {vector} velocity
      */
     Body.getVelocity = function(body) {
-        var timeScale = Body._baseDelta / body.deltaTime;
+        const timeScale = Body._baseDelta / body.deltaTime;
 
         return {
             x: (body.position.x - body.positionPrev.x) * timeScale,
@@ -596,7 +596,7 @@ var Axes = require('../geometry/Axes');
      * @param {number} velocity
      */
     Body.setAngularVelocity = function(body, velocity) {
-        var timeScale = body.deltaTime / Body._baseDelta;
+        const timeScale = body.deltaTime / Body._baseDelta;
         body.anglePrev = body.angle - velocity * timeScale;
         body.angularVelocity = (body.angle - body.anglePrev) / timeScale;
         body.angularSpeed = Math.abs(body.angularVelocity);
@@ -659,7 +659,7 @@ var Axes = require('../geometry/Axes');
         if (!point) {
             Body.setAngle(body, body.angle + rotation, updateVelocity);
         } else {
-            var cos = Math.cos(rotation),
+            const cos = Math.cos(rotation),
                 sin = Math.sin(rotation),
                 dx = body.position.x - point.x,
                 dy = body.position.y - point.y;
@@ -682,13 +682,13 @@ var Axes = require('../geometry/Axes');
      * @param {vector} [point]
      */
     Body.scale = function(body, scaleX, scaleY, point) {
-        var totalArea = 0,
+        let totalArea = 0,
             totalInertia = 0;
 
         point = point || body.position;
 
-        for (var i = 0; i < body.parts.length; i++) {
-            var part = body.parts[i];
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
 
             // scale vertices
             Vertices.scale(part.vertices, scaleX, scaleY, point);
@@ -747,11 +747,11 @@ var Axes = require('../geometry/Axes');
     Body.update = function(body, deltaTime) {
         deltaTime = (typeof deltaTime !== 'undefined' ? deltaTime : (1000 / 60)) * body.timeScale;
 
-        var deltaTimeSquared = deltaTime * deltaTime,
+        const deltaTimeSquared = deltaTime * deltaTime,
             correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;
 
         // from the previous step
-        var frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta),
+        const frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta),
             velocityPrevX = (body.position.x - body.positionPrev.x) * correction,
             velocityPrevY = (body.position.y - body.positionPrev.y) * correction;
 
@@ -771,8 +771,8 @@ var Axes = require('../geometry/Axes');
         body.angle += body.angularVelocity;
 
         // transform the body geometry
-        for (var i = 0; i < body.parts.length; i++) {
-            var part = body.parts[i];
+        for (let i = 0; i < body.parts.length; i++) {
+            const part = body.parts[i];
 
             Vertices.translate(part.vertices, body.velocity);
             
@@ -799,7 +799,7 @@ var Axes = require('../geometry/Axes');
      * @param {body} body
      */
     Body.updateVelocities = function(body) {
-        var timeScale = Body._baseDelta / body.deltaTime,
+        const timeScale = Body._baseDelta / body.deltaTime,
             bodyVelocity = body.velocity;
 
         bodyVelocity.x = (body.position.x - body.positionPrev.x) * timeScale;
@@ -830,7 +830,7 @@ var Axes = require('../geometry/Axes');
      * @param {vector} force
      */
     Body.applyForce = function(body, position, force) {
-        var offset = { x: position.x - body.position.x, y: position.y - body.position.y };
+        const offset = { x: position.x - body.position.x, y: position.y - body.position.y };
         body.force.x += force.x;
         body.force.y += force.y;
         body.torque += offset.x * force.y - offset.y * force.x;
@@ -848,7 +848,7 @@ var Axes = require('../geometry/Axes');
         // https://ecourses.ou.edu/cgi-bin/ebook.cgi?doc=&topic=st&chap_sec=07.2&page=theory
         // http://output.to/sideway/default.asp?qno=121100087
 
-        var properties = {
+        const properties = {
             mass: 0,
             area: 0,
             inertia: 0,
@@ -856,8 +856,8 @@ var Axes = require('../geometry/Axes');
         };
 
         // sum the properties of all compound parts of the parent body
-        for (var i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
-            var part = body.parts[i],
+        for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
+            const part = body.parts[i],
                 mass = part.mass !== Infinity ? part.mass : 1;
 
             properties.mass += mass;

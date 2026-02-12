@@ -8,12 +8,12 @@
 * @class Vertices
 */
 
-var Vertices = {};
+const Vertices = {};
 
 module.exports = Vertices;
 
-var Vector = require('../geometry/Vector');
-var Common = require('../core/Common');
+const Vector = require('../geometry/Vector');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -35,10 +35,10 @@ var Common = require('../core/Common');
      * @param {body} body
      */
     Vertices.create = function(points, body) {
-        var vertices = [];
+        const vertices = [];
 
-        for (var i = 0; i < points.length; i++) {
-            var point = points[i],
+        for (let i = 0; i < points.length; i++) {
+            const point = points[i],
                 vertex = {
                     x: point.x,
                     y: point.y,
@@ -63,7 +63,7 @@ var Common = require('../core/Common');
      * @return {vertices} vertices
      */
     Vertices.fromPath = function(path, body) {
-        var pathPattern = /L?\s*([-\d.e]+)[\s,]*([-\d.e]+)*/ig,
+        const pathPattern = /L?\s*([-\d.e]+)[\s,]*([-\d.e]+)*/ig,
             points = [];
 
         path.replace(pathPattern, function(match, x, y) {
@@ -80,13 +80,13 @@ var Common = require('../core/Common');
      * @return {vector} The centre point
      */
     Vertices.centre = function(vertices) {
-        var area = Vertices.area(vertices, true),
-            centre = { x: 0, y: 0 },
+        const area = Vertices.area(vertices, true);
+        let centre = { x: 0, y: 0 },
             cross,
             temp,
             j;
 
-        for (var i = 0; i < vertices.length; i++) {
+        for (let i = 0; i < vertices.length; i++) {
             j = (i + 1) % vertices.length;
             cross = Vector.cross(vertices[i], vertices[j]);
             temp = Vector.mult(Vector.add(vertices[i], vertices[j]), cross);
@@ -103,9 +103,9 @@ var Common = require('../core/Common');
      * @return {vector} The average point
      */
     Vertices.mean = function(vertices) {
-        var average = { x: 0, y: 0 };
+        const average = { x: 0, y: 0 };
 
-        for (var i = 0; i < vertices.length; i++) {
+        for (let i = 0; i < vertices.length; i++) {
             average.x += vertices[i].x;
             average.y += vertices[i].y;
         }
@@ -121,10 +121,10 @@ var Common = require('../core/Common');
      * @return {number} The area
      */
     Vertices.area = function(vertices, signed) {
-        var area = 0,
+        let area = 0,
             j = vertices.length - 1;
 
-        for (var i = 0; i < vertices.length; i++) {
+        for (let i = 0; i < vertices.length; i++) {
             area += (vertices[j].x - vertices[i].x) * (vertices[j].y + vertices[i].y);
             j = i;
         }
@@ -143,15 +143,15 @@ var Common = require('../core/Common');
      * @return {number} The polygon's moment of inertia
      */
     Vertices.inertia = function(vertices, mass) {
-        var numerator = 0,
+        let numerator = 0,
             denominator = 0,
-            v = vertices,
             cross,
             j;
+        const v = vertices;
 
         // find the polygon's moment of inertia, using second moment of area
         // from equations at http://www.physicsforums.com/showthread.php?t=25293
-        for (var n = 0; n < v.length; n++) {
+        for (let n = 0; n < v.length; n++) {
             j = (n + 1) % v.length;
             cross = Math.abs(Vector.cross(v[j], v[n]));
             numerator += cross * (Vector.dot(v[j], v[j]) + Vector.dot(v[j], v[n]) + Vector.dot(v[n], v[n]));
@@ -171,10 +171,10 @@ var Common = require('../core/Common');
     Vertices.translate = function(vertices, vector, scalar) {
         scalar = typeof scalar !== 'undefined' ? scalar : 1;
 
-        var verticesLength = vertices.length,
+        const verticesLength = vertices.length,
             translateX = vector.x * scalar,
-            translateY = vector.y * scalar,
-            i;
+            translateY = vector.y * scalar;
+        let i;
         
         for (i = 0; i < verticesLength; i++) {
             vertices[i].x += translateX;
@@ -195,12 +195,12 @@ var Common = require('../core/Common');
         if (angle === 0)
             return;
 
-        var cos = Math.cos(angle),
+        const cos = Math.cos(angle),
             sin = Math.sin(angle),
             pointX = point.x,
             pointY = point.y,
-            verticesLength = vertices.length,
-            vertex,
+            verticesLength = vertices.length;
+        let vertex,
             dx,
             dy,
             i;
@@ -224,13 +224,13 @@ var Common = require('../core/Common');
      * @return {boolean} True if the vertices contains point, otherwise false
      */
     Vertices.contains = function(vertices, point) {
-        var pointX = point.x,
+        const pointX = point.x,
             pointY = point.y,
-            verticesLength = vertices.length,
-            vertex = vertices[verticesLength - 1],
+            verticesLength = vertices.length;
+        let vertex = vertices[verticesLength - 1],
             nextVertex;
 
-        for (var i = 0; i < verticesLength; i++) {
+        for (let i = 0; i < verticesLength; i++) {
             nextVertex = vertices[i];
 
             if ((pointX - vertex.x) * (nextVertex.y - vertex.y) 
@@ -258,10 +258,10 @@ var Common = require('../core/Common');
 
         point = point || Vertices.centre(vertices);
 
-        var vertex,
+        let vertex,
             delta;
 
-        for (var i = 0; i < vertices.length; i++) {
+        for (let i = 0; i < vertices.length; i++) {
             vertex = vertices[i];
             delta = Vector.sub(vertex, point);
             vertices[i].x = point.x + delta.x * scaleX;
@@ -293,10 +293,10 @@ var Common = require('../core/Common');
         qualityMin = qualityMin || 2;
         qualityMax = qualityMax || 14;
 
-        var newVertices = [];
+        const newVertices = [];
 
-        for (var i = 0; i < vertices.length; i++) {
-            var prevVertex = vertices[i - 1 >= 0 ? i - 1 : vertices.length - 1],
+        for (let i = 0; i < vertices.length; i++) {
+            const prevVertex = vertices[i - 1 >= 0 ? i - 1 : vertices.length - 1],
                 vertex = vertices[i],
                 nextVertex = vertices[(i + 1) % vertices.length],
                 currentRadius = radius[i < radius.length ? i : radius.length - 1];
@@ -306,22 +306,22 @@ var Common = require('../core/Common');
                 continue;
             }
 
-            var prevNormal = Vector.normalise({ 
-                x: vertex.y - prevVertex.y, 
+            const prevNormal = Vector.normalise({
+                x: vertex.y - prevVertex.y,
                 y: prevVertex.x - vertex.x
             });
 
-            var nextNormal = Vector.normalise({ 
-                x: nextVertex.y - vertex.y, 
+            const nextNormal = Vector.normalise({
+                x: nextVertex.y - vertex.y,
                 y: vertex.x - nextVertex.x
             });
 
-            var diagonalRadius = Math.sqrt(2 * Math.pow(currentRadius, 2)),
+            const diagonalRadius = Math.sqrt(2 * Math.pow(currentRadius, 2)),
                 radiusVector = Vector.mult(Common.clone(prevNormal), currentRadius),
                 midNormal = Vector.normalise(Vector.mult(Vector.add(prevNormal, nextNormal), 0.5)),
                 scaledVertex = Vector.sub(vertex, Vector.mult(midNormal, diagonalRadius));
 
-            var precision = quality;
+            let precision = quality;
 
             if (quality === -1) {
                 // automatically decide precision
@@ -334,10 +334,10 @@ var Common = require('../core/Common');
             if (precision % 2 === 1)
                 precision += 1;
 
-            var alpha = Math.acos(Vector.dot(prevNormal, nextNormal)),
+            const alpha = Math.acos(Vector.dot(prevNormal, nextNormal)),
                 theta = alpha / precision;
 
-            for (var j = 0; j < precision; j++) {
+            for (let j = 0; j < precision; j++) {
                 newVertices.push(Vector.add(Vector.rotate(radiusVector, theta * j), scaledVertex));
             }
         }
@@ -352,7 +352,7 @@ var Common = require('../core/Common');
      * @return {vertices} vertices
      */
     Vertices.clockwiseSort = function(vertices) {
-        var centre = Vertices.mean(vertices);
+        const centre = Vertices.mean(vertices);
 
         vertices.sort(function(vertexA, vertexB) {
             return Vector.angle(centre, vertexA) - Vector.angle(centre, vertexB);
@@ -371,12 +371,12 @@ var Common = require('../core/Common');
         // http://paulbourke.net/geometry/polygonmesh/
         // Copyright (c) Paul Bourke (use permitted)
 
-        var flag = 0,
-            n = vertices.length,
+        let flag = 0,
             i,
             j,
             k,
             z;
+        const n = vertices.length;
 
         if (n < 3)
             return null;
@@ -414,15 +414,15 @@ var Common = require('../core/Common');
     Vertices.hull = function(vertices) {
         // http://geomalgorithms.com/a10-_hull-1.html
 
-        var upper = [],
-            lower = [], 
-            vertex,
+        const upper = [],
+            lower = [];
+        let vertex,
             i;
 
         // sort vertices on x-axis (y-axis for ties)
         vertices = vertices.slice(0);
         vertices.sort(function(vertexA, vertexB) {
-            var dx = vertexA.x - vertexB.x;
+            const dx = vertexA.x - vertexB.x;
             return dx !== 0 ? dx : vertexA.y - vertexB.y;
         });
 

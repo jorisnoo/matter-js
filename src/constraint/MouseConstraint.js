@@ -7,19 +7,19 @@
 * @class MouseConstraint
 */
 
-var MouseConstraint = {};
+const MouseConstraint = {};
 
 module.exports = MouseConstraint;
 
-var Vertices = require('../geometry/Vertices');
-var Sleeping = require('../core/Sleeping');
-var Mouse = require('../core/Mouse');
-var Events = require('../core/Events');
-var Detector = require('../collision/Detector');
-var Constraint = require('./Constraint');
-var Composite = require('../body/Composite');
-var Common = require('../core/Common');
-var Bounds = require('../geometry/Bounds');
+const Vertices = require('../geometry/Vertices');
+const Sleeping = require('../core/Sleeping');
+const Mouse = require('../core/Mouse');
+const Events = require('../core/Events');
+const Detector = require('../collision/Detector');
+const Constraint = require('./Constraint');
+const Composite = require('../body/Composite');
+const Common = require('../core/Common');
+const Bounds = require('../geometry/Bounds');
 
 (function() {
 
@@ -33,7 +33,7 @@ var Bounds = require('../geometry/Bounds');
      * @return {MouseConstraint} A new MouseConstraint
      */
     MouseConstraint.create = function(engine, options) {
-        var mouse = (engine ? engine.mouse : null) || (options ? options.mouse : null);
+        let mouse = (engine ? engine.mouse : null) || (options ? options.mouse : null);
 
         if (!mouse) {
             if (engine && engine.render && engine.render.canvas) {
@@ -46,7 +46,7 @@ var Bounds = require('../geometry/Bounds');
             }
         }
 
-        var constraint = Constraint.create({ 
+        const constraint = Constraint.create({ 
             label: 'Mouse Constraint',
             pointA: mouse.position,
             pointB: { x: 0, y: 0 },
@@ -59,7 +59,7 @@ var Bounds = require('../geometry/Bounds');
             }
         });
 
-        var defaults = {
+        const defaults = {
             type: 'mouseConstraint',
             mouse: mouse,
             element: null,
@@ -72,10 +72,10 @@ var Bounds = require('../geometry/Bounds');
             }
         };
 
-        var mouseConstraint = Common.extend(defaults, options);
+        const mouseConstraint = Common.extend(defaults, options);
 
         Events.on(engine, 'beforeUpdate', function() {
-            var allBodies = Composite.allBodies(engine.world);
+            const allBodies = Composite.allBodies(engine.world);
             MouseConstraint.update(mouseConstraint, allBodies);
             MouseConstraint._triggerEvents(mouseConstraint);
         });
@@ -91,18 +91,18 @@ var Bounds = require('../geometry/Bounds');
      * @param {body[]} bodies
      */
     MouseConstraint.update = function(mouseConstraint, bodies) {
-        var mouse = mouseConstraint.mouse,
-            constraint = mouseConstraint.constraint,
-            body = mouseConstraint.body;
+        const mouse = mouseConstraint.mouse,
+            constraint = mouseConstraint.constraint;
+        let body = mouseConstraint.body;
 
         if (mouse.button === 0) {
             if (!constraint.bodyB) {
-                for (var i = 0; i < bodies.length; i++) {
+                for (let i = 0; i < bodies.length; i++) {
                     body = bodies[i];
                     if (Bounds.contains(body.bounds, mouse.position) 
                             && Detector.canCollide(body.collisionFilter, mouseConstraint.collisionFilter)) {
-                        for (var j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
-                            var part = body.parts[j];
+                        for (let j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
+                            const part = body.parts[j];
                             if (Vertices.contains(part.vertices, mouse.position)) {
                                 constraint.pointA = mouse.position;
                                 constraint.bodyB = mouseConstraint.body = body;
@@ -137,7 +137,7 @@ var Bounds = require('../geometry/Bounds');
      * @param {mouse} mouseConstraint
      */
     MouseConstraint._triggerEvents = function(mouseConstraint) {
-        var mouse = mouseConstraint.mouse,
+        const mouse = mouseConstraint.mouse,
             mouseEvents = mouse.sourceEvents;
 
         if (mouseEvents.mousemove)

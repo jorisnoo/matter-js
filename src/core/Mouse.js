@@ -4,11 +4,11 @@
 * @class Mouse
 */
 
-var Mouse = {};
+const Mouse = {};
 
 module.exports = Mouse;
 
-var Common = require('../core/Common');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -19,7 +19,7 @@ var Common = require('../core/Common');
      * @return {mouse} A new mouse
      */
     Mouse.create = function(element) {
-        var mouse = {};
+        const mouse = {};
 
         if (!element) {
             Common.log('Mouse.create: element was undefined, defaulting to document.body', 'warn');
@@ -43,8 +43,8 @@ var Common = require('../core/Common');
             mousewheel: null
         };
         
-        mouse.mousemove = function(event) { 
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+        mouse.mousemove = function(event) {
+            const position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
@@ -60,7 +60,7 @@ var Common = require('../core/Common');
         };
         
         mouse.mousedown = function(event) {
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+            const position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
@@ -80,7 +80,7 @@ var Common = require('../core/Common');
         };
         
         mouse.mouseup = function(event) {
-            var position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
+            const position = Mouse._getRelativeMousePosition(event, mouse.element, mouse.pixelRatio),
                 touches = event.changedTouches;
 
             if (touches) {
@@ -177,12 +177,12 @@ var Common = require('../core/Common');
      * @return {}
      */
     Mouse._getRelativeMousePosition = function(event, element, pixelRatio) {
-        var elementBounds = element.getBoundingClientRect(),
+        const elementBounds = element.getBoundingClientRect(),
             rootNode = (document.documentElement || document.body.parentNode || document.body),
             scrollX = (window.pageXOffset !== undefined) ? window.pageXOffset : rootNode.scrollLeft,
             scrollY = (window.pageYOffset !== undefined) ? window.pageYOffset : rootNode.scrollTop,
-            touches = event.changedTouches,
-            x, y;
+            touches = event.changedTouches;
+        let x, y;
         
         if (touches) {
             x = touches[0].pageX - elementBounds.left - scrollX;

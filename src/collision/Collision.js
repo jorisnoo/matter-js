@@ -8,22 +8,22 @@
 * @class Collision
 */
 
-var Collision = {};
+const Collision = {};
 
 module.exports = Collision;
 
-var Vertices = require('../geometry/Vertices');
-var Pair = require('./Pair');
+const Vertices = require('../geometry/Vertices');
+const Pair = require('./Pair');
 
 (function() {
-    var _supports = [];
+    const _supports = [];
 
-    var _overlapAB = {
+    const _overlapAB = {
         overlap: 0,
         axis: null
     };
 
-    var _overlapBA = {
+    const _overlapBA = {
         overlap: 0,
         axis: null
     };
@@ -74,8 +74,8 @@ var Pair = require('./Pair');
         }
 
         // reuse collision records for gc efficiency
-        var pair = pairs && pairs.table[Pair.id(bodyA, bodyB)],
-            collision;
+        const pair = pairs && pairs.table[Pair.id(bodyA, bodyB)];
+        let collision;
 
         if (!pair) {
             collision = Collision.create(bodyA, bodyB);
@@ -91,7 +91,7 @@ var Pair = require('./Pair');
         bodyA = collision.bodyA;
         bodyB = collision.bodyB;
 
-        var minOverlap;
+        let minOverlap;
 
         if (_overlapAB.overlap < _overlapBA.overlap) {
             minOverlap = _overlapAB;
@@ -99,16 +99,16 @@ var Pair = require('./Pair');
             minOverlap = _overlapBA;
         }
 
-        var normal = collision.normal,
+        const normal = collision.normal,
             tangent = collision.tangent,
             penetration = collision.penetration,
             supports = collision.supports,
             depth = minOverlap.overlap,
             minAxis = minOverlap.axis,
-            normalX = minAxis.x,
-            normalY = minAxis.y,
             deltaX = bodyB.position.x - bodyA.position.x,
             deltaY = bodyB.position.y - bodyA.position.y;
+        let normalX = minAxis.x,
+            normalY = minAxis.y;
 
         // ensure normal is facing away from bodyA
         if (normalX * deltaX + normalY * deltaY >= 0) {
@@ -128,8 +128,8 @@ var Pair = require('./Pair');
         collision.depth = depth;
 
         // find support points, there is always either exactly one or two
-        var supportsB = Collision._findSupports(bodyA, bodyB, normal, 1),
-            supportCount = 0;
+        const supportsB = Collision._findSupports(bodyA, bodyB, normal, 1);
+        let supportCount = 0;
 
         // find the supports from bodyB that are inside bodyA
         if (Vertices.contains(bodyA.vertices, supportsB[0])) {
@@ -142,7 +142,7 @@ var Pair = require('./Pair');
 
         // find the supports from bodyA that are inside bodyB
         if (supportCount < 2) {
-            var supportsA = Collision._findSupports(bodyB, bodyA, normal, -1);
+            const supportsA = Collision._findSupports(bodyB, bodyA, normal, -1);
 
             if (Vertices.contains(bodyB.vertices, supportsA[0])) {
                 supports[supportCount++] = supportsA[0];
@@ -174,14 +174,14 @@ var Pair = require('./Pair');
      * @param {axes} axes
      */
     Collision._overlapAxes = function(result, verticesA, verticesB, axes) {
-        var verticesALength = verticesA.length,
+        const verticesALength = verticesA.length,
             verticesBLength = verticesB.length,
             verticesAX = verticesA[0].x,
             verticesAY = verticesA[0].y,
             verticesBX = verticesB[0].x,
             verticesBY = verticesB[0].y,
-            axesLength = axes.length,
-            overlapMin = Number.MAX_VALUE,
+            axesLength = axes.length;
+        let overlapMin = Number.MAX_VALUE,
             overlapAxisNumber = 0,
             overlap,
             overlapAB,
@@ -191,10 +191,10 @@ var Pair = require('./Pair');
             j;
 
         for (i = 0; i < axesLength; i++) {
-            var axis = axes[i],
+            const axis = axes[i],
                 axisX = axis.x,
-                axisY = axis.y,
-                minA = verticesAX * axisX + verticesAY * axisY,
+                axisY = axis.y;
+            let minA = verticesAX * axisX + verticesAY * axisY,
                 minB = verticesBX * axisX + verticesBY * axisY,
                 maxA = minA,
                 maxB = minB;
@@ -249,13 +249,13 @@ var Pair = require('./Pair');
      * @return [vector]
      */
     Collision._findSupports = function(bodyA, bodyB, normal, direction) {
-        var vertices = bodyB.vertices,
+        const vertices = bodyB.vertices,
             verticesLength = vertices.length,
             bodyAPositionX = bodyA.position.x,
             bodyAPositionY = bodyA.position.y,
             normalX = normal.x * direction,
-            normalY = normal.y * direction,
-            vertexA = vertices[0],
+            normalY = normal.y * direction;
+        let vertexA = vertices[0],
             vertexB = vertexA,
             nearestDistance = normalX * (bodyAPositionX - vertexB.x) + normalY * (bodyAPositionY - vertexB.y),
             vertexC,

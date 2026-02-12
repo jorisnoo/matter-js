@@ -4,12 +4,12 @@
 * @class Matter
 */
 
-var Matter = {};
+const Matter = {};
 
 module.exports = Matter;
 
-var Plugin = require('./Plugin');
-var Common = require('./Common');
+const Plugin = require('./Plugin');
+const Common = require('./Common');
 
 (function() {
 

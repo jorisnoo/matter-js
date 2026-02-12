@@ -8,16 +8,16 @@
 * @class Constraint
 */
 
-var Constraint = {};
+const Constraint = {};
 
 module.exports = Constraint;
 
-var Vertices = require('../geometry/Vertices');
-var Vector = require('../geometry/Vector');
-var Sleeping = require('../core/Sleeping');
-var Bounds = require('../geometry/Bounds');
-var Axes = require('../geometry/Axes');
-var Common = require('../core/Common');
+const Vertices = require('../geometry/Vertices');
+const Vector = require('../geometry/Vector');
+const Sleeping = require('../core/Sleeping');
+const Bounds = require('../geometry/Bounds');
+const Axes = require('../geometry/Axes');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -37,7 +37,7 @@ var Common = require('../core/Common');
      * @return {constraint} constraint
      */
     Constraint.create = function(options) {
-        var constraint = options;
+        const constraint = options;
 
         // if bodies defined but no points, use body centre
         if (constraint.bodyA && !constraint.pointA)
@@ -46,7 +46,7 @@ var Common = require('../core/Common');
             constraint.pointB = { x: 0, y: 0 };
 
         // calculate static length using initial world space points
-        var initialPointA = constraint.bodyA ? Vector.add(constraint.bodyA.position, constraint.pointA) : constraint.pointA,
+        const initialPointA = constraint.bodyA ? Vector.add(constraint.bodyA.position, constraint.pointA) : constraint.pointA,
             initialPointB = constraint.bodyB ? Vector.add(constraint.bodyB.position, constraint.pointB) : constraint.pointB,
             length = Vector.magnitude(Vector.sub(initialPointA, initialPointB));
     
@@ -64,7 +64,7 @@ var Common = require('../core/Common');
         constraint.plugin = {};
 
         // render
-        var render = {
+        const render = {
             visible: true,
             lineWidth: 2,
             strokeStyle: '#ffffff',
@@ -91,8 +91,8 @@ var Common = require('../core/Common');
      * @param {body[]} bodies
      */
     Constraint.preSolveAll = function(bodies) {
-        for (var i = 0; i < bodies.length; i += 1) {
-            var body = bodies[i],
+        for (let i = 0; i < bodies.length; i += 1) {
+            const body = bodies[i],
                 impulse = body.constraintImpulse;
 
             if (body.isStatic || (impulse.x === 0 && impulse.y === 0 && impulse.angle === 0)) {
@@ -113,11 +113,11 @@ var Common = require('../core/Common');
      * @param {number} delta
      */
     Constraint.solveAll = function(constraints, delta) {
-        var timeScale = Common.clamp(delta / Common._baseDelta, 0, 1);
+        const timeScale = Common.clamp(delta / Common._baseDelta, 0, 1);
 
         // Solve fixed constraints first.
-        for (var i = 0; i < constraints.length; i += 1) {
-            var constraint = constraints[i],
+        for (let i = 0; i < constraints.length; i += 1) {
+            const constraint = constraints[i],
                 fixedA = !constraint.bodyA || (constraint.bodyA && constraint.bodyA.isStatic),
                 fixedB = !constraint.bodyB || (constraint.bodyB && constraint.bodyB.isStatic);
 
@@ -127,10 +127,10 @@ var Common = require('../core/Common');
         }
 
         // Solve free constraints last.
-        for (i = 0; i < constraints.length; i += 1) {
-            constraint = constraints[i];
-            fixedA = !constraint.bodyA || (constraint.bodyA && constraint.bodyA.isStatic);
-            fixedB = !constraint.bodyB || (constraint.bodyB && constraint.bodyB.isStatic);
+        for (let i = 0; i < constraints.length; i += 1) {
+            const constraint = constraints[i],
+                fixedA = !constraint.bodyA || (constraint.bodyA && constraint.bodyA.isStatic),
+                fixedB = !constraint.bodyB || (constraint.bodyB && constraint.bodyB.isStatic);
 
             if (!fixedA && !fixedB) {
                 Constraint.solve(constraints[i], timeScale);
@@ -146,7 +146,7 @@ var Common = require('../core/Common');
      * @param {number} timeScale
      */
     Constraint.solve = function(constraint, timeScale) {
-        var bodyA = constraint.bodyA,
+        const bodyA = constraint.bodyA,
             bodyB = constraint.bodyB,
             pointA = constraint.pointA,
             pointB = constraint.pointB;
@@ -166,7 +166,7 @@ var Common = require('../core/Common');
             constraint.angleB = bodyB.angle;
         }
 
-        var pointAWorld = pointA,
+        let pointAWorld = pointA,
             pointBWorld = pointB;
 
         if (bodyA) pointAWorld = Vector.add(bodyA.position, pointA);
@@ -175,8 +175,8 @@ var Common = require('../core/Common');
         if (!pointAWorld || !pointBWorld)
             return;
 
-        var delta = Vector.sub(pointAWorld, pointBWorld),
-            currentLength = Vector.magnitude(delta);
+        const delta = Vector.sub(pointAWorld, pointBWorld);
+        let currentLength = Vector.magnitude(delta);
 
         // prevent singularity
         if (currentLength < Constraint._minLength) {
@@ -184,23 +184,23 @@ var Common = require('../core/Common');
         }
 
         // solve distance constraint with Gauss-Siedel method
-        var difference = (currentLength - constraint.length) / currentLength,
+        const difference = (currentLength - constraint.length) / currentLength,
             isRigid = constraint.stiffness >= 1 || constraint.length === 0,
-            stiffness = isRigid ? constraint.stiffness * timeScale 
+            stiffness = isRigid ? constraint.stiffness * timeScale
                 : constraint.stiffness * timeScale * timeScale,
             damping = constraint.damping * timeScale,
             force = Vector.mult(delta, difference * stiffness),
             massTotal = (bodyA ? bodyA.inverseMass : 0) + (bodyB ? bodyB.inverseMass : 0),
             inertiaTotal = (bodyA ? bodyA.inverseInertia : 0) + (bodyB ? bodyB.inverseInertia : 0),
-            resistanceTotal = massTotal + inertiaTotal,
-            torque,
+            resistanceTotal = massTotal + inertiaTotal;
+        let torque,
             share,
             normal,
             normalVelocity,
             relativeVelocity;
     
         if (damping > 0) {
-            var zero = Vector.create();
+            const zero = Vector.create();
             normal = Vector.div(delta, currentLength);
 
             relativeVelocity = Vector.sub(
@@ -266,8 +266,8 @@ var Common = require('../core/Common');
      * @param {body[]} bodies
      */
     Constraint.postSolveAll = function(bodies) {
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i],
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i],
                 impulse = body.constraintImpulse;
 
             if (body.isStatic || (impulse.x === 0 && impulse.y === 0 && impulse.angle === 0)) {
@@ -277,8 +277,8 @@ var Common = require('../core/Common');
             Sleeping.set(body, false);
 
             // update geometry and reset
-            for (var j = 0; j < body.parts.length; j++) {
-                var part = body.parts[j];
+            for (let j = 0; j < body.parts.length; j++) {
+                const part = body.parts[j];
                 
                 Vertices.translate(part.vertices, impulse);
 
@@ -344,20 +344,20 @@ var Common = require('../core/Common');
      * @returns {number} the current length
      */
     Constraint.currentLength = function(constraint) {
-        var pointAX = (constraint.bodyA ? constraint.bodyA.position.x : 0) 
+        const pointAX = (constraint.bodyA ? constraint.bodyA.position.x : 0)
             + (constraint.pointA ? constraint.pointA.x : 0);
 
-        var pointAY = (constraint.bodyA ? constraint.bodyA.position.y : 0) 
+        const pointAY = (constraint.bodyA ? constraint.bodyA.position.y : 0)
             + (constraint.pointA ? constraint.pointA.y : 0);
 
-        var pointBX = (constraint.bodyB ? constraint.bodyB.position.x : 0) 
+        const pointBX = (constraint.bodyB ? constraint.bodyB.position.x : 0)
             + (constraint.pointB ? constraint.pointB.x : 0);
-            
-        var pointBY = (constraint.bodyB ? constraint.bodyB.position.y : 0) 
+
+        const pointBY = (constraint.bodyB ? constraint.bodyB.position.y : 0)
             + (constraint.pointB ? constraint.pointB.y : 0);
 
-        var deltaX = pointAX - pointBX;
-        var deltaY = pointAY - pointBY;
+        const deltaX = pointAX - pointBX;
+        const deltaY = pointAY - pointBY;
 
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     };

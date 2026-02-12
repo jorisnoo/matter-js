@@ -9,15 +9,15 @@
 
 // TODO: true circle bodies
 
-var Bodies = {};
+const Bodies = {};
 
 module.exports = Bodies;
 
-var Vertices = require('../geometry/Vertices');
-var Common = require('../core/Common');
-var Body = require('../body/Body');
-var Bounds = require('../geometry/Bounds');
-var Vector = require('../geometry/Vector');
+const Vertices = require('../geometry/Vertices');
+const Common = require('../core/Common');
+const Body = require('../body/Body');
+const Bounds = require('../geometry/Bounds');
+const Vector = require('../geometry/Vector');
 
 (function() {
 
@@ -36,14 +36,14 @@ var Vector = require('../geometry/Vector');
     Bodies.rectangle = function(x, y, width, height, options) {
         options = options || {};
 
-        var rectangle = { 
+        const rectangle = {
             label: 'Rectangle Body',
             position: { x: x, y: y },
             vertices: Vertices.fromPath('L 0 0 L ' + width + ' 0 L ' + width + ' ' + height + ' L 0 ' + height)
         };
 
         if (options.chamfer) {
-            var chamfer = options.chamfer;
+            const chamfer = options.chamfer;
             rectangle.vertices = Vertices.chamfer(rectangle.vertices, chamfer.radius, 
                 chamfer.quality, chamfer.qualityMin, chamfer.qualityMax);
             delete options.chamfer;
@@ -74,12 +74,12 @@ var Vector = require('../geometry/Vector');
         }
 
         slope *= 0.5;
-        var roof = (1 - (slope * 2)) * width;
-        
-        var x1 = width * slope,
+        const roof = (1 - (slope * 2)) * width;
+
+        const x1 = width * slope,
             x2 = x1 + roof,
-            x3 = x2 + x1,
-            verticesPath;
+            x3 = x2 + x1;
+        let verticesPath;
 
         if (slope < 0.5) {
             verticesPath = 'L 0 0 L ' + x1 + ' ' + (-height) + ' L ' + x2 + ' ' + (-height) + ' L ' + x3 + ' 0';
@@ -87,14 +87,14 @@ var Vector = require('../geometry/Vector');
             verticesPath = 'L 0 0 L ' + x2 + ' ' + (-height) + ' L ' + x3 + ' 0';
         }
 
-        var trapezoid = { 
+        const trapezoid = {
             label: 'Trapezoid Body',
             position: { x: x, y: y },
             vertices: Vertices.fromPath(verticesPath)
         };
 
         if (options.chamfer) {
-            var chamfer = options.chamfer;
+            const chamfer = options.chamfer;
             trapezoid.vertices = Vertices.chamfer(trapezoid.vertices, chamfer.radius, 
                 chamfer.quality, chamfer.qualityMin, chamfer.qualityMax);
             delete options.chamfer;
@@ -118,14 +118,14 @@ var Vector = require('../geometry/Vector');
     Bodies.circle = function(x, y, radius, options, maxSides) {
         options = options || {};
 
-        var circle = {
+        const circle = {
             label: 'Circle Body',
             circleRadius: radius
         };
-        
+
         // approximate circles with polygons until true circles implemented in SAT
         maxSides = maxSides || 25;
-        var sides = Math.ceil(Math.max(10, Math.min(maxSides, radius)));
+        let sides = Math.ceil(Math.max(10, Math.min(maxSides, radius)));
 
         // optimisation: always use even number of sides (half the number of unique axes)
         if (sides % 2 === 1)
@@ -152,26 +152,26 @@ var Vector = require('../geometry/Vector');
         if (sides < 3)
             return Bodies.circle(x, y, radius, options);
 
-        var theta = 2 * Math.PI / sides,
-            path = '',
+        const theta = 2 * Math.PI / sides,
             offset = theta * 0.5;
+        let path = '';
 
-        for (var i = 0; i < sides; i += 1) {
-            var angle = offset + (i * theta),
+        for (let i = 0; i < sides; i += 1) {
+            const angle = offset + (i * theta),
                 xx = Math.cos(angle) * radius,
                 yy = Math.sin(angle) * radius;
 
             path += 'L ' + xx.toFixed(3) + ' ' + yy.toFixed(3) + ' ';
         }
 
-        var polygon = { 
+        const polygon = {
             label: 'Polygon Body',
             position: { x: x, y: y },
             vertices: Vertices.fromPath(path)
         };
 
         if (options.chamfer) {
-            var chamfer = options.chamfer;
+            const chamfer = options.chamfer;
             polygon.vertices = Vertices.chamfer(polygon.vertices, chamfer.radius, 
                 chamfer.quality, chamfer.qualityMin, chamfer.qualityMax);
             delete options.chamfer;
@@ -215,8 +215,8 @@ var Vector = require('../geometry/Vector');
      * @return {body}
      */
     Bodies.fromVertices = function(x, y, vertexSets, options, flagInternal, removeCollinear, minimumArea, removeDuplicatePoints) {
-        var decomp = Common.getDecomp(),
-            canDecomp,
+        const decomp = Common.getDecomp();
+        let canDecomp,
             body,
             parts,
             isConvex,
@@ -240,7 +240,7 @@ var Vector = require('../geometry/Vector');
         removeDuplicatePoints = typeof removeDuplicatePoints !== 'undefined' ? removeDuplicatePoints : 0.01;
 
         // ensure vertexSets is an array of arrays
-        if (!Common.isArray(vertexSets[0])) {
+        if (!Array.isArray(vertexSets[0])) {
             vertexSets = [vertexSets];
         }
 
@@ -269,7 +269,7 @@ var Vector = require('../geometry/Vector');
                 });
             } else {
                 // initialise a decomposition
-                var concave = vertices.map(function(vertex) {
+                const concave = vertices.map(function(vertex) {
                     return [vertex.x, vertex.y];
                 });
 
@@ -281,14 +281,14 @@ var Vector = require('../geometry/Vector');
                     decomp.removeDuplicatePoints(concave, removeDuplicatePoints);
 
                 // use the quick decomposition algorithm (Bayazit)
-                var decomposed = decomp.quickDecomp(concave);
+                const decomposed = decomp.quickDecomp(concave);
 
                 // for each decomposed chunk
                 for (i = 0; i < decomposed.length; i++) {
-                    var chunk = decomposed[i];
+                    const chunk = decomposed[i];
 
                     // convert vertices into the correct structure
-                    var chunkVertices = chunk.map(function(vertices) {
+                    const chunkVertices = chunk.map(function(vertices) {
                         return {
                             x: vertices[0],
                             y: vertices[1]
@@ -315,23 +315,23 @@ var Vector = require('../geometry/Vector');
 
         // flag internal edges (coincident part edges)
         if (flagInternal) {
-            var coincident_max_dist = 5;
+            const coincident_max_dist = 5;
 
             for (i = 0; i < parts.length; i++) {
-                var partA = parts[i];
+                const partA = parts[i];
 
                 for (j = i + 1; j < parts.length; j++) {
-                    var partB = parts[j];
+                    const partB = parts[j];
 
                     if (Bounds.overlaps(partA.bounds, partB.bounds)) {
-                        var pav = partA.vertices,
+                        const pav = partA.vertices,
                             pbv = partB.vertices;
 
                         // iterate vertices of both parts
                         for (k = 0; k < partA.vertices.length; k++) {
                             for (z = 0; z < partB.vertices.length; z++) {
                                 // find distances between the vertices
-                                var da = Vector.magnitudeSquared(Vector.sub(pav[(k + 1) % pav.length], pbv[z])),
+                                const da = Vector.magnitudeSquared(Vector.sub(pav[(k + 1) % pav.length], pbv[z])),
                                     db = Vector.magnitudeSquared(Vector.sub(pav[k], pbv[(z + 1) % pbv.length]));
 
                                 // if both vertices are very close, consider the edge concident (internal)

@@ -8,12 +8,12 @@
 * @class Svg
 */
 
-var Svg = {};
+const Svg = {};
 
 module.exports = Svg;
 
-var Bounds = require('../geometry/Bounds');
-var Common = require('../core/Common');
+const Bounds = require('../geometry/Bounds');
+const Common = require('../core/Common');
 
 (function() {
 
@@ -34,16 +34,17 @@ var Common = require('../core/Common');
         }
 
         // https://github.com/wout/svg.topoly.js/blob/master/svg.topoly.js
-        var i, il, total, point, segment, segments, 
-            segmentsQueue, lastSegment, 
-            lastPoint, segmentIndex, points = [],
+        let i, il, total, point, segment, segments,
+            segmentsQueue, lastSegment,
+            lastPoint, segmentIndex,
             lx, ly, length = 0, x = 0, y = 0;
+        const points = [];
 
         sampleLength = sampleLength || 15;
 
-        var addPoint = function(px, py, pathSegType) {
+        const addPoint = function(px, py, pathSegType) {
             // all odd-numbered path types are relative except PATHSEG_CLOSEPATH (1)
-            var isRelative = pathSegType % 2 === 1 && pathSegType > 1;
+            const isRelative = pathSegType % 2 === 1 && pathSegType > 1;
 
             // when the last point doesn't equal the current point add the current point
             if (!lastPoint || px != lastPoint.x || py != lastPoint.y) {
@@ -55,7 +56,7 @@ var Common = require('../core/Common');
                     ly = 0;
                 }
 
-                var point = {
+                const point = {
                     x: lx + px,
                     y: ly + py
                 };
@@ -72,8 +73,8 @@ var Common = require('../core/Common');
             }
         };
 
-        var addSegmentPoint = function(segment) {
-            var segType = segment.pathSegTypeAsLetter.toUpperCase();
+        const addSegmentPoint = function(segment) {
+            const segType = segment.pathSegTypeAsLetter.toUpperCase();
 
             // skip path ends
             if (segType === 'Z') 
@@ -160,11 +161,13 @@ var Common = require('../core/Common');
         // Copyright (c) Gavin Kistner
         // http://phrogz.net/js/_ReuseLicense.txt
         // Modifications: tidy formatting and naming
-        var x0, y0, x1, y1, x2, y2, segs = path.pathSegList,
-            x = 0, y = 0, len = segs.numberOfItems;
+        let x0, y0, x1, y1, x2, y2,
+            x = 0, y = 0;
+        const segs = path.pathSegList,
+            len = segs.numberOfItems;
 
-        for (var i = 0; i < len; ++i) {
-            var seg = segs.getItem(i),
+        for (let i = 0; i < len; ++i) {
+            const seg = segs.getItem(i),
                 segType = seg.pathSegTypeAsLetter;
 
             if (/[MLHVCSQTA]/.test(segType)) {

@@ -4,11 +4,11 @@
 * @class Plugin
 */
 
-var Plugin = {};
+const Plugin = {};
 
 module.exports = Plugin;
 
-var Common = require('./Common');
+const Common = require('./Common');
 
 (function() {
 
@@ -26,7 +26,7 @@ var Common = require('./Common');
         }
 
         if (plugin.name in Plugin._registry) {
-            var registered = Plugin._registry[plugin.name],
+            const registered = Plugin._registry[plugin.name],
                 pluginVersion = Plugin.versionParse(plugin.version).number,
                 registeredVersion = Plugin.versionParse(registered.version).number;
 
@@ -101,7 +101,7 @@ var Common = require('./Common');
      * @return {boolean} `true` if `plugin.for` is applicable to `module`, otherwise `false`.
      */
     Plugin.isFor = function(plugin, module) {
-        var parsed = plugin.for && Plugin.dependencyParse(plugin.for);
+        const parsed = plugin.for && Plugin.dependencyParse(plugin.for);
         return !plugin.for || (module.name === parsed.name && Plugin.versionSatisfies(module.version, parsed.range));
     };
 
@@ -129,16 +129,16 @@ var Common = require('./Common');
             return;
         }
 
-        var dependencies = Plugin.dependencies(module),
+        const dependencies = Plugin.dependencies(module),
             sortedDependencies = Common.topologicalSort(dependencies),
             status = [];
 
-        for (var i = 0; i < sortedDependencies.length; i += 1) {
+        for (let i = 0; i < sortedDependencies.length; i += 1) {
             if (sortedDependencies[i] === module.name) {
                 continue;
             }
 
-            var plugin = Plugin.resolve(sortedDependencies[i]);
+            const plugin = Plugin.resolve(sortedDependencies[i]);
 
             if (!plugin) {
                 status.push('❌ ' + sortedDependencies[i]);
@@ -183,7 +183,7 @@ var Common = require('./Common');
      * @return {object} A dependency graph.
      */
     Plugin.dependencies = function(module, tracked) {
-        var parsedBase = Plugin.dependencyParse(module),
+        const parsedBase = Plugin.dependencyParse(module),
             name = parsedBase.name;
 
         tracked = tracked || {};
@@ -194,12 +194,12 @@ var Common = require('./Common');
 
         module = Plugin.resolve(module) || module;
 
-        tracked[name] = Common.map(module.uses || [], function(dependency) {
+        tracked[name] = (module.uses || []).map(function(dependency) {
             if (Plugin.isPlugin(dependency)) {
                 Plugin.register(dependency);
             }
 
-            var parsed = Plugin.dependencyParse(dependency),
+            const parsed = Plugin.dependencyParse(dependency),
                 resolved = Plugin.resolve(dependency);
 
             if (resolved && !Plugin.versionSatisfies(resolved.version, parsed.range)) {
@@ -222,7 +222,7 @@ var Common = require('./Common');
             return parsed.name;
         });
 
-        for (var i = 0; i < tracked[name].length; i += 1) {
+        for (let i = 0; i < tracked[name].length; i += 1) {
             Plugin.dependencies(tracked[name][i], tracked);
         }
 
@@ -239,8 +239,8 @@ var Common = require('./Common');
      * @return {object} The dependency parsed into its components.
      */
     Plugin.dependencyParse = function(dependency) {
-        if (Common.isString(dependency)) {
-            var pattern = /^[\w-]+(@(\*|[\^~]?\d+\.\d+\.\d+(-[0-9A-Za-z-+]+)?))?$/;
+        if (typeof dependency === 'string') {
+            const pattern = /^[\w-]+(@(\*|[\^~]?\d+\.\d+\.\d+(-[0-9A-Za-z-+]+)?))?$/;
 
             if (!pattern.test(dependency)) {
                 Common.warn('Plugin.dependencyParse:', dependency, 'is not a valid dependency string.');
@@ -275,16 +275,16 @@ var Common = require('./Common');
      * @return {object} The version range parsed into its components.
      */
     Plugin.versionParse = function(range) {
-        var pattern = /^(\*)|(\^|~|>=|>)?\s*((\d+)\.(\d+)\.(\d+))(-[0-9A-Za-z-+]+)?$/;
+        const pattern = /^(\*)|(\^|~|>=|>)?\s*((\d+)\.(\d+)\.(\d+))(-[0-9A-Za-z-+]+)?$/;
 
         if (!pattern.test(range)) {
             Common.warn('Plugin.versionParse:', range, 'is not a valid version or range.');
         }
 
-        var parts = pattern.exec(range);
-        var major = Number(parts[4]);
-        var minor = Number(parts[5]);
-        var patch = Number(parts[6]);
+        const parts = pattern.exec(range);
+        const major = Number(parts[4]);
+        const minor = Number(parts[5]);
+        const patch = Number(parts[6]);
 
         return {
             isRange: Boolean(parts[1] || parts[2]),
@@ -312,7 +312,7 @@ var Common = require('./Common');
     Plugin.versionSatisfies = function(version, range) {
         range = range || '*';
 
-        var r = Plugin.versionParse(range),
+        const r = Plugin.versionParse(range),
             v = Plugin.versionParse(version);
 
         if (r.isRange) {

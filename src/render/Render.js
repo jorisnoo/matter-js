@@ -6,21 +6,21 @@
 * @class Render
 */
 
-var Render = {};
+const Render = {};
 
 module.exports = Render;
 
-var Body = require('../body/Body');
-var Common = require('../core/Common');
-var Composite = require('../body/Composite');
-var Bounds = require('../geometry/Bounds');
-var Events = require('../core/Events');
-var Vector = require('../geometry/Vector');
-var Mouse = require('../core/Mouse');
+const Body = require('../body/Body');
+const Common = require('../core/Common');
+const Composite = require('../body/Composite');
+const Bounds = require('../geometry/Bounds');
+const Events = require('../core/Events');
+const Vector = require('../geometry/Vector');
+const Mouse = require('../core/Mouse');
 
 (function() {
 
-    var _requestAnimationFrame,
+    let _requestAnimationFrame,
         _cancelAnimationFrame;
 
     if (typeof window !== 'undefined') {
@@ -44,7 +44,7 @@ var Mouse = require('../core/Mouse');
      * @return {render} A new renderer
      */
     Render.create = function(options) {
-        var defaults = {
+        const defaults = {
             engine: null,
             element: null,
             canvas: null,
@@ -93,7 +93,7 @@ var Mouse = require('../core/Mouse');
             }
         };
 
-        var render = Common.extend(defaults, options);
+        const render = Common.extend(defaults, options);
 
         if (render.canvas) {
             render.canvas.width = render.options.width || render.canvas.width;
@@ -117,8 +117,6 @@ var Mouse = require('../core/Mouse');
             }
         };
 
-        // for temporary back compatibility only
-        render.controller = Render;
         render.options.showBroadphase = false;
 
         if (render.options.pixelRatio !== 1) {
@@ -176,7 +174,7 @@ var Mouse = require('../core/Mouse');
      * @param {number} pixelRatio
      */
     Render.setPixelRatio = function(render, pixelRatio) {
-        var options = render.options,
+        const options = render.options,
             canvas = render.canvas;
 
         if (pixelRatio === 'auto') {
@@ -236,20 +234,20 @@ var Mouse = require('../core/Mouse');
      */
     Render.lookAt = function(render, objects, padding, center) {
         center = typeof center !== 'undefined' ? center : true;
-        objects = Common.isArray(objects) ? objects : [objects];
+        objects = Array.isArray(objects) ? objects : [objects];
         padding = padding || {
             x: 0,
             y: 0
         };
 
         // find bounds of all objects
-        var bounds = {
+        const bounds = {
             min: { x: Infinity, y: Infinity },
             max: { x: -Infinity, y: -Infinity }
         };
 
-        for (var i = 0; i < objects.length; i += 1) {
-            var object = objects[i],
+        for (let i = 0; i < objects.length; i += 1) {
+            const object = objects[i],
                 min = object.bounds ? object.bounds.min : (object.min || object.position || object),
                 max = object.bounds ? object.bounds.max : (object.max || object.position || object);
 
@@ -269,13 +267,13 @@ var Mouse = require('../core/Mouse');
         }
 
         // find ratios
-        var width = (bounds.max.x - bounds.min.x) + 2 * padding.x,
+        const width = (bounds.max.x - bounds.min.x) + 2 * padding.x,
             height = (bounds.max.y - bounds.min.y) + 2 * padding.y,
             viewHeight = render.canvas.height,
             viewWidth = render.canvas.width,
             outerRatio = viewWidth / viewHeight,
-            innerRatio = width / height,
-            scaleX = 1,
+            innerRatio = width / height;
+        let scaleX = 1,
             scaleY = 1;
 
         // find scale factor
@@ -325,13 +323,13 @@ var Mouse = require('../core/Mouse');
      * @param {render} render
      */
     Render.startViewTransform = function(render) {
-        var boundsWidth = render.bounds.max.x - render.bounds.min.x,
+        const boundsWidth = render.bounds.max.x - render.bounds.min.x,
             boundsHeight = render.bounds.max.y - render.bounds.min.y,
             boundsScaleX = boundsWidth / render.options.width,
             boundsScaleY = boundsHeight / render.options.height;
 
         render.context.setTransform(
-            render.options.pixelRatio / boundsScaleX, 0, 0, 
+            render.options.pixelRatio / boundsScaleX, 0, 0,
             render.options.pixelRatio / boundsScaleY, 0, 0
         );
         
@@ -354,7 +352,7 @@ var Mouse = require('../core/Mouse');
      * @param {render} render
      */
     Render.world = function(render, time) {
-        var startTime = Common.now(),
+        const startTime = Common.now(),
             engine = render.engine,
             world = engine.world,
             canvas = render.canvas,
@@ -362,14 +360,14 @@ var Mouse = require('../core/Mouse');
             options = render.options,
             timing = render.timing;
 
-        var allBodies = Composite.allBodies(world),
+        const allBodies = Composite.allBodies(world),
             allConstraints = Composite.allConstraints(world),
-            background = options.wireframes ? options.wireframeBackground : options.background,
-            bodies = [],
+            background = options.wireframes ? options.wireframeBackground : options.background;
+        let bodies = [],
             constraints = [],
             i;
 
-        var event = {
+        const event = {
             timestamp: engine.timing.timestamp
         };
 
@@ -389,17 +387,17 @@ var Mouse = require('../core/Mouse');
         if (options.hasBounds) {
             // filter out bodies that are not in view
             for (i = 0; i < allBodies.length; i++) {
-                var body = allBodies[i];
+                const body = allBodies[i];
                 if (Bounds.overlaps(body.bounds, render.bounds))
                     bodies.push(body);
             }
 
             // filter out constraints that are not in view
             for (i = 0; i < allConstraints.length; i++) {
-                var constraint = allConstraints[i],
+                const constraint = allConstraints[i],
                     bodyA = constraint.bodyA,
-                    bodyB = constraint.bodyB,
-                    pointAWorld = constraint.pointA,
+                    bodyB = constraint.bodyB;
+                let pointAWorld = constraint.pointA,
                     pointBWorld = constraint.pointB;
 
                 if (bodyA) pointAWorld = Vector.add(bodyA.position, constraint.pointA);
@@ -493,22 +491,22 @@ var Mouse = require('../core/Mouse');
      * @param {Number} time
      */
     Render.stats = function(render, context, time) {
-        var engine = render.engine,
+        const engine = render.engine,
             world = engine.world,
             bodies = Composite.allBodies(world),
-            parts = 0,
             width = 55,
             height = 44,
-            x = 0,
             y = 0;
+        let parts = 0,
+            x = 0;
         
         // count parts
-        for (var i = 0; i < bodies.length; i += 1) {
+        for (let i = 0; i < bodies.length; i += 1) {
             parts += bodies[i].parts.length;
         }
 
         // sections
-        var sections = {
+        const sections = {
             'Part': parts,
             'Body': bodies.length,
             'Cons': Composite.allConstraints(world).length,
@@ -525,8 +523,8 @@ var Mouse = require('../core/Mouse');
         context.textAlign = 'right';
 
         // sections
-        for (var key in sections) {
-            var section = sections[key];
+        for (const key in sections) {
+            const section = sections[key];
             // label
             context.fillStyle = '#aaa';
             context.fillText(key, x + width, y + 8);
@@ -547,7 +545,7 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.performance = function(render, context) {
-        var engine = render.engine,
+        const engine = render.engine,
             timing = render.timing,
             deltaHistory = timing.deltaHistory,
             elapsedHistory = timing.elapsedHistory,
@@ -558,7 +556,7 @@ var Mouse = require('../core/Mouse');
             lastEngineUpdatesPerFrame = engine.timing.lastUpdatesPerFrame,
             lastEngineDelta = engine.timing.lastDelta;
         
-        var deltaMean = _mean(deltaHistory),
+        const deltaMean = _mean(deltaHistory),
             elapsedMean = _mean(elapsedHistory),
             engineDeltaMean = _mean(engineDeltaHistory),
             engineUpdatesMean = _mean(engineUpdatesHistory),
@@ -568,7 +566,7 @@ var Mouse = require('../core/Mouse');
             neededUpdatesPerFrame = Math.round(deltaMean / lastEngineDelta),
             fps = (1000 / deltaMean) || 0;
 
-        var graphHeight = 4,
+        const graphHeight = 4,
             gap = 12,
             width = 60,
             height = 34,
@@ -652,7 +650,7 @@ var Mouse = require('../core/Mouse');
         // chart
         context.beginPath();
         context.moveTo(x, y + 7 - height * Common.clamp(0.4 * plotY(0), -2, 2));
-        for (var i = 0; i < width; i += 1) {
+        for (let i = 0; i < width; i += 1) {
             context.lineTo(x + i, y + 7 - (i < count ? height * Common.clamp(0.4 * plotY(i), -2, 2) : 0));
         }
         context.stroke();
@@ -677,17 +675,17 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.constraints = function(constraints, context) {
-        var c = context;
+        const c = context;
 
-        for (var i = 0; i < constraints.length; i++) {
-            var constraint = constraints[i];
+        for (let i = 0; i < constraints.length; i++) {
+            const constraint = constraints[i];
 
             if (!constraint.render.visible || !constraint.pointA || !constraint.pointB)
                 continue;
 
-            var bodyA = constraint.bodyA,
-                bodyB = constraint.bodyB,
-                start,
+            const bodyA = constraint.bodyA,
+                bodyB = constraint.bodyB;
+            let start,
                 end;
 
             if (bodyA) {
@@ -711,12 +709,12 @@ var Mouse = require('../core/Mouse');
                 c.moveTo(start.x, start.y);
 
                 if (constraint.render.type === 'spring') {
-                    var delta = Vector.sub(end, start),
+                    const delta = Vector.sub(end, start),
                         normal = Vector.perp(Vector.normalise(delta)),
-                        coils = Math.ceil(Common.clamp(constraint.length / 5, 12, 20)),
-                        offset;
+                        coils = Math.ceil(Common.clamp(constraint.length / 5, 12, 20));
+                    let offset;
 
-                    for (var j = 1; j < coils; j += 1) {
+                    for (let j = 1; j < coils; j += 1) {
                         offset = j % 2 === 0 ? 1 : -1;
 
                         c.lineTo(
@@ -755,11 +753,11 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodies = function(render, bodies, context) {
-        var c = context,
+        const c = context,
             engine = render.engine,
             options = render.options,
-            showInternalEdges = options.showInternalEdges || !options.wireframes,
-            body,
+            showInternalEdges = options.showInternalEdges || !options.wireframes;
+        let body,
             part,
             i,
             k;
@@ -785,7 +783,7 @@ var Mouse = require('../core/Mouse');
 
                 if (part.render.sprite && part.render.sprite.texture && !options.wireframes) {
                     // part sprite
-                    var sprite = part.render.sprite,
+                    const sprite = part.render.sprite,
                         texture = _getTexture(render, sprite.texture);
 
                     c.translate(part.position.x, part.position.y);
@@ -811,7 +809,7 @@ var Mouse = require('../core/Mouse');
                         c.beginPath();
                         c.moveTo(part.vertices[0].x, part.vertices[0].y);
 
-                        for (var j = 1; j < part.vertices.length; j++) {
+                        for (let j = 1; j < part.vertices.length; j++) {
                             if (!part.vertices[j - 1].isInternal || showInternalEdges) {
                                 c.lineTo(part.vertices[j].x, part.vertices[j].y);
                             } else {
@@ -858,9 +856,9 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyWireframes = function(render, bodies, context) {
-        var c = context,
-            showInternalEdges = render.options.showInternalEdges,
-            body,
+        const c = context,
+            showInternalEdges = render.options.showInternalEdges;
+        let body,
             part,
             i,
             j,
@@ -911,8 +909,8 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyConvexHulls = function(render, bodies, context) {
-        var c = context,
-            body,
+        const c = context;
+        let body,
             part,
             i,
             j,
@@ -950,15 +948,15 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.vertexNumbers = function(render, bodies, context) {
-        var c = context,
-            i,
+        const c = context;
+        let i,
             j,
             k;
 
         for (i = 0; i < bodies.length; i++) {
-            var parts = bodies[i].parts;
+            const parts = bodies[i].parts;
             for (k = parts.length > 1 ? 1 : 0; k < parts.length; k++) {
-                var part = parts[k];
+                const part = parts[k];
                 for (j = 0; j < part.vertices.length; j++) {
                     c.fillStyle = 'rgba(255,255,255,0.2)';
                     c.fillText(i + '_' + j, part.position.x + (part.vertices[j].x - part.position.x) * 0.8, part.position.y + (part.vertices[j].y - part.position.y) * 0.8);
@@ -976,7 +974,7 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.mousePosition = function(render, mouse, context) {
-        var c = context;
+        const c = context;
         c.fillStyle = 'rgba(255,255,255,0.8)';
         c.fillText(mouse.position.x + '  ' + mouse.position.y, mouse.position.x + 5, mouse.position.y - 5);
     };
@@ -990,19 +988,19 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyBounds = function(render, bodies, context) {
-        var c = context,
+        const c = context,
             engine = render.engine,
             options = render.options;
 
         c.beginPath();
 
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
 
             if (body.render.visible) {
-                var parts = bodies[i].parts;
-                for (var j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
-                    var part = parts[j];
+                const parts = bodies[i].parts;
+                for (let j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
+                    const part = parts[j];
                     c.rect(part.bounds.min.x, part.bounds.min.y, part.bounds.max.x - part.bounds.min.x, part.bounds.max.y - part.bounds.min.y);
                 }
             }
@@ -1027,10 +1025,10 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyAxes = function(render, bodies, context) {
-        var c = context,
+        const c = context,
             engine = render.engine,
-            options = render.options,
-            part,
+            options = render.options;
+        let part,
             i,
             j,
             k;
@@ -1038,7 +1036,7 @@ var Mouse = require('../core/Mouse');
         c.beginPath();
 
         for (i = 0; i < bodies.length; i++) {
-            var body = bodies[i],
+            const body = bodies[i],
                 parts = body.parts;
 
             if (!body.render.visible)
@@ -1049,7 +1047,7 @@ var Mouse = require('../core/Mouse');
                 for (j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
                     part = parts[j];
                     for (k = 0; k < part.axes.length; k++) {
-                        var axis = part.axes[k];
+                        const axis = part.axes[k];
                         c.moveTo(part.position.x, part.position.y);
                         c.lineTo(part.position.x + axis.x * 20, part.position.y + axis.y * 20);
                     }
@@ -1089,10 +1087,10 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyPositions = function(render, bodies, context) {
-        var c = context,
+        const c = context,
             engine = render.engine,
-            options = render.options,
-            body,
+            options = render.options;
+        let body,
             part,
             i,
             k;
@@ -1145,17 +1143,17 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyVelocity = function(render, bodies, context) {
-        var c = context;
+        const c = context;
 
         c.beginPath();
 
-        for (var i = 0; i < bodies.length; i++) {
-            var body = bodies[i];
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
 
             if (!body.render.visible)
                 continue;
 
-            var velocity = Body.getVelocity(body);
+            const velocity = Body.getVelocity(body);
 
             c.moveTo(body.position.x, body.position.y);
             c.lineTo(body.position.x + velocity.x, body.position.y + velocity.y);
@@ -1175,17 +1173,17 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.bodyIds = function(render, bodies, context) {
-        var c = context,
-            i,
+        const c = context;
+        let i,
             j;
 
         for (i = 0; i < bodies.length; i++) {
             if (!bodies[i].render.visible)
                 continue;
 
-            var parts = bodies[i].parts;
+            const parts = bodies[i].parts;
             for (j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
-                var part = parts[j];
+                const part = parts[j];
                 c.font = "12px Arial";
                 c.fillStyle = 'rgba(255,255,255,0.5)';
                 c.fillText(part.id, part.position.x + 10, part.position.y - 10);
@@ -1202,9 +1200,9 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.collisions = function(render, pairs, context) {
-        var c = context,
-            options = render.options,
-            pair,
+        const c = context,
+            options = render.options;
+        let pair,
             collision,
             corrected,
             bodyA,
@@ -1223,7 +1221,7 @@ var Mouse = require('../core/Mouse');
 
             collision = pair.collision;
             for (j = 0; j < pair.contactCount; j++) {
-                var contact = pair.contacts[j],
+                const contact = pair.contacts[j],
                     vertex = contact.vertex;
                 c.rect(vertex.x - 1.5, vertex.y - 1.5, 3.5, 3.5);
             }
@@ -1248,7 +1246,7 @@ var Mouse = require('../core/Mouse');
             collision = pair.collision;
 
             if (pair.contactCount > 0) {
-                var normalPosX = pair.contacts[0].vertex.x,
+                let normalPosX = pair.contacts[0].vertex.x,
                     normalPosY = pair.contacts[0].vertex.y;
 
                 if (pair.contactCount === 2) {
@@ -1285,9 +1283,9 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.separations = function(render, pairs, context) {
-        var c = context,
-            options = render.options,
-            pair,
+        const c = context,
+            options = render.options;
+        let pair,
             collision,
             corrected,
             bodyA,
@@ -1308,7 +1306,7 @@ var Mouse = require('../core/Mouse');
             bodyA = collision.bodyA;
             bodyB = collision.bodyB;
 
-            var k = 1;
+            let k = 1;
 
             if (!bodyB.isStatic && !bodyA.isStatic) k = 0.5;
             if (bodyB.isStatic) k = 0;
@@ -1341,14 +1339,14 @@ var Mouse = require('../core/Mouse');
      * @param {RenderingContext} context
      */
     Render.inspector = function(inspector, context) {
-        var engine = inspector.engine,
+        const engine = inspector.engine,
             selected = inspector.selected,
             render = inspector.render,
-            options = render.options,
-            bounds;
+            options = render.options;
+        let bounds;
 
         if (options.hasBounds) {
-            var boundsWidth = render.bounds.max.x - render.bounds.min.x,
+            const boundsWidth = render.bounds.max.x - render.bounds.min.x,
                 boundsHeight = render.bounds.max.y - render.bounds.min.y,
                 boundsScaleX = boundsWidth / render.options.width,
                 boundsScaleY = boundsHeight / render.options.height;
@@ -1357,8 +1355,8 @@ var Mouse = require('../core/Mouse');
             context.translate(-render.bounds.min.x, -render.bounds.min.y);
         }
 
-        for (var i = 0; i < selected.length; i++) {
-            var item = selected[i].data;
+        for (let i = 0; i < selected.length; i++) {
+            const item = selected[i].data;
 
             context.translate(0.5, 0.5);
             context.lineWidth = 1;
@@ -1379,10 +1377,10 @@ var Mouse = require('../core/Mouse');
 
                 break;
 
-            case 'constraint':
+            case 'constraint': {
 
                 // render constraint selections
-                var point = item.pointA;
+                let point = item.pointA;
                 if (item.bodyA)
                     point = item.pointB;
                 context.beginPath();
@@ -1391,6 +1389,7 @@ var Mouse = require('../core/Mouse');
                 context.stroke();
 
                 break;
+            }
 
             }
 
@@ -1425,8 +1424,8 @@ var Mouse = require('../core/Mouse');
      * @param {render} render
      * @param {number} time
      */
-    var _updateTiming = function(render, time) {
-        var engine = render.engine,
+    const _updateTiming = function(render, time) {
+        const engine = render.engine,
             timing = render.timing,
             historySize = timing.historySize,
             timestamp = engine.timing.timestamp;
@@ -1463,9 +1462,9 @@ var Mouse = require('../core/Mouse');
      * @param {Number[]} values
      * @return {Number} the mean of given values
      */
-    var _mean = function(values) {
-        var result = 0;
-        for (var i = 0; i < values.length; i += 1) {
+    const _mean = function(values) {
+        let result = 0;
+        for (let i = 0; i < values.length; i += 1) {
             result += values[i];
         }
         return (result / values.length) || 0;
@@ -1478,8 +1477,8 @@ var Mouse = require('../core/Mouse');
      * @param {} height
      * @return canvas
      */
-    var _createCanvas = function(width, height) {
-        var canvas = document.createElement('canvas');
+    const _createCanvas = function(width, height) {
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         canvas.oncontextmenu = function() { return false; };
@@ -1494,8 +1493,8 @@ var Mouse = require('../core/Mouse');
      * @param {HTMLElement} canvas
      * @return {Number} pixel ratio
      */
-    var _getPixelRatio = function(canvas) {
-        var context = canvas.getContext('2d'),
+    const _getPixelRatio = function(canvas) {
+        const context = canvas.getContext('2d'),
             devicePixelRatio = window.devicePixelRatio || 1,
             backingStorePixelRatio = context.webkitBackingStorePixelRatio || context.mozBackingStorePixelRatio
                                       || context.msBackingStorePixelRatio || context.oBackingStorePixelRatio
@@ -1512,8 +1511,8 @@ var Mouse = require('../core/Mouse');
      * @param {string} imagePath
      * @return {Image} texture
      */
-    var _getTexture = function(render, imagePath) {
-        var image = render.textures[imagePath];
+    const _getTexture = function(render, imagePath) {
+        let image = render.textures[imagePath];
 
         if (image)
             return image;
@@ -1531,8 +1530,8 @@ var Mouse = require('../core/Mouse');
      * @param {render} render
      * @param {string} background
      */
-    var _applyBackground = function(render, background) {
-        var cssBackground = background;
+    const _applyBackground = function(render, background) {
+        let cssBackground = background;
 
         if (/(jpg|gif|png)$/.test(background))
             cssBackground = 'url(' + background + ')';
@@ -1573,14 +1572,6 @@ var Mouse = require('../core/Mouse');
     *  Properties Documentation
     *
     */
-
-    /**
-     * A back-reference to the `Matter.Render` module.
-     *
-     * @deprecated
-     * @property controller
-     * @type render
-     */
 
     /**
      * A reference to the `Matter.Engine` instance to be used.
