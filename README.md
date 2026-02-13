@@ -1,10 +1,12 @@
+> **Note:** This is a fork of [matter-js](https://github.com/liabru/matter-js) maintained for private use. For the original project, visit [brm.io/matter-js](https://brm.io/matter-js/).
+
 <img alt="Matter.js" src="https://brm.io/matter-js/img/matter-js.svg" width="300">
 
 > *Matter.js* is a JavaScript 2D rigid body physics engine for the web
 
 [brm.io/matter-js](https://brm.io/matter-js/)
 
-[Demos](#demos) ・ [Gallery](#gallery) ・ [Features](#features) ・ [Plugins](#plugins) ・ [Install](#install) ・ [Usage](#usage) ・ [Examples](#examples) ・ [Docs](#documentation) ・ [Wiki](https://github.com/liabru/matter-js/wiki) ・ [References](#references) ・ [License](#license)
+[Demos](#demos) ・ [Gallery](#gallery) ・ [Features](#features) ・ [Plugins](#plugins) ・ [Install](#install) ・ [Usage](#usage) ・ [Examples](#examples) ・ [Docs](#documentation) ・ [Changelog](#changelog) ・ [Wiki](https://github.com/liabru/matter-js/wiki) ・ [References](#references) ・ [License](#license)
 
 ### Demos
 
@@ -171,7 +173,7 @@ to spawn a development server. For information on contributing see [CONTRIBUTING
 
 ### Changelog
 
-To see what's new or changed in the latest version, see the [changelog](https://github.com/liabru/matter-js/blob/master/CHANGELOG.md).
+To see what's new or changed in the latest version, see the [changelog](CHANGELOG.md).
 
 ### References
 

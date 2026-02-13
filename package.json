@@ -78,6 +78,7 @@
     "test-save": "npm run test-node -- --save=true",
     "test:watch": "npm run build-dev && node --expose-gc node_modules/.bin/vitest ./test/Examples.spec.js",
     "changelog": "conventional-changelog -i CHANGELOG.md -s -r",
+    "prepare": "npm run build",
     "release": "npm version --no-git-tag-version",
     "preversion": "git checkout master && npm run lint && npm run test-node -- --save=true",
     "version": "git checkout -b release/$npm_package_version && npm run build"
