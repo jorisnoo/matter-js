@@ -59,8 +59,6 @@
     "build-demo": "vite build --config vite.demo.config.js",
     "lint": "eslint 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
     "format": "prettier --write 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
-    "doc": "yuidoc --config yuidoc.json --project-version $npm_package_version",
-    "doc-watch": "nodemon --delay 3 --watch 'matter-doc-theme' --watch src -e 'js,html,css,handlebars' --exec 'npm run doc'",
     "benchmark": "npm run test-node -- --examples=stress3,stress4 --benchmark=true --updates=300 --repeats=3",
     "test": "npm run test-node",
     "test-node": "npm run build-dev && node --expose-gc node_modules/.bin/vitest run ./test/Examples.spec.js",
