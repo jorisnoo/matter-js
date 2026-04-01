@@ -14,11 +14,10 @@ import * as Examples from '../../examples/index.js';
 import { compare } from './Compare.js';
 import { multi } from './Multi.js';
 import { demo } from './Demo.js';
-import pathseg from 'pathseg';
+import 'pathseg';
 import MatterTools from 'matter-tools';
 
 // browser globals
-window.pathseg = pathseg;
 window.MatterTools = MatterTools;
 window.Matter = Matter;
 
