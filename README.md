@@ -1,4 +1,4 @@
-> **Note:** This is a fork of [matter-js](https://github.com/liabru/matter-js) maintained for private use. For the original project, visit [brm.io/matter-js](https://brm.io/matter-js/). See the [changelog](CHANGELOG.md) for a list of changes.
+> **Note:** This is a fork of [matter-js](https://github.com/liabru/matter-js) maintained for private use. For the original project, visit [brm.io/matter-js](https://brm.io/matter-js/). The physics engine behavior is unchanged — the fork converts to ESM-only, uses ES6 classes, and removes deprecated modules and polyfill helpers. See the [changelog](CHANGELOG.md) for details.
 
 <img alt="Matter.js" src="https://brm.io/matter-js/img/matter-js.svg" width="300">
 
