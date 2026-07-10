@@ -8,14 +8,15 @@
   "description": "a 2D rigid body physics engine for the web",
   "exports": {
     ".": {
-      "import": {
-        "types": "./types/matter-js.d.ts",
-        "default": "./build/matter.js"
-      }
+      "types": "./types/matter-js.d.ts",
+      "module": "./src/module/index.js",
+      "import": "./build/matter.js",
+      "default": "./build/matter.js"
     }
   },
   "module": "build/matter.js",
   "types": "types/matter-js.d.ts",
+  "sideEffects": false,
   "engines": {
     "node": ">=18"
   },
