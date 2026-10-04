@@ -186,3 +186,7 @@ Copyright (c) 2014 Liam Brummitt
 
 This license is also supplied with the release and source code.  
 As stated in the license, absolutely no warranty is provided.
+
+## Maintainer releases
+
+See [RELEASING.md](RELEASING.md) for versioning, changelog entries and the release command.

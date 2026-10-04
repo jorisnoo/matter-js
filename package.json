@@ -35,7 +35,6 @@
   ],
   "devDependencies": {
     "@eslint/js": "^9.0.0",
-    "conventional-changelog-cli": "^2.1.1",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
     "globals": "^16.0.0",
@@ -67,11 +66,7 @@
     "test-all": "npm run test-node && npm run test-browser",
     "test-save": "npm run test-node -- --save=true",
     "test:watch": "npm run build-dev && node --expose-gc node_modules/.bin/vitest ./test/Examples.spec.js",
-    "changelog": "conventional-changelog -i CHANGELOG.md -s -r",
-    "prepare": "npm run build",
-    "release": "npm version --no-git-tag-version",
-    "preversion": "git checkout master && npm run lint && npm run test-node -- --save=true",
-    "version": "git checkout -b release/$npm_package_version && npm run build"
+    "prepare": "npm run build"
   },
   "files": [
     "src",

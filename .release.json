@@ -1,0 +1,14 @@
+{
+  "branch": "main",
+  "sign_tag": true,
+  "version_files": [
+    "package.json",
+    "package-lock.json"
+  ],
+  "checks": [
+    [
+      "npm",
+      "test"
+    ]
+  ]
+}
