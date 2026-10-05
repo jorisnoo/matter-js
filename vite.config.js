@@ -3,7 +3,13 @@ import { readFileSync } from 'fs';
 import { defineConfig } from 'vite';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+// npm runs `prepare` for git dependencies in a temp directory without .git
+let commitHash = 'unknown';
+try {
+    commitHash = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+} catch {
+    // keep the fallback
+}
 const license = readFileSync('LICENSE', 'utf8');
 
 const kind = process.env.KIND || null;
