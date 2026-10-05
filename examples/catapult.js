@@ -2,11 +2,11 @@ const catapult = function() {
     const { Engine, Render, Runner, Composites, Constraint, MouseConstraint, Mouse, Composite, Bodies, Body, Vector } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -21,7 +21,7 @@ const catapult = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -40,7 +40,7 @@ const catapult = function() {
         Bodies.rectangle(250, 555, 20, 50, { isStatic: true, render: { fillStyle: '#060a19' } }),
         Bodies.rectangle(400, 535, 20, 80, { isStatic: true, collisionFilter: { group: group }, render: { fillStyle: '#060a19' } }),
         Bodies.circle(560, 100, 50, { density: 0.005 }),
-        new Constraint({
+        Constraint.create({
             bodyA: catapultBody,
             pointB: Vector.clone(catapultBody.position),
             stiffness: 1,
@@ -49,8 +49,8 @@ const catapult = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

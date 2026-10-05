@@ -52,7 +52,7 @@ const comparisonReport = (capturesDev, capturesBuild, devSize, buildSize, buildV
 
     const report = (breakEvery, format) => [
         [`Output sample comparison estimates of ${similarityEntries.length} examples`,
-         `against previous release ${format('matter-js@' + buildVersion, colors.Yellow)}:`
+         `against upstream release ${format('matter-js@' + buildVersion, colors.Yellow)}:`
         ].join(' '),
 
         `\n\n${format(`Similarity`, colors.White)}  `,
@@ -361,9 +361,10 @@ const importUncached = async (modulePath) => {
     return module;
 };
 
+// options are read from MATTER_TEST_<NAME> env vars, as vitest rejects unknown cli flags
 const getArg = (name, defaultValue=null, parser=(v) => v) => {
-    const value = process.argv.find(arg => arg.startsWith(`--${name}=`));
-    return value ? parser(value.split('=')[1]) : defaultValue;
+    const value = process.env[`MATTER_TEST_${name.toUpperCase()}`];
+    return typeof value !== 'undefined' ? parser(value) : defaultValue;
 };
 
 const toMatchExtrinsics = {

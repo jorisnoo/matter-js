@@ -2,11 +2,11 @@ const compoundStack = function() {
     const { Engine, Render, Runner, Body, Composites, MouseConstraint, Mouse, Composite, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const compoundStack = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -29,7 +29,7 @@ const compoundStack = function() {
         const partA = Bodies.rectangle(x, y, size, size / 5),
             partB = Bodies.rectangle(x, y, size / 5, size, { render: partA.render });
 
-        return new Body({
+        return Body.create({
             parts: [partA, partB]
         });
     });
@@ -44,8 +44,8 @@ const compoundStack = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

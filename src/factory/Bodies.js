@@ -9,11 +9,11 @@
 
 // TODO: true circle bodies
 
-import Vertices from '../geometry/Vertices';
-import Common from '../core/Common';
-import Body from '../body/Body';
-import Bounds from '../geometry/Bounds';
-import Vector from '../geometry/Vector';
+import Vertices from '../geometry/Vertices.js';
+import Common from '../core/Common.js';
+import Body from '../body/Body.js';
+import Bounds from '../geometry/Bounds.js';
+import Vector from '../geometry/Vector.js';
 
 class Bodies {
     /**
@@ -28,7 +28,8 @@ class Bodies {
      * @param {object} [options]
      * @return {body} A new rectangle body
      */
-    static rectangle(x, y, width, height, options = {}) {
+    static rectangle(x, y, width, height, options) {
+        options = options || {};
 
         const rectangle = {
             label: 'Rectangle Body',
@@ -60,7 +61,8 @@ class Bodies {
      * @param {object} [options]
      * @return {body} A new trapezoid body
      */
-    static trapezoid(x, y, width, height, slope, options = {}) {
+    static trapezoid(x, y, width, height, slope, options) {
+        options = options || {};
 
         if (slope >= 1) {
             Common.warn('Bodies.trapezoid: slope parameter must be < 1.');
@@ -108,7 +110,8 @@ class Bodies {
      * @param {number} [maxSides]
      * @return {body} A new circle body
      */
-    static circle(x, y, radius, options = {}, maxSides) {
+    static circle(x, y, radius, options, maxSides) {
+        options = options || {};
 
         const circle = {
             label: 'Circle Body',
@@ -138,7 +141,8 @@ class Bodies {
      * @param {object} [options]
      * @return {body} A new regular polygon body
      */
-    static polygon(x, y, sides, radius, options = {}) {
+    static polygon(x, y, sides, radius, options) {
+        options = options || {};
 
         if (sides < 3)
             return Bodies.circle(x, y, radius, options);
@@ -205,7 +209,8 @@ class Bodies {
      * @param {number} [removeDuplicatePoints=0.01] Threshold when simplifying nearby vertices.
      * @return {body}
      */
-    static fromVertices(x, y, vertexSets, options = {}, flagInternal = false, removeCollinear = 0.01, minimumArea = 10, removeDuplicatePoints = 0.01) {
+    static fromVertices(x, y, vertexSets, options, flagInternal = false, removeCollinear = 0.01, minimumArea = 10, removeDuplicatePoints = 0.01) {
+        options = options || {};
         const decomp = Common.getDecomp();
         let canDecomp,
             body,

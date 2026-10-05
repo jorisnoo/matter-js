@@ -6,13 +6,13 @@
 * @class Render
 */
 
-import Body from '../body/Body';
-import Common from '../core/Common';
-import Composite from '../body/Composite';
-import Bounds from '../geometry/Bounds';
-import Events from '../core/Events';
-import Vector from '../geometry/Vector';
-import Mouse from '../core/Mouse';
+import Body from '../body/Body.js';
+import Common from '../core/Common.js';
+import Composite from '../body/Composite.js';
+import Bounds from '../geometry/Bounds.js';
+import Events from '../core/Events.js';
+import Vector from '../geometry/Vector.js';
+import Mouse from '../core/Mouse.js';
 
 let _requestAnimationFrame,
     _cancelAnimationFrame;

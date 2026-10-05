@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { createRequire } from 'module';
 import path from 'path';
 import url from 'url';
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
@@ -16,10 +17,12 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const examplesUrl = url.pathToFileURL(path.resolve(__dirname, '../examples/index.js')).href;
 const ExamplePromise = import(examplesUrl);
 
-const buildUrl = url.pathToFileURL(path.resolve(__dirname, '../build/matter.js')).href;
-const MatterBuildPromise = import(buildUrl).then(m => m.default || m);
+// upstream matter-js release that this fork must match exactly
+const require = createRequire(import.meta.url);
+const referencePath = require.resolve('matter-js-upstream');
+const MatterBuild = require(referencePath);
 
-const testComparison = getArg('compare', null) === 'true';
+const testComparison = getArg('compare', null) !== 'false';
 const saveComparison = getArg('save', null) === 'true';
 const specificExamples = getArg('examples', null, (val) => val.split(','));
 const repeats = getArg('repeats', 1, parseFloat);
@@ -30,13 +33,11 @@ const excludeExamples = ['svg', 'terrain'];
 const excludeJitter = ['stack', 'circleStack', 'restitution', 'staticFriction', 'friction', 'newtonsCradle', 'catapult'];
 
 let examples;
-let MatterBuild;
 let capturesDev;
 let capturesBuild;
 
 beforeAll(async () => {
     const Example = await ExamplePromise;
-    MatterBuild = await MatterBuildPromise;
     const { versionSatisfies } = MatterBuild.Plugin;
 
     examples = (specificExamples || Object.keys(Example)).filter(key => {
@@ -83,12 +84,12 @@ afterAll(async () => {
     const dev = capturesDev;
     const build = capturesBuild;
 
-    const buildSize = fs.statSync('./build/matter.min.js').size;
+    const buildSize = fs.statSync(referencePath.replace(/matter\.js$/, 'matter.min.js')).size;
     const devSize = fs.statSync('./build/matter.dev.min.js').size;
 
     console.log(
-        'Examples ran against previous release and current build\n\n'
-        + logReport(build, `release`) + '\n'
+        'Examples ran against upstream release and current build\n\n'
+        + logReport(build, `upstream`) + '\n'
         + logReport(dev, `current`) + '\n'
         + comparisonReport(dev, build, devSize, buildSize, MatterBuild.version, saveComparison, benchmark)
     );
@@ -106,11 +107,11 @@ if (testComparison) {
         expect.extend(toMatchExtrinsics);
         expect.extend(toMatchIntrinsics);
 
-        test(`Examples match intrinsic properties with release build`, async () => {
+        test(`Examples match intrinsic properties with upstream release`, async () => {
             expect(capturesDev).toMatchIntrinsics(capturesBuild);
         });
 
-        test(`Examples match extrinsic positions and velocities with release build`, async () => {
+        test(`Examples match extrinsic positions and velocities with upstream release`, async () => {
             expect(capturesDev).toMatchExtrinsics(capturesBuild);
         });
     });

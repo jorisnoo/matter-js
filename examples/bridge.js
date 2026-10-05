@@ -2,11 +2,11 @@ const bridge = function() {
     const { Engine, Render, Runner, Body, Composites, Common, Constraint, MouseConstraint, Mouse, Composite, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const bridge = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -60,14 +60,14 @@ const bridge = function() {
             isStatic: true,
             chamfer: { radius: 20 }
         }),
-        new Constraint({
+        Constraint.create({
             pointA: { x: 140, y: 300 },
             bodyB: bridgeComposite.bodies[0],
             pointB: { x: -25, y: 0 },
             length: 2,
             stiffness: 0.9
         }),
-        new Constraint({
+        Constraint.create({
             pointA: { x: 660, y: 300 },
             bodyB: bridgeComposite.bodies[bridgeComposite.bodies.length - 1],
             pointB: { x: 25, y: 0 },
@@ -77,8 +77,8 @@ const bridge = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.1,

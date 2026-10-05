@@ -2,11 +2,11 @@ const wreckingBall = function() {
     const { Engine, Render, Runner, Composites, MouseConstraint, Mouse, Composite, Constraint, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine();
+    const engine = Engine.create();
     const world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const wreckingBall = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -42,14 +42,14 @@ const wreckingBall = function() {
     const ball = Bodies.circle(100, 400, 50, { density: 0.04, frictionAir: 0.005});
 
     Composite.add(world, ball);
-    Composite.add(world, new Constraint({
+    Composite.add(world, Constraint.create({
         pointA: { x: 300, y: 100 },
         bodyB: ball
     }));
 
     // add mouse control
-    const mouse = new Mouse(render.canvas);
-    const mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
         constraint: {
             stiffness: 0.2,

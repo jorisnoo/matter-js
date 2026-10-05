@@ -2,11 +2,11 @@ const chains = function() {
     const { Engine, Render, Runner, Body, Composite, Composites, Constraint, MouseConstraint, Mouse, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -21,7 +21,7 @@ const chains = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -32,7 +32,7 @@ const chains = function() {
     });
 
     Composites.chain(ropeA, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2, render: { type: 'line' } });
-    Composite.add(ropeA, new Constraint({
+    Composite.add(ropeA, Constraint.create({
         bodyB: ropeA.bodies[0],
         pointB: { x: -25, y: 0 },
         pointA: { x: ropeA.bodies[0].position.x, y: ropeA.bodies[0].position.y },
@@ -46,7 +46,7 @@ const chains = function() {
     });
 
     Composites.chain(ropeB, 0.5, 0, -0.5, 0, { stiffness: 0.8, length: 2, render: { type: 'line' } });
-    Composite.add(ropeB, new Constraint({
+    Composite.add(ropeB, Constraint.create({
         bodyB: ropeB.bodies[0],
         pointB: { x: -20, y: 0 },
         pointA: { x: ropeB.bodies[0].position.x, y: ropeB.bodies[0].position.y },
@@ -60,7 +60,7 @@ const chains = function() {
     });
 
     Composites.chain(ropeC, 0.3, 0, -0.3, 0, { stiffness: 1, length: 0 });
-    Composite.add(ropeC, new Constraint({
+    Composite.add(ropeC, Constraint.create({
         bodyB: ropeC.bodies[0],
         pointB: { x: -20, y: 0 },
         pointA: { x: ropeC.bodies[0].position.x, y: ropeC.bodies[0].position.y },
@@ -75,8 +75,8 @@ const chains = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

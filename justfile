@@ -18,13 +18,13 @@ dev:
 build:
     npm run build
 
-# Fix code style
+# Lint with ESLint
 lint:
-    npm run format
-
-# Check code style without fixing
-lint-check:
     npm run lint
+
+# Rewrite files with Prettier (most of src does not follow it yet)
+format:
+    npm run format
 
 # Run tests
 test:
@@ -35,4 +35,4 @@ test-all:
     npm run test-all
 
 # Run all checks
-check: lint-check test
+check: lint test

@@ -6,7 +6,7 @@
 * @class Events
 */
 
-import Common from './Common';
+import Common from './Common.js';
 
 class Events {
     /**

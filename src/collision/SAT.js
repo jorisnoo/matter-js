@@ -10,8 +10,8 @@
 * @deprecated
 */
 
-import Collision from './Collision';
-import Common from '../core/Common';
+import Collision from './Collision.js';
+import Common from '../core/Common.js';
 
 const deprecated = Common.deprecated;
 

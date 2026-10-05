@@ -1,3 +1,19 @@
+## [1.0.1] - 2026-10-05
+
+### Fixed
+
+- Make source ESM imports fully specified so Node.js and bundlers can resolve the tree-shakeable entry point.
+- Report the package version when consuming source modules directly, allowing plugin version checks to work without the build-time version define.
+- Preserve the default mouse constraint properties when applying custom constraint options.
+- Restore upstream handling of null and zero optional arguments in body creation, engine creation, ray queries, SVG sampling, and vertex chamfering.
+- Sort runner frame timing samples numerically and average the central sorted window to exclude outliers.
+- Complete TypeScript declarations for composite modification/removal methods and convex decomposition configuration, and allow omitted `Composite.clear` options.
+
+### Changed
+
+- Use factory methods in examples so plugin hooks run consistently, and compare the test simulations against upstream matter-js 0.20.0 by default.
+- Read test and benchmark options from `MATTER_TEST_*` environment variables supported by the Vitest runner.
+
 ## 1.0.0 (2026-02-12)
 
 This is a breaking major release that modernizes the entire matter-js codebase. The physics engine behavior is unchanged, but the module system, syntax, and public API surface have been significantly updated.
@@ -27,18 +43,19 @@ import { Engine, Render, Body } from 'matter-js';
 
 All modules have been converted from factory/object-literal patterns to ES6 classes. Instance modules (Body, Engine, Composite, etc.) now use `class` syntax with constructors.
 
-- **`Body.create(options)` → `new Body(options)`**: All instance modules support direct construction. The `static create()` factory methods are kept for backward compatibility.
+- **`new Body(options)` is now supported**: All instance modules support direct construction, and the `static create()` factory methods are unchanged.
 
 ```js
-// Before
+// Both create an equivalent body
 const body = Matter.Body.create({ mass: 5, position: { x: 100, y: 100 } });
-
-// After (either works)
 const body = new Matter.Body({ mass: 5, position: { x: 100, y: 100 } });
-const body = Matter.Body.create({ mass: 5, position: { x: 100, y: 100 } }); // still works
 ```
 
 This applies to: `Body`, `Composite`, `Constraint`, `MouseConstraint`, `Engine`, `Runner`, `Render`, `Mouse`, `Collision`, `Contact`, `Detector`, `Pair`, `Pairs`.
+
+Prefer `create()` when using plugins. Hooks installed with `Matter.before('Body.create', ...)` or `Matter.after('Body.create', ...)` wrap the factory method, so they do not run for objects built with `new`. The library itself always uses `create()` internally, and the examples do too.
+
+- **`Constraint.create(options)` no longer mutates `options`**: The constraint is a new object with the options copied onto it, rather than the options object itself.
 
 #### Removed Modules
 
@@ -105,9 +122,9 @@ Matter.Runner.run(runner, engine);
 
 The following convenience factory methods have been removed from `Composites` and moved to standalone example files:
 
-- **`Composites.newtonsCradle()`** — See `examples/newtonsCradle.cjs`
-- **`Composites.car()`** — See `examples/car.cjs`
-- **`Composites.softBody()`** — See `examples/softBody.cjs`
+- **`Composites.newtonsCradle()`** — See `examples/newtonsCradle.js`
+- **`Composites.car()`** — See `examples/car.js`
+- **`Composites.softBody()`** — See `examples/softBody.js`
 
 The remaining `Composites` methods (`stack`, `chain`, `mesh`, `pyramid`) are unchanged.
 
@@ -147,6 +164,10 @@ const collision = Matter.Collision.collides(bodyA, bodyB);
 - **Tree-shaking support**: Named exports allow bundlers to eliminate unused modules.
 - **Source maps**: Generated for both `build/matter.js` and `build/matter.min.js`.
 - **Vitest test suite**: Tests migrated from Jest to Vitest for faster ESM-native testing.
+
+### Fixes
+
+- **`Runner` frame delta smoothing now rejects outliers**: Upstream sorted the frame delta history as strings and then averaged a window of the unsorted history, so long or short frames were never excluded. The history is now sorted numerically and the central window is taken from the sorted values. Physics results are unaffected when frame times are steady.
 
 ### Migration Checklist
 

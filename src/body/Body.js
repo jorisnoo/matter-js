@@ -7,12 +7,12 @@
 * @class Body
 */
 
-import Vertices from '../geometry/Vertices';
-import Vector from '../geometry/Vector';
-import Sleeping from '../core/Sleeping';
-import Common from '../core/Common';
-import Bounds from '../geometry/Bounds';
-import Axes from '../geometry/Axes';
+import Vertices from '../geometry/Vertices.js';
+import Vector from '../geometry/Vector.js';
+import Sleeping from '../core/Sleeping.js';
+import Common from '../core/Common.js';
+import Bounds from '../geometry/Bounds.js';
+import Axes from '../geometry/Axes.js';
 
 class Body {
     static _timeCorrection = true;
@@ -146,7 +146,8 @@ class Body {
      * @param {body} body
      * @param {} [options]
      */
-    static _initProperties(body, options = {}) {
+    static _initProperties(body, options) {
+        options = options || {};
 
         // init required properties (order is important)
         Body.set(body, {

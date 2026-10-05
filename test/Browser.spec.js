@@ -19,7 +19,7 @@ conditionalDescribe('Browser integration tests', () => {
 
     beforeAll(async () => {
         const puppeteer = await import('puppeteer-core');
-        Example = (await import('../examples/index.cjs')).default;
+        Example = await import('../examples/index.js');
         results = await runExamplesBrowser(puppeteer.default, Example, totalUpdates);
     });
 

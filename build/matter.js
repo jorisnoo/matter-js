@@ -1,5 +1,5 @@
 /**
- * matter-js 1.0.0 by @liabru
+ * matter-js 1.0.1 by @liabru
  * http://brm.io/matter-js/
  * License MIT
  *
@@ -630,7 +630,7 @@ var Matter = class Matter {
 	* @readOnly
 	* @type {String}
 	*/
-	static version = "1.0.0";
+	static version = "1.0.1";
 	/**
 	* A list of plugin dependencies to be installed. These are normally set and installed through `Matter.use`.
 	* Alternatively you may set `Matter.uses` manually and install them by calling `Plugin.use(Matter)`.
@@ -1183,7 +1183,9 @@ var Vertices = class Vertices {
 	* @param {number} qualityMin
 	* @param {number} qualityMax
 	*/
-	static chamfer(vertices, radius, quality = -1, qualityMin = 2, qualityMax = 14) {
+	static chamfer(vertices, radius, quality = -1, qualityMin, qualityMax) {
+		qualityMin = qualityMin || 2;
+		qualityMax = qualityMax || 14;
 		if (typeof radius === "number") radius = [radius];
 		else radius = radius || [8];
 		const newVertices = [];
@@ -1679,7 +1681,8 @@ var Body = class Body {
 	* @param {body} body
 	* @param {} [options]
 	*/
-	static _initProperties(body, options = {}) {
+	static _initProperties(body, options) {
+		options = options || {};
 		Body.set(body, {
 			bounds: body.bounds || Bounds.create(body.vertices),
 			positionPrev: body.positionPrev || Vector.clone(body.position),
@@ -2298,7 +2301,8 @@ var Bodies = class Bodies {
 	* @param {object} [options]
 	* @return {body} A new rectangle body
 	*/
-	static rectangle(x, y, width, height, options = {}) {
+	static rectangle(x, y, width, height, options) {
+		options = options || {};
 		const rectangle = {
 			label: "Rectangle Body",
 			position: {
@@ -2328,7 +2332,8 @@ var Bodies = class Bodies {
 	* @param {object} [options]
 	* @return {body} A new trapezoid body
 	*/
-	static trapezoid(x, y, width, height, slope, options = {}) {
+	static trapezoid(x, y, width, height, slope, options) {
+		options = options || {};
 		if (slope >= 1) Common.warn("Bodies.trapezoid: slope parameter must be < 1.");
 		slope *= .5;
 		const roof = (1 - slope * 2) * width;
@@ -2363,7 +2368,8 @@ var Bodies = class Bodies {
 	* @param {number} [maxSides]
 	* @return {body} A new circle body
 	*/
-	static circle(x, y, radius, options = {}, maxSides) {
+	static circle(x, y, radius, options, maxSides) {
+		options = options || {};
 		const circle = {
 			label: "Circle Body",
 			circleRadius: radius
@@ -2385,7 +2391,8 @@ var Bodies = class Bodies {
 	* @param {object} [options]
 	* @return {body} A new regular polygon body
 	*/
-	static polygon(x, y, sides, radius, options = {}) {
+	static polygon(x, y, sides, radius, options) {
+		options = options || {};
 		if (sides < 3) return Bodies.circle(x, y, radius, options);
 		const theta = 2 * Math.PI / sides, offset = theta * .5;
 		let path = "";
@@ -2442,7 +2449,8 @@ var Bodies = class Bodies {
 	* @param {number} [removeDuplicatePoints=0.01] Threshold when simplifying nearby vertices.
 	* @return {body}
 	*/
-	static fromVertices(x, y, vertexSets, options = {}, flagInternal = false, removeCollinear = .01, minimumArea = 10, removeDuplicatePoints = .01) {
+	static fromVertices(x, y, vertexSets, options, flagInternal = false, removeCollinear = .01, minimumArea = 10, removeDuplicatePoints = .01) {
+		options = options || {};
 		const decomp = Common.getDecomp();
 		let canDecomp, body, parts, isConvex, isConcave, vertices, i, j, k, v, z;
 		canDecomp = Boolean(decomp && decomp.quickDecomp);
@@ -4093,7 +4101,8 @@ var Engine = class Engine {
 	* See the properties section below for detailed information on what you can pass via the `options` object.
 	* @param {object} [options]
 	*/
-	constructor(options = {}) {
+	constructor(options) {
+		options = options || {};
 		Object.assign(this, Common.extend({
 			positionIterations: 6,
 			velocityIterations: 4,
@@ -4128,7 +4137,7 @@ var Engine = class Engine {
 	* @param {object} [options]
 	* @return {engine} engine
 	*/
-	static create(options = {}) {
+	static create(options) {
 		return new Engine(options);
 	}
 	/**
@@ -4522,6 +4531,7 @@ var MouseConstraint = class MouseConstraint {
 			}
 		};
 		Object.assign(this, Common.extend(defaults, options));
+		if (options && options.constraint && options.constraint !== constraint) this.constraint = Common.extend(constraint, options.constraint);
 		Events.on(engine, "beforeUpdate", () => {
 			const allBodies = Composite.allBodies(engine.world);
 			MouseConstraint.update(this, allBodies);
@@ -4641,7 +4651,8 @@ var Query = class Query {
 	* @param {number} [rayWidth]
 	* @return {collision[]} Collisions
 	*/
-	static ray(bodies, startPoint, endPoint, rayWidth = 1e-100) {
+	static ray(bodies, startPoint, endPoint, rayWidth) {
+		rayWidth = rayWidth || 1e-100;
 		const rayAngle = Vector.angle(startPoint, endPoint), rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint)), rayX = (endPoint.x + startPoint.x) * .5, rayY = (endPoint.y + startPoint.y) * .5, ray = Bodies.rectangle(rayX, rayY, rayLength, rayWidth, { angle: rayAngle }), collisions = Query.collides(ray, bodies);
 		for (let i = 0; i < collisions.length; i += 1) {
 			const collision = collisions[i];
@@ -5752,8 +5763,8 @@ var Runner = class Runner {
 		if (runner.frameDeltaSmoothing) {
 			runner.frameDeltaHistory.push(frameDelta);
 			runner.frameDeltaHistory = runner.frameDeltaHistory.slice(-runner.frameDeltaHistorySize);
-			const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
-			const deltaHistoryWindow = runner.frameDeltaHistory.slice(deltaHistorySorted.length * Runner._smoothingLowerBound, deltaHistorySorted.length * Runner._smoothingUpperBound);
+			const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort((a, b) => a - b);
+			const deltaHistoryWindow = deltaHistorySorted.slice(deltaHistorySorted.length * Runner._smoothingLowerBound, deltaHistorySorted.length * Runner._smoothingUpperBound);
 			frameDelta = Runner._mean(deltaHistoryWindow) || frameDelta;
 		}
 		if (runner.frameDeltaSnapping) frameDelta = 1e3 / Math.round(1e3 / frameDelta);
@@ -5888,7 +5899,8 @@ var Svg = class Svg {
 	* @param {Number} [sampleLength=15]
 	* @return {Vector[]} points
 	*/
-	static pathToVertices(path, sampleLength = 15) {
+	static pathToVertices(path, sampleLength) {
+		sampleLength = sampleLength || 15;
 		if (typeof window !== "undefined" && !("SVGPathSeg" in window)) Common.warn("Svg.pathToVertices: SVGPathSeg not defined, a polyfill is required.");
 		let i, il, total, point, segment, segments, segmentsQueue, lastSegment, lastPoint, segmentIndex, lx, ly, length = 0, x = 0, y = 0;
 		const points = [];

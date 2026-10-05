@@ -7,10 +7,10 @@
 * @class Composites
 */
 
-import Composite from '../body/Composite';
-import Constraint from '../constraint/Constraint';
-import Common from '../core/Common';
-import Body from '../body/Body';
+import Composite from '../body/Composite.js';
+import Constraint from '../constraint/Constraint.js';
+import Common from '../core/Common.js';
+import Body from '../body/Body.js';
 
 class Composites {
     /**

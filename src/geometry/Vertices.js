@@ -8,8 +8,8 @@
 * @class Vertices
 */
 
-import Vector from './Vector';
-import Common from '../core/Common';
+import Vector from './Vector.js';
+import Common from '../core/Common.js';
 
 class Vertices {
     /**
@@ -275,7 +275,10 @@ class Vertices {
      * @param {number} qualityMin
      * @param {number} qualityMax
      */
-    static chamfer(vertices, radius, quality = -1, qualityMin = 2, qualityMax = 14) {
+    static chamfer(vertices, radius, quality = -1, qualityMin, qualityMax) {
+        qualityMin = qualityMin || 2;
+        qualityMax = qualityMax || 14;
+
         if (typeof radius === 'number') {
             radius = [radius];
         } else {

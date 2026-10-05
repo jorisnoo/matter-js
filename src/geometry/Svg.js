@@ -10,7 +10,7 @@
 * @class Svg
 */
 
-import Common from '../core/Common';
+import Common from '../core/Common.js';
 
 class Svg {
     /**
@@ -24,7 +24,9 @@ class Svg {
      * @param {Number} [sampleLength=15]
      * @return {Vector[]} points
      */
-    static pathToVertices(path, sampleLength = 15) {
+    static pathToVertices(path, sampleLength) {
+        sampleLength = sampleLength || 15;
+
         if (typeof window !== 'undefined' && !('SVGPathSeg' in window)) {
             Common.warn('Svg.pathToVertices: SVGPathSeg not defined, a polyfill is required.');
         }

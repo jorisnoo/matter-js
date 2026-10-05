@@ -1,7 +1,8 @@
-import { importUncached, serialize, smoothExp } from './TestTools.js';
+import { importUncached, requireUncached, serialize, smoothExp } from './TestTools.js';
 
 const consoleOriginal = global.console;
 const DateOriginal = global.Date;
+const performanceDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'performance');
 
 let Examples;
 const getExamples = async () => {
@@ -121,8 +122,10 @@ const runExample = async (options) => {
 };
 
 const prepareMatter = async (options) => {
-    const buildPath = options.useDev ? '../build/matter.dev.js' : '../build/matter.js';
-    const MatterExports = await importUncached(buildPath);
+    // the reference is the upstream matter-js release this fork must stay behaviourally identical to
+    const MatterExports = options.useDev
+        ? await importUncached('../build/matter.dev.js')
+        : requireUncached('matter-js-upstream');
     const Matter = MatterExports.default || MatterExports;
 
     if (Matter.Common._nextId !== 0) {
@@ -219,6 +222,13 @@ const prepareEnvironment = async (options) => {
 
     global.window.performance.now = () => global.timeNow;
 
+    // the ESM build reads the global performance clock rather than window.performance
+    Object.defineProperty(globalThis, 'performance', {
+        value: global.window.performance,
+        configurable: true,
+        writable: true
+    });
+
     global.Date = function() {
         this.toString = () => global.timeNow.toString();
         this.valueOf = () => global.timeNow;
@@ -239,6 +249,7 @@ const prepareEnvironment = async (options) => {
 const resetEnvironment = () => {
     global.console = consoleOriginal;
     global.Date = DateOriginal;
+    Object.defineProperty(globalThis, 'performance', performanceDescriptor);
     global.window = undefined;
     global.document = undefined;
     global.Matter = undefined;

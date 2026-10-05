@@ -8,8 +8,8 @@
 * @class Collision
 */
 
-import Vertices from '../geometry/Vertices';
-import Pair from './Pair';
+import Vertices from '../geometry/Vertices.js';
+import Pair from './Pair.js';
 
 const _supports = [];
 

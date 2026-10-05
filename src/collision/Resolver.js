@@ -4,9 +4,9 @@
 * @class Resolver
 */
 
-import Vertices from '../geometry/Vertices';
-import Common from '../core/Common';
-import Bounds from '../geometry/Bounds';
+import Vertices from '../geometry/Vertices.js';
+import Common from '../core/Common.js';
+import Bounds from '../geometry/Bounds.js';
 
 class Resolver {
     static _restingThresh = 2;

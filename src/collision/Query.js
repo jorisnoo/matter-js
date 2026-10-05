@@ -6,11 +6,11 @@
 * @class Query
 */
 
-import Vector from '../geometry/Vector';
-import Collision from './Collision';
-import Bounds from '../geometry/Bounds';
-import Bodies from '../factory/Bodies';
-import Vertices from '../geometry/Vertices';
+import Vector from '../geometry/Vector.js';
+import Collision from './Collision.js';
+import Bounds from '../geometry/Bounds.js';
+import Bodies from '../factory/Bodies.js';
+import Vertices from '../geometry/Vertices.js';
 
 class Query {
     /**
@@ -60,7 +60,8 @@ class Query {
      * @param {number} [rayWidth]
      * @return {collision[]} Collisions
      */
-    static ray(bodies, startPoint, endPoint, rayWidth = 1e-100) {
+    static ray(bodies, startPoint, endPoint, rayWidth) {
+        rayWidth = rayWidth || 1e-100;
 
         const rayAngle = Vector.angle(startPoint, endPoint),
             rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint)),

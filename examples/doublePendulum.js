@@ -2,11 +2,11 @@ const doublePendulum = function() {
     const { Engine, Events, Render, Runner, Body, Composite, Composites, Constraint, MouseConstraint, Mouse, Bodies, Vector } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const doublePendulum = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -50,7 +50,7 @@ const doublePendulum = function() {
         }
     });
 
-    Composite.add(pendulum, new Constraint({
+    Composite.add(pendulum, Constraint.create({
         bodyB: pendulum.bodies[0],
         pointB: { x: -length * 0.42, y: 0 },
         pointA: { x: pendulum.bodies[0].position.x - length * 0.42, y: pendulum.bodies[0].position.y },
@@ -99,8 +99,8 @@ const doublePendulum = function() {
     });
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

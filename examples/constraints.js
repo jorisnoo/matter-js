@@ -2,11 +2,11 @@ const constraints = function() {
     const { Engine, Render, Runner, Composites, Common, Constraint, MouseConstraint, Mouse, Composite, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,13 +19,13 @@ const constraints = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add stiff global constraint
     let body = Bodies.polygon(150, 200, 5, 30);
 
-    let constraint = new Constraint({
+    let constraint = Constraint.create({
         pointA: { x: 150, y: 100 },
         bodyB: body,
         pointB: { x: -10, y: -10 }
@@ -36,7 +36,7 @@ const constraints = function() {
     // add soft global constraint
     body = Bodies.polygon(280, 100, 3, 30);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         pointA: { x: 280, y: 120 },
         bodyB: body,
         pointB: { x: -10, y: -7 },
@@ -48,7 +48,7 @@ const constraints = function() {
     // add damped soft global constraint
     body = Bodies.polygon(400, 100, 4, 30);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         pointA: { x: 400, y: 120 },
         bodyB: body,
         pointB: { x: -10, y: -10 },
@@ -62,7 +62,7 @@ const constraints = function() {
     body = Bodies.rectangle(600, 200, 200, 20);
     let ball = Bodies.circle(550, 150, 20);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         pointA: { x: 600, y: 200 },
         bodyB: body,
         length: 0
@@ -74,7 +74,7 @@ const constraints = function() {
     body = Bodies.rectangle(500, 400, 100, 20, { collisionFilter: { group: -1 } });
     ball = Bodies.circle(600, 400, 20, { collisionFilter: { group: -1 } });
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         bodyA: body,
         bodyB: ball
     });
@@ -85,7 +85,7 @@ const constraints = function() {
     let bodyA = Bodies.polygon(100, 400, 6, 20);
     let bodyB = Bodies.polygon(200, 400, 1, 50);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         bodyA: bodyA,
         pointA: { x: -10, y: -10 },
         bodyB: bodyB,
@@ -98,7 +98,7 @@ const constraints = function() {
     bodyA = Bodies.polygon(300, 400, 4, 20);
     bodyB = Bodies.polygon(400, 400, 3, 30);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         bodyA: bodyA,
         pointA: { x: -10, y: -10 },
         bodyB: bodyB,
@@ -112,7 +112,7 @@ const constraints = function() {
     bodyA = Bodies.polygon(500, 400, 6, 30);
     bodyB = Bodies.polygon(600, 400, 7, 60);
 
-    constraint = new Constraint({
+    constraint = Constraint.create({
         bodyA: bodyA,
         pointA: { x: -10, y: -10 },
         bodyB: bodyB,
@@ -132,8 +132,8 @@ const constraints = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 // allow bodies on mouse to rotate

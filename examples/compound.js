@@ -2,11 +2,11 @@ const compound = function() {
     const { Engine, Render, Runner, Body, Constraint, Composite, MouseConstraint, Mouse, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -20,7 +20,7 @@ const compound = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -30,7 +30,7 @@ const compound = function() {
     const partA = Bodies.rectangle(x, y, size, size / 5),
         partB = Bodies.rectangle(x, y, size / 5, size, { render: partA.render });
 
-    const compoundBodyA = new Body({
+    const compoundBodyA = Body.create({
         parts: [partA, partB]
     });
 
@@ -43,11 +43,11 @@ const compound = function() {
         partE = Bodies.circle(x + size, y + size, 30),
         partF = Bodies.circle(x, y + size, 30);
 
-    const compoundBodyB = new Body({
+    const compoundBodyB = Body.create({
         parts: [partC, partD, partE, partF]
     });
 
-    const constraint = new Constraint({
+    const constraint = Constraint.create({
         pointA: { x: 400, y: 100 },
         bodyB: compoundBodyB,
         pointB: { x: 0, y: 0 }
@@ -61,8 +61,8 @@ const compound = function() {
     ]);
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

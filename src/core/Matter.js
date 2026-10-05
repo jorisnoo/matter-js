@@ -4,8 +4,8 @@
 * @class Matter
 */
 
-import Plugin from './Plugin';
-import Common from './Common';
+import Plugin from './Plugin.js';
+import Common from './Common.js';
 
 class Matter {
     /**
@@ -22,7 +22,9 @@ class Matter {
      * @readOnly
      * @type {String}
      */
-    static version = typeof __MATTER_VERSION__ !== 'undefined' ? __MATTER_VERSION__ : '*';
+    // builds inject __MATTER_VERSION__; the fallback covers bundlers consuming src directly
+    // and must match package.json (checked by test/Package.spec.js)
+    static version = typeof __MATTER_VERSION__ !== 'undefined' ? __MATTER_VERSION__ : '1.0.1';
 
     /**
      * A list of plugin dependencies to be installed. These are normally set and installed through `Matter.use`.

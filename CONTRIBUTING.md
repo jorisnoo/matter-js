@@ -30,7 +30,9 @@ All contributions should pass when running the commands
 - `npm run test`
 - `npm run test-browser`
 
-The output of `npm run test` also includes a [comparison report](https://github.com/liabru/matter-js/pull/794), which highlights changes in results, performance and accuracy against the last release build.
+The output of `npm run test` also includes a [comparison report](https://github.com/liabru/matter-js/pull/794), which highlights changes in results, performance and accuracy against the upstream matter-js release (the `matter-js-upstream` dev dependency). The test fails if any example's physics differs from upstream.
+
+Test options are set with environment variables, e.g. `MATTER_TEST_EXAMPLES=stack,car npm test` to run specific examples, or `MATTER_TEST_COMPARE=false npm test` to skip the upstream comparison.
 
 ## Commands
 
@@ -47,6 +49,4 @@ runs the linter
 - **npm run test**
 runs the tests and compares results
 - **npm run test-browser**  
-runs the browser tests
-- **npm run doc**  
-builds the documentation
+runs the browser tests (requires Google Chrome and the dev server from `npm start`)

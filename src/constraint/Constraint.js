@@ -8,12 +8,12 @@
 * @class Constraint
 */
 
-import Vertices from '../geometry/Vertices';
-import Vector from '../geometry/Vector';
-import Sleeping from '../core/Sleeping';
-import Bounds from '../geometry/Bounds';
-import Axes from '../geometry/Axes';
-import Common from '../core/Common';
+import Vertices from '../geometry/Vertices.js';
+import Vector from '../geometry/Vector.js';
+import Sleeping from '../core/Sleeping.js';
+import Bounds from '../geometry/Bounds.js';
+import Axes from '../geometry/Axes.js';
+import Common from '../core/Common.js';
 
 class Constraint {
 

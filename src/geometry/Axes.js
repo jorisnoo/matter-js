@@ -4,7 +4,7 @@
 * @class Axes
 */
 
-import Vector from './Vector';
+import Vector from './Vector.js';
 
 class Axes {
     /**

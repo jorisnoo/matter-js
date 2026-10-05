@@ -10,9 +10,9 @@
 * @class Runner
 */
 
-import Events from './Events';
-import Engine from './Engine';
-import Common from './Common';
+import Events from './Events.js';
+import Engine from './Engine.js';
+import Common from './Common.js';
 
 class Runner {
 
@@ -114,10 +114,10 @@ class Runner {
             runner.frameDeltaHistory = runner.frameDeltaHistory.slice(-runner.frameDeltaHistorySize);
 
             // sort frame delta history
-            const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort();
+            const deltaHistorySorted = runner.frameDeltaHistory.slice(0).sort((a, b) => a - b);
 
             // sample a central window to limit outliers
-            const deltaHistoryWindow = runner.frameDeltaHistory.slice(
+            const deltaHistoryWindow = deltaHistorySorted.slice(
                 deltaHistorySorted.length * Runner._smoothingLowerBound,
                 deltaHistorySorted.length * Runner._smoothingUpperBound
             );

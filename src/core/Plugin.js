@@ -4,7 +4,7 @@
 * @class Plugin
 */
 
-import Common from './Common';
+import Common from './Common.js';
 
 class Plugin {
     static _registry = {};

@@ -35,7 +35,7 @@ Verify the workflow and published release/assets before reporting success. If a 
 
 ## Project details
 
-Update `package.json` and both root version fields in `package-lock.json` to the exact release version before committing. Do not use `npm version` to create another tag or invoke legacy release hooks.
+Update `package.json`, both root version fields in `package-lock.json`, and the `Matter.version` fallback in `src/core/Matter.js` to the exact release version before committing (`npm test` fails if the fallback differs from `package.json`). Do not use `npm version` to create another tag or invoke legacy release hooks.
 
 Run `npm run build` and commit the tracked build output before releasing. Tests may rebuild assets; if checks change tracked files, review and commit the outputs, then repeat the dry-run.
 

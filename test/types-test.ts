@@ -130,8 +130,11 @@ const allConstraints: Constraint[] = Composite.allConstraints(engine.world);
 const allComposites: Composite[] = Composite.allComposites(engine.world);
 const found = Composite.get(composite, 1, 'body');
 
+Composite.clear(composite);
 Composite.clear(composite, true);
 Composite.clear(composite, false, true);
+Composite.setModified(composite, true, true, false);
+Composite.removeBodyAt(composite, 0);
 Composite.translate(composite, { x: 10, y: 0 });
 Composite.rotate(composite, Math.PI / 4, { x: 0, y: 0 });
 Composite.scale(composite, 2, 2, { x: 0, y: 0 });
@@ -295,6 +298,8 @@ Common.log('test');
 Common.warn('test');
 Common.info('test');
 Common.warnOnce('test');
+Common.setDecomp({});
+const decomp: unknown = Common.getDecomp();
 
 // ---- Plugin ----
 Plugin.register({ name: 'test', version: '1.0.0', install: () => {} });

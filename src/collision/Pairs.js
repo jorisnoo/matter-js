@@ -4,8 +4,8 @@
 * @class Pairs
 */
 
-import Pair from './Pair';
-import Common from '../core/Common';
+import Pair from './Pair.js';
+import Common from '../core/Common.js';
 
 class Pairs {
     /**

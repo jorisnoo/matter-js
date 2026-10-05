@@ -400,15 +400,19 @@ export class Composite {
     constructor(options?: CompositeOptions);
 
     static create(options?: CompositeOptions): Composite;
+    static setModified(composite: Composite, isModified: boolean, updateParents?: boolean, updateChildren?: boolean): void;
     static add(composite: Composite, object: Body | Constraint | Composite | MouseConstraint | (Body | Constraint | Composite | MouseConstraint)[]): Composite;
     static remove(composite: Composite, object: Body | Constraint | Composite | MouseConstraint | (Body | Constraint | Composite | MouseConstraint)[], deep?: boolean): Composite;
     static addBody(composite: Composite, body: Body): Composite;
     static removeBody(composite: Composite, body: Body, deep?: boolean): Composite;
+    static removeBodyAt(composite: Composite, position: number): Composite;
     static addConstraint(composite: Composite, constraint: Constraint): Composite;
     static removeConstraint(composite: Composite, constraint: Constraint, deep?: boolean): Composite;
+    static removeConstraintAt(composite: Composite, position: number): Composite;
     static addComposite(compositeA: Composite, compositeB: Composite): Composite;
     static removeComposite(compositeA: Composite, compositeB: Composite, deep?: boolean): Composite;
-    static clear(composite: Composite, keepStatic: boolean, deep?: boolean): Composite;
+    static removeCompositeAt(composite: Composite, position: number): Composite;
+    static clear(composite: Composite, keepStatic?: boolean, deep?: boolean): Composite;
     static allBodies(composite: Composite): Body[];
     static allConstraints(composite: Composite): Constraint[];
     static allComposites(composite: Composite): Composite[];
@@ -840,6 +844,8 @@ export class Common {
     static chain(funcs: Function, ...args: Function[]): Function;
     static chainPathBefore(base: unknown, path: string, func: Function): Function;
     static chainPathAfter(base: unknown, path: string, func: Function): Function;
+    static setDecomp(decomp: unknown): void;
+    static getDecomp(): unknown;
 }
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "matter-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "license": "MIT",
   "homepage": "http://brm.io/matter-js/",
@@ -39,6 +39,7 @@
     "eslint-config-prettier": "^10.0.0",
     "globals": "^16.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
+    "matter-js-upstream": "npm:matter-js@0.20.0",
     "matter-tools": "^0.14.0",
     "matter-wrap": "^0.2.0",
     "pathseg": "^1.2.0",
@@ -59,14 +60,15 @@
     "build-demo": "vite build --config vite.demo.config.js",
     "lint": "eslint 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
     "format": "prettier --write 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
-    "benchmark": "npm run test-node -- --examples=stress3,stress4 --benchmark=true --updates=300 --repeats=3",
+    "benchmark": "MATTER_TEST_EXAMPLES=stress3,stress4 MATTER_TEST_BENCHMARK=true MATTER_TEST_UPDATES=300 MATTER_TEST_REPEATS=3 npm run test-node",
     "test": "npm run test-node",
-    "test-node": "npm run build-dev && node --expose-gc node_modules/.bin/vitest run ./test/Examples.spec.js",
+    "test-node": "npm run build-dev && node --expose-gc node_modules/.bin/vitest run ./test/Package.spec.js ./test/Examples.spec.js",
     "test-browser": "node --expose-gc node_modules/.bin/vitest run ./test/Browser.spec.js",
     "test-all": "npm run test-node && npm run test-browser",
-    "test-save": "npm run test-node -- --save=true",
-    "test:watch": "npm run build-dev && node --expose-gc node_modules/.bin/vitest ./test/Examples.spec.js",
-    "prepare": "npm run build"
+    "test-save": "MATTER_TEST_SAVE=true npm run test-node",
+    "test:watch": "npm run build-dev && node --expose-gc node_modules/.bin/vitest ./test/Package.spec.js ./test/Examples.spec.js",
+    "prepare": "npm run build",
+    "test-types": "tsc --noEmit --strict --target es2020 --module esnext --moduleResolution bundler test/types-test.ts"
   },
   "files": [
     "src",

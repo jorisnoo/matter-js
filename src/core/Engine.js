@@ -8,15 +8,15 @@
 * @class Engine
 */
 
-import Sleeping from './Sleeping';
-import Resolver from '../collision/Resolver';
-import Detector from '../collision/Detector';
-import Pairs from '../collision/Pairs';
-import Events from './Events';
-import Composite from '../body/Composite';
-import Constraint from '../constraint/Constraint';
-import Common from './Common';
-import Body from '../body/Body';
+import Sleeping from './Sleeping.js';
+import Resolver from '../collision/Resolver.js';
+import Detector from '../collision/Detector.js';
+import Pairs from '../collision/Pairs.js';
+import Events from './Events.js';
+import Composite from '../body/Composite.js';
+import Constraint from '../constraint/Constraint.js';
+import Common from './Common.js';
+import Body from '../body/Body.js';
 
 class Engine {
 
@@ -28,7 +28,9 @@ class Engine {
      * See the properties section below for detailed information on what you can pass via the `options` object.
      * @param {object} [options]
      */
-    constructor(options = {}) {
+    constructor(options) {
+        options = options || {};
+
         const defaults = {
             positionIterations: 6,
             velocityIterations: 4,
@@ -68,7 +70,7 @@ class Engine {
      * @param {object} [options]
      * @return {engine} engine
      */
-    static create(options = {}) {
+    static create(options) {
         return new Engine(options);
     }
 

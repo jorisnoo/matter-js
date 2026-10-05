@@ -4,8 +4,8 @@
 * @class Detector
 */
 
-import Common from '../core/Common';
-import Collision from './Collision';
+import Common from '../core/Common.js';
+import Collision from './Collision.js';
 
 class Detector {
     /**

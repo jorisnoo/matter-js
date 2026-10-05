@@ -4,9 +4,9 @@
 * @class Sleeping
 */
 
-import Body from '../body/Body';
-import Events from './Events';
-import Common from './Common';
+import Body from '../body/Body.js';
+import Events from './Events.js';
+import Common from './Common.js';
 
 class Sleeping {
     static _motionWakeThreshold = 0.18;

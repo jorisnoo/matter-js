@@ -11,10 +11,10 @@
 * @class Composite
 */
 
-import Events from '../core/Events';
-import Common from '../core/Common';
-import Bounds from '../geometry/Bounds';
-import Body from './Body';
+import Events from '../core/Events.js';
+import Common from '../core/Common.js';
+import Bounds from '../geometry/Bounds.js';
+import Body from './Body.js';
 
 class Composite {
 

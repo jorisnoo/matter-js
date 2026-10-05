@@ -2,11 +2,11 @@ const newtonsCradle = function() {
     const { Engine, Render, Runner, Body, Composites, MouseConstraint, Mouse, Composite } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const newtonsCradle = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // see newtonsCradle function defined later in this file
@@ -32,8 +32,8 @@ const newtonsCradle = function() {
     Body.translate(cradle.bodies[0], { x: -140, y: -100 });
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,
@@ -85,13 +85,13 @@ newtonsCradle.newtonsCradle = function(xx, yy, number, size, length) {
         Constraint = Matter.Constraint,
         Bodies = Matter.Bodies;
 
-    const newtonsCradle = new Composite({ label: 'Newtons Cradle' });
+    const newtonsCradle = Composite.create({ label: 'Newtons Cradle' });
 
     for (let i = 0; i < number; i++) {
         const separation = 1.9,
             circle = Bodies.circle(xx + i * (size * separation), yy + length, size,
                 { inertia: Infinity, restitution: 1, friction: 0, frictionAir: 0, slop: size * 0.02 }),
-            constraint = new Constraint({ pointA: { x: xx + i * (size * separation), y: yy }, bodyB: circle });
+            constraint = Constraint.create({ pointA: { x: xx + i * (size * separation), y: yy }, bodyB: circle });
 
         Composite.addBody(newtonsCradle, circle);
         Composite.addConstraint(newtonsCradle, constraint);

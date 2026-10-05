@@ -4,7 +4,7 @@
 * @class Mouse
 */
 
-import Common from './Common';
+import Common from './Common.js';
 
 class Mouse {
 

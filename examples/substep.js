@@ -2,11 +2,11 @@ const substep = function() {
     const { Engine, Render, Runner, Events, Composite, MouseConstraint, Mouse, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine();
+    const engine = Engine.create();
     const world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -22,7 +22,7 @@ const substep = function() {
     Render.run(render);
 
     // create runner with higher precision timestep (requires >= v0.20.0 beta)
-    const runner = new Runner({
+    const runner = Runner.create({
         // 600Hz delta = 1.666ms = 10upf @ 60fps (i.e. 10x default precision)
         delta: 1000 / (60 * 10),
         // 50fps minimum performance target (i.e. budget allows up to ~20ms execution per frame)
@@ -70,8 +70,8 @@ const substep = function() {
     });
 
     // add mouse control
-    const mouse = new Mouse(render.canvas);
-    const mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
         constraint: {
             stiffness: 0.2,

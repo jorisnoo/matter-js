@@ -2,11 +2,11 @@ const slingshot = function() {
     const { Engine, Render, Runner, Composites, Events, Constraint, MouseConstraint, Mouse, Body, Composite, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const slingshot = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // add bodies
@@ -27,7 +27,7 @@ const slingshot = function() {
         rockOptions = { density: 0.004 };
     let rock = Bodies.polygon(170, 450, 8, 20, rockOptions);
     const anchor = { x: 170, y: 450 },
-        elastic = new Constraint({
+        elastic = Constraint.create({
             pointA: anchor,
             bodyB: rock,
             length: 0.01,
@@ -62,8 +62,8 @@ const slingshot = function() {
     });
 
     // add mouse control
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.2,

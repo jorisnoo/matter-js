@@ -7,15 +7,15 @@
 * @class MouseConstraint
 */
 
-import Vertices from '../geometry/Vertices';
-import Sleeping from '../core/Sleeping';
-import Mouse from '../core/Mouse';
-import Events from '../core/Events';
-import Detector from '../collision/Detector';
-import Constraint from './Constraint';
-import Composite from '../body/Composite';
-import Common from '../core/Common';
-import Bounds from '../geometry/Bounds';
+import Vertices from '../geometry/Vertices.js';
+import Sleeping from '../core/Sleeping.js';
+import Mouse from '../core/Mouse.js';
+import Events from '../core/Events.js';
+import Detector from '../collision/Detector.js';
+import Constraint from './Constraint.js';
+import Composite from '../body/Composite.js';
+import Common from '../core/Common.js';
+import Bounds from '../geometry/Bounds.js';
 
 class MouseConstraint {
     /**
@@ -68,6 +68,12 @@ class MouseConstraint {
         };
 
         Object.assign(this, Common.extend(defaults, options));
+
+        // Common.extend only deep merges plain objects, so options.constraint would replace
+        // the Constraint instance rather than being merged into it
+        if (options && options.constraint && options.constraint !== constraint) {
+            this.constraint = Common.extend(constraint, options.constraint);
+        }
 
         Events.on(engine, 'beforeUpdate', () => {
             const allBodies = Composite.allBodies(engine.world);

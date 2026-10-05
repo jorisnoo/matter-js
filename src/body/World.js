@@ -10,7 +10,7 @@
 * @class World
 */
 
-import Composite from './Composite';
+import Composite from './Composite.js';
 
 class World {
     /** @deprecated Use Composite.create instead. */

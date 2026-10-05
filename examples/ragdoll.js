@@ -2,11 +2,11 @@ const ragdoll = function() {
     const { Engine, Events, Render, Runner, Body, Common, Composite, Composites, MouseConstraint, Mouse, Bodies } = Matter;
 
     // create engine
-    const engine = new Engine(),
+    const engine = Engine.create(),
         world = engine.world;
 
     // create renderer
-    const render = new Render({
+    const render = Render.create({
         element: document.body,
         engine: engine,
         options: {
@@ -19,7 +19,7 @@ const ragdoll = function() {
     Render.run(render);
 
     // create runner
-    const runner = new Runner();
+    const runner = Runner.create();
     Runner.run(runner, engine);
 
     // create stairs
@@ -57,7 +57,7 @@ const ragdoll = function() {
         }
     });
 
-    const ragdolls = new Composite();
+    const ragdolls = Composite.create();
 
     for (let i = 0; i < 1; i += 1) {
         const ragdollBody = ragdoll.ragdoll(200, -1000 * i, 1.3);
@@ -144,8 +144,8 @@ const ragdoll = function() {
     });
 
     // add mouse control and make the mouse revolute
-    const mouse = new Mouse(render.canvas),
-        mouseConstraint = new MouseConstraint(engine, {
+    const mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
                 stiffness: 0.6,
@@ -303,7 +303,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
     const rightUpperLeg = Bodies.rectangle(x + 20 * scale, y + 57 * scale, 20 * scale, 40 * scale, rightLegOptions);
     const rightLowerLeg = Bodies.rectangle(x + 20 * scale, y + 97 * scale, 20 * scale, 60 * scale, rightLowerLegOptions);
 
-    const chestToRightUpperArm = new Constraint({
+    const chestToRightUpperArm = Constraint.create({
         bodyA: chest,
         pointA: {
             x: 24 * scale,
@@ -320,7 +320,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const chestToLeftUpperArm = new Constraint({
+    const chestToLeftUpperArm = Constraint.create({
         bodyA: chest,
         pointA: {
             x: -24 * scale,
@@ -337,7 +337,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const chestToLeftUpperLeg = new Constraint({
+    const chestToLeftUpperLeg = Constraint.create({
         bodyA: chest,
         pointA: {
             x: -10 * scale,
@@ -354,7 +354,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const chestToRightUpperLeg = new Constraint({
+    const chestToRightUpperLeg = Constraint.create({
         bodyA: chest,
         pointA: {
             x: 10 * scale,
@@ -371,7 +371,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const upperToLowerRightArm = new Constraint({
+    const upperToLowerRightArm = Constraint.create({
         bodyA: rightUpperArm,
         bodyB: rightLowerArm,
         pointA: {
@@ -388,7 +388,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const upperToLowerLeftArm = new Constraint({
+    const upperToLowerLeftArm = Constraint.create({
         bodyA: leftUpperArm,
         bodyB: leftLowerArm,
         pointA: {
@@ -405,7 +405,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const upperToLowerLeftLeg = new Constraint({
+    const upperToLowerLeftLeg = Constraint.create({
         bodyA: leftUpperLeg,
         bodyB: leftLowerLeg,
         pointA: {
@@ -422,7 +422,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const upperToLowerRightLeg = new Constraint({
+    const upperToLowerRightLeg = Constraint.create({
         bodyA: rightUpperLeg,
         bodyB: rightLowerLeg,
         pointA: {
@@ -439,7 +439,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const headContraint = new Constraint({
+    const headContraint = Constraint.create({
         bodyA: head,
         pointA: {
             x: 0,
@@ -456,7 +456,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const legToLeg = new Constraint({
+    const legToLeg = Constraint.create({
         bodyA: leftLowerLeg,
         bodyB: rightLowerLeg,
         stiffness: 0.01,
@@ -465,7 +465,7 @@ ragdoll.ragdoll = function(x, y, scale, options) {
         }
     });
 
-    const person = new Composite({
+    const person = Composite.create({
         bodies: [
             chest, head, leftLowerArm, leftUpperArm,
             rightLowerArm, rightUpperArm, leftLowerLeg,
