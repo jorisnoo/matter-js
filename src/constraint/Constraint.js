@@ -31,7 +31,7 @@ class Constraint {
      * @param {} options
      */
     constructor(options = {}) {
-        Object.assign(this, options);
+        Common.extend(this, false, options);
 
         // if bodies defined but no points, use body centre
         if (this.bodyA && !this.pointA) this.pointA = { x: 0, y: 0 };
@@ -53,7 +53,7 @@ class Constraint {
         this.angularStiffness = this.angularStiffness || 0;
         this.angleA = this.bodyA ? this.bodyA.angle : this.angleA;
         this.angleB = this.bodyB ? this.bodyB.angle : this.angleB;
-        this.plugin = {};
+        this.plugin = this.plugin ?? {};
 
         // render
         const render = {

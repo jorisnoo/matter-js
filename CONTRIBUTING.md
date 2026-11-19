@@ -12,9 +12,9 @@ Before contributing please read the license agreement described at the beginning
 
 ## Building
 
-To build you must first install [node.js](http://nodejs.org), then run
+The development tools require Node.js 20.19+ (20.x) or 22.12+. From this checkout run:
 
-	npm install
+	npm ci
 
 which will install the required build dependencies, then run
 
@@ -28,9 +28,11 @@ All contributions should pass when running the commands
 
 - `npm run lint`
 - `npm run test`
-- `npm run test-browser`
+- `npm run test-types`
+- `npx playwright-core install chromium --only-shell`
+- `npm run build-demo && npm run test-browser`
 
-The output of `npm run test` also includes a [comparison report](https://github.com/liabru/matter-js/pull/794), which highlights changes in results, performance and accuracy against the upstream matter-js release (the `matter-js-upstream` dev dependency). The test fails if any example's physics differs from upstream.
+`npm test` includes a [comparison report](https://github.com/liabru/matter-js/pull/794) against `matter-js-upstream` 0.20.0 with the upstream compound-inertia fix applied to the reference. Any difference in the compared examples fails the suite.
 
 Test options are set with environment variables, e.g. `MATTER_TEST_EXAMPLES=stack,car npm test` to run specific examples, or `MATTER_TEST_COMPARE=false npm test` to skip the upstream comparison.
 
@@ -49,4 +51,4 @@ runs the linter
 - **npm run test**
 runs the tests and compares results
 - **npm run test-browser**  
-runs the browser tests (requires Google Chrome and the dev server from `npm start`)
+runs the compiled demo in headless Chromium; it starts its own local server. To use an existing Chromium executable, set `CHROME_PATH`.

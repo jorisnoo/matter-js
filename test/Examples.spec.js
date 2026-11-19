@@ -17,7 +17,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const examplesUrl = url.pathToFileURL(path.resolve(__dirname, '../examples/index.js')).href;
 const ExamplePromise = import(examplesUrl);
 
-// upstream matter-js release that this fork must match exactly
+// Upstream 0.20.0, with only the reference inertia correction in ExampleWorker.
 const require = createRequire(import.meta.url);
 const referencePath = require.resolve('matter-js-upstream');
 const MatterBuild = require(referencePath);

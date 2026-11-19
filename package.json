@@ -1,7 +1,8 @@
 {
   "name": "matter-js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
+  "private": true,
   "license": "MIT",
   "homepage": "http://brm.io/matter-js/",
   "author": "Liam Brummitt <liam@brm.io> (http://brm.io/)",
@@ -22,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/liabru/matter-js.git"
+    "url": "https://github.com/jorisnoo/matter-js.git"
   },
   "keywords": [
     "javascript",
@@ -45,29 +46,28 @@
     "pathseg": "^1.2.0",
     "poly-decomp": "^0.3.0",
     "prettier": "^3.0.0",
-    "puppeteer-core": "^5.5.0",
+    "playwright-core": "^1.65.0",
     "typescript": "^5.9.3",
-    "vite": "^8.0.0",
-    "vitest": "^4.0.18"
+    "vite": "^8.3.7",
+    "vitest": "^4.1.12"
   },
   "scripts": {
     "start": "npm run dev",
     "dev": "vite --config vite.demo.config.js --open",
     "serve": "vite --config vite.demo.config.js",
-    "build": "rm -rf build && vite build && MINIFY=true vite build",
-    "build-alpha": "KIND=alpha vite build && KIND=alpha MINIFY=true vite build",
-    "build-dev": "KIND=dev vite build && KIND=dev MINIFY=true vite build",
+    "build": "vite build && vite build --mode min",
+    "build-alpha": "vite build --mode alpha && vite build --mode alpha-min",
+    "build-dev": "vite build --mode dev && vite build --mode dev-min",
     "build-demo": "vite build --config vite.demo.config.js",
     "lint": "eslint 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
     "format": "prettier --write 'src/**/*.js' 'demo/src/**/*.js' 'examples/*.js'",
     "benchmark": "MATTER_TEST_EXAMPLES=stress3,stress4 MATTER_TEST_BENCHMARK=true MATTER_TEST_UPDATES=300 MATTER_TEST_REPEATS=3 npm run test-node",
     "test": "npm run test-node",
-    "test-node": "npm run build-dev && node --expose-gc node_modules/.bin/vitest run ./test/Package.spec.js ./test/Examples.spec.js",
-    "test-browser": "node --expose-gc node_modules/.bin/vitest run ./test/Browser.spec.js",
+    "test-node": "npm run build-dev && node --expose-gc node_modules/vitest/vitest.mjs run --exclude test/Browser.spec.js",
+    "test-browser": "vitest run test/Browser.spec.js",
     "test-all": "npm run test-node && npm run test-browser",
     "test-save": "MATTER_TEST_SAVE=true npm run test-node",
-    "test:watch": "npm run build-dev && node --expose-gc node_modules/.bin/vitest ./test/Package.spec.js ./test/Examples.spec.js",
-    "prepare": "npm run build",
+    "test:watch": "npm run build-dev && vitest --exclude test/Browser.spec.js",
     "test-types": "tsc --noEmit --strict --target es2020 --module esnext --moduleResolution bundler test/types-test.ts"
   },
   "files": [

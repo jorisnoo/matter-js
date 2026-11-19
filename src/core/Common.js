@@ -4,6 +4,20 @@
 * @class Common
 */
 
+const isReservedKey = (key) => key === '__proto__' || key === 'constructor' || key === 'prototype';
+
+const isPlainObject = (value) => {
+    if (value === null || typeof value !== 'object') return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === null || prototype === Object.prototype;
+};
+
+const pathParts = (path, begin, end) => {
+    const parts = path.split('.').slice(begin, end);
+    if (parts.some(isReservedKey)) throw new TypeError('Reserved property in path');
+    return parts;
+};
+
 class Common {
     static _baseDelta = 1000 / 60;
     static _nextId = 0;
@@ -52,16 +66,16 @@ class Common {
 
             if (source) {
                 for (const prop in source) {
-                    if (deepClone && source[prop] && source[prop].constructor === Object) {
-                        if (!obj[prop] || obj[prop].constructor === Object) {
-                            obj[prop] = obj[prop] || {};
-                            Common.extend(obj[prop], deepClone, source[prop]);
-                        } else {
-                            obj[prop] = source[prop];
+                    if (!Object.hasOwn(source, prop) || isReservedKey(prop)) continue;
+                    const value = source[prop];
+                    if (deepClone && isPlainObject(value)) {
+                        const target = Object.hasOwn(obj, prop) ? obj[prop] : undefined;
+                        if (!target || isPlainObject(target)) {
+                            obj[prop] = Common.extend(target || {}, true, value);
+                            continue;
                         }
-                    } else {
-                        obj[prop] = source[prop];
                     }
+                    obj[prop] = value;
                 }
             }
         }
@@ -90,9 +104,10 @@ class Common {
      * @return {} The object at the given path
      */
     static get(obj, path, begin, end) {
-        path = path.split('.').slice(begin, end);
+        path = pathParts(path, begin, end);
 
         for (let i = 0; i < path.length; i += 1) {
+            if (!Object.hasOwn(obj, path[i])) return undefined;
             obj = obj[path[i]];
         }
 
@@ -110,8 +125,13 @@ class Common {
      * @return {} Pass through `val` for chaining
      */
     static set(obj, path, val, begin, end) {
-        const parts = path.split('.').slice(begin, end);
-        Common.get(obj, path, 0, -1)[parts[parts.length - 1]] = val;
+        const parts = pathParts(path, begin, end);
+        if (!parts.length) throw new TypeError('Empty property path');
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!Object.hasOwn(obj, parts[i])) throw new TypeError('Missing own property in path');
+            obj = obj[parts[i]];
+        }
+        obj[parts[parts.length - 1]] = val;
         return val;
     }
 

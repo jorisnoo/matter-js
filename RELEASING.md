@@ -11,7 +11,10 @@ Release from `main` using an explicit version without a `v` prefix. `CHANGELOG.m
 Configured release checks:
 
 ```sh
+npm run lint
+npm run test-types
 npm test
+npm run test-browser
 ```
 
 Install the project’s normal dependencies first. The helper runs these checks when publishing; dry-run prints them without executing them. Run any additional checks needed for the changed behavior before committing.
@@ -37,7 +40,7 @@ Verify the workflow and published release/assets before reporting success. If a 
 
 Update `package.json`, both root version fields in `package-lock.json`, and the `Matter.version` fallback in `src/core/Matter.js` to the exact release version before committing (`npm test` fails if the fallback differs from `package.json`). Do not use `npm version` to create another tag or invoke legacy release hooks.
 
-Run `npm run build` and commit the tracked build output before releasing. Tests may rebuild assets; if checks change tracked files, review and commit the outputs, then repeat the dry-run.
+Run `npm run build` and `npm run build-demo` and commit the tracked bundles, production source maps and compiled demo before releasing. Install the test browser with `npx playwright-core install chromium --only-shell` (or set `CHROME_PATH`). The release gate runs the local compiled demo, not a live site.
 
 These are maintained forks with upstream npm names. GitHub tagging does not publish to npm. Publish a registry package only when explicitly requested and after confirming the intended name/account; inspect `npm pack --dry-run` first.
 

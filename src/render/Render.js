@@ -72,6 +72,7 @@ class Render {
                 showSleeping: true,
                 showDebug: false,
                 showStats: false,
+                showBroadphase: false,
                 showPerformance: false,
                 showBounds: false,
                 showVelocity: false,
@@ -96,6 +97,7 @@ class Render {
         }
 
         this.mouse = options.mouse;
+        this.controller = Render; // matter-tools uses the controller to draw Inspector selections.
         this.engine = options.engine;
         this.canvas = this.canvas || Render._createCanvas(this.options.width, this.options.height);
         this.context = this.canvas.getContext('2d');
@@ -444,7 +446,7 @@ class Render {
             Render.bodyWireframes(render, bodies, context);
         }
 
-        if (options.showBounds)
+        if (options.showBounds || options.showBroadphase)
             Render.bodyBounds(render, bodies, context);
 
         if (options.showAxes || options.showAngleIndicator)
@@ -996,8 +998,11 @@ class Render {
             const body = bodies[i];
 
             if (body.render.visible) {
-                const parts = bodies[i].parts;
-                for (let j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
+                const parts = body.parts;
+                // The broad phase uses the parent AABB, not individual compound parts.
+                const start = options.showBroadphase || parts.length === 1 ? 0 : 1;
+                const end = options.showBroadphase && !options.showBounds ? 1 : parts.length;
+                for (let j = start; j < end; j++) {
                     const part = parts[j];
                     c.rect(part.bounds.min.x, part.bounds.min.y, part.bounds.max.x - part.bounds.min.x, part.bounds.max.y - part.bounds.min.y);
                 }

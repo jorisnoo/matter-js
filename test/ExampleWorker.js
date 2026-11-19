@@ -122,7 +122,7 @@ const runExample = async (options) => {
 };
 
 const prepareMatter = async (options) => {
-    // the reference is the upstream matter-js release this fork must stay behaviourally identical to
+    // Keep the published 0.20.0 reference independent of the fork under test.
     const MatterExports = options.useDev
         ? await importUncached('../build/matter.dev.js')
         : requireUncached('matter-js-upstream');
@@ -130,6 +130,22 @@ const prepareMatter = async (options) => {
 
     if (Matter.Common._nextId !== 0) {
         throw 'Matter instance has already been used.';
+    }
+
+    if (!options.useDev) {
+        // Upstream 2ad61a4 changed the source but not build/matter.js.
+        // Recalculate only the inertia on this uncached reference instance.
+        const totalProperties = Matter.Body._totalProperties;
+        Matter.Body._totalProperties = (body) => {
+            const properties = totalProperties(body);
+            properties.inertia = 0;
+            for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
+                const part = body.parts[i];
+                properties.inertia += part.inertia + part.mass * Math.pow(
+                    Matter.Vector.magnitude(Matter.Vector.sub(part.position, properties.centre)), 2);
+            }
+            return properties;
+        };
     }
 
     Matter.Common.info = Matter.Common.warn = Matter.Common.log;

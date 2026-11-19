@@ -1,5 +1,7 @@
 .idea
 *.map
+!/build/matter.js.map
+!/build/matter.min.js.map
 node_modules
 npm-debug.log
 docs
