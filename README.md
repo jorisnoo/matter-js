@@ -1,4 +1,4 @@
-> **Note:** This is a fork of [matter-js](https://github.com/liabru/matter-js) maintained for private use. For the original project, visit [brm.io/matter-js](https://brm.io/matter-js/). The physics engine behavior is unchanged — the fork converts to ESM-only, uses ES6 classes, and removes deprecated modules and polyfill helpers. See the [changelog](CHANGELOG.md) for details.
+> **Note:** This ES-module fork of [matter-js](https://github.com/liabru/matter-js) uses ES6 classes and includes the upstream compound-body inertia correction. See the [changelog](CHANGELOG.md) for differences from the original.
 
 <img alt="Matter.js" src="https://brm.io/matter-js/img/matter-js.svg" width="300">
 
@@ -109,20 +109,33 @@ See how others are using matter.js physics
 - Time scaling (slow-mo, speed-up)
 - Canvas renderer (supports vectors and textures)
 - [MatterTools](https://github.com/liabru/matter-tools) for creating, testing and debugging worlds
-- World state serialisation (requires [resurrect.js](https://github.com/skeeto/resurrect-js))
-- Cross-browser and Node.js support (Chrome, Firefox, Safari, IE8+)
+- World state serialisation with [resurrect.js](https://github.com/skeeto/resurrect-js) (see below)
+- Modern browsers with ES2022 module support and Node.js 18+
 - Mobile-compatible (touch, responsive)
 - An original JavaScript physics implementation (not a port)
 
 ### Install
 
-You can install using package managers [npm](https://www.npmjs.org/package/matter-js) and [Yarn](https://yarnpkg.com/) using:
+Install the tagged fork rather than the upstream npm package:
 
-    npm install matter-js
+```sh
+npm install github:jorisnoo/matter-js#1.0.2
+```
 
-Alternatively you can download a [stable release](https://github.com/liabru/matter-js/tags) or try the latest experimental [alpha build](https://github.com/liabru/matter-js/tree/master/build) (master) and include the script in your web page:
+```js
+import Matter from 'matter-js';
+const engine = Matter.Engine.create();
+```
 
-    <script src="matter.js" type="text/javascript"></script>
+In a browser without a bundler, serve `build/matter.js` from the release and import it from a `<script type="module">`. A classic script does not define a `window.Matter` global.
+
+For trusted world snapshots without JavaScript callbacks, configure resurrect.js to resolve the fork's ES-module classes instead of looking them up on `window`:
+
+```js
+const serializer = new Resurrect({ prefix: '$', cleanup: true });
+serializer.resolver = new Resurrect.NamespaceResolver(Matter);
+const world = serializer.resurrect(serializer.stringify(engine.world));
+```
 
 ### Performance with other tools (e.g. Webpack, Vue etc.)
 
@@ -169,7 +182,7 @@ This will install the required build dependencies, then run
 
 	npm run dev
 
-to spawn a development server. For information on contributing see [CONTRIBUTING.md](https://github.com/liabru/matter-js/blob/master/CONTRIBUTING.md).
+to spawn a development server. See [CONTRIBUTING.md](CONTRIBUTING.md) for development prerequisites and test commands.
 
 ### Changelog
 

@@ -6,9 +6,9 @@
     "package-lock.json"
   ],
   "checks": [
-    [
-      "npm",
-      "test"
-    ]
+    ["npm", "run", "lint"],
+    ["npm", "run", "test-types"],
+    ["npm", "test"],
+    ["npm", "run", "test-browser"]
   ]
 }

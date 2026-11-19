@@ -166,6 +166,8 @@ export interface RenderOptions {
     showStats?: boolean;
     showPerformance?: boolean;
     showBounds?: boolean;
+    /** Draw the parent bodies' broadphase bounding boxes. */
+    showBroadphase?: boolean;
     showVelocity?: boolean;
     showCollisions?: boolean;
     showSeparations?: boolean;
@@ -484,6 +486,8 @@ export class Engine {
     world: Composite;
     pairs: Pairs;
     detector: Detector;
+    broadphase: Detector;
+    metrics: Record<string, unknown>;
 
     constructor(options?: EngineOptions);
 
@@ -525,6 +529,7 @@ export class Runner {
  */
 export class Render {
     engine: Engine | null;
+    controller: typeof Render;
     element: HTMLElement | null;
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
@@ -563,11 +568,15 @@ export class Mouse {
     button: number;
     pixelRatio: number;
     sourceEvents: {
-        mousemove: Event | null;
-        mousedown: Event | null;
-        mouseup: Event | null;
-        mousewheel: Event | null;
+        mousemove: MouseEvent | TouchEvent | null;
+        mousedown: MouseEvent | TouchEvent | null;
+        mouseup: MouseEvent | TouchEvent | null;
+        mousewheel: WheelEvent | null;
     };
+    mousemove(event: MouseEvent | TouchEvent): void;
+    mousedown(event: MouseEvent | TouchEvent): void;
+    mouseup(event: MouseEvent | TouchEvent): void;
+    mousewheel(event: WheelEvent): void;
 
     constructor(element?: HTMLElement);
 
@@ -589,6 +598,7 @@ export class Events {
     static on(object: MouseConstraint, eventNames: 'mousedown' | 'mousemove' | 'mouseup', callback: (event: MouseConstraintEvent) => void): (event: MouseConstraintEvent) => void;
     static on(object: MouseConstraint, eventNames: 'startdrag' | 'enddrag', callback: (event: MouseConstraintDragEvent) => void): (event: MouseConstraintDragEvent) => void;
     static on(object: Body, eventNames: 'sleepStart' | 'sleepEnd', callback: (event: BodySleepEvent) => void): (event: BodySleepEvent) => void;
+    static on(object: Render, eventNames: keyof RenderEventMap, callback: (event: RenderEvent) => void): (event: RenderEvent) => void;
     static on(object: unknown, eventNames: string, callback: (event: unknown) => void): (event: unknown) => void;
 
     static off(object: unknown, eventNames?: string, callback?: (event: unknown) => void): void;
@@ -784,7 +794,7 @@ export class Pairs {
  */
 export class Query {
     static collides(body: Body, bodies: Body[]): Collision[];
-    static ray(bodies: Body[], startPoint: Vector, endPoint: Vector, rayWidth?: number): Collision[];
+    static ray(bodies: Body[], startPoint: Vector, endPoint: Vector, rayWidth?: number): (Collision & { body: Body })[];
     static region(bodies: Body[], bounds: Bounds, outside?: boolean): Body[];
     static point(bodies: Body[], point: Vector): Body[];
 }
@@ -868,7 +878,7 @@ export class Plugin {
 export interface PluginObject {
     name: string;
     version: string;
-    install?: (module: unknown) => void;
+    install?: (module: MatterStatic) => void;
     for?: string;
     uses?: string[];
     _warned?: boolean;
@@ -944,7 +954,7 @@ export interface MatterStatic {
     Vector: typeof Vector;
     Vertices: typeof Vertices;
     World: typeof World;
-    use(...plugins: (Function | string)[]): void;
+    use(...plugins: (PluginObject | string)[]): void;
     before(path: string, func: Function): Function;
     after(path: string, func: Function): Function;
 }

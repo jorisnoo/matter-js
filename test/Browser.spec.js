@@ -1,105 +1,89 @@
-import fs from 'fs';
-import { describe, test, expect, beforeAll } from 'vitest';
+import { chromium } from 'playwright-core';
+import { preview } from 'vite';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import * as examples from '../examples/index.js';
 
-const browserPath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const demoPagePath = 'http://localhost:8000/';
-const totalUpdates = 5;
-
-const hasBrowser = fs.existsSync(browserPath);
-
-const conditionalDescribe = hasBrowser ? describe : describe.skip;
-
-if (!hasBrowser) {
-    console.warn('Could not find browser. Browser tests skipped.');
-}
-
-conditionalDescribe('Browser integration tests', () => {
-    let results;
-    let Example;
+describe('Built browser demo', () => {
+    let server, browser, page, problems;
 
     beforeAll(async () => {
-        const puppeteer = await import('puppeteer-core');
-        Example = await import('../examples/index.js');
-        results = await runExamplesBrowser(puppeteer.default, Example, totalUpdates);
+        server = await preview({
+            configFile: 'vite.demo.config.js',
+            preview: { host: '127.0.0.1', port: 0 },
+        });
+        browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
     });
 
-    test('all examples run without throwing error or warning', () => {
-        const examples = Object.keys(Example);
+    afterAll(async () => {
+        try {
+            await browser?.close();
+        } finally {
+            await server?.close();
+        }
+    });
 
-        if (results.error) {
-            console.error(results.error);
-            expect(Boolean(results.error)).toBe(false);
-        }
-        if (results.warns) {
-            console.error(results.warns);
-            expect(results.warns.size).toBe(0);
-        }
-        if (!results.error && !results.warns) {
-            for (const example of examples) {
-                expect(results[example].id).toBe(example);
-                expect(results[example].timestamp).toBeGreaterThan(0);
+    beforeEach(async () => {
+        problems = [];
+        page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+        page.setDefaultTimeout(15000);
+        page.on('pageerror', error => problems.push(`${page.url()}: ${error.stack}`));
+        page.on('console', message => {
+            if (['warning', 'error'].includes(message.type())) {
+                problems.push(`${page.url()}: ${message.type()}: ${message.text()}`);
             }
+        });
+        await page.goto(server.resolvedUrls.local[0]);
+        await page.waitForFunction(() => window.MatterDemoInstance?.tools.gui.datGui);
+    });
+
+    afterEach(async () => {
+        await page?.close();
+        expect(problems).toEqual([]);
+    });
+
+    test('every example runs at least five frames with its own GUI and Inspector', async () => {
+        const select = page.getByLabel('Select example');
+        expect(await select.locator('option').evaluateAll(options => options.map(o => o.value).sort()))
+            .toEqual(Object.keys(examples).sort());
+
+        for (const id of Object.keys(examples)) {
+            await select.selectOption(id);
+            await page.waitForFunction(id => {
+                const { example, tools } = window.MatterDemoInstance;
+                const { engine, runner, render } = example.instance;
+                return example.id === id && tools.gui.engine === engine && tools.inspector.render === render
+                    && render.canvas.isConnected && runner.frameDeltaHistory.length >= 5 && engine.timing.timestamp > 0;
+            }, id);
+            expect(problems, id).toEqual([]);
         }
+    });
+
+    test('GUI restores a saved world and Inspector can select, copy and paste its bodies', async () => {
+        const gui = page.locator('.dg.main');
+        const worldBodies = () => Matter.Composite.allBodies(window.MatterDemoInstance.example.instance.engine.world).length;
+        const count = await page.evaluate(worldBodies);
+        expect(count).toBeGreaterThan(0);
+
+        await gui.getByText('save', { exact: true }).click();
+        await gui.getByText('addBody', { exact: true }).click();
+        expect(await page.evaluate(worldBodies)).toBe(count + 1);
+        await gui.getByText('load', { exact: true }).click();
+        expect(await page.evaluate(worldBodies)).toBe(count);
+
+        const bodyId = await page.evaluate(() => {
+            const { engine } = window.MatterDemoInstance.example.instance;
+            return engine.world.bodies[0].id;
+        });
+        await page.locator(`#body_${bodyId}_anchor`).click();
+        await page.waitForFunction(id => window.MatterDemoInstance.tools.inspector.selected[0]?.data.id === id, bodyId);
+        await page.keyboard.press('Control+c');
+        await page.keyboard.press('Control+v');
+        await page.waitForFunction(id => {
+            const { engine, selected } = window.MatterDemoInstance.tools.inspector;
+            const clone = selected[0]?.data;
+            return clone instanceof Matter.Body && clone.id !== id && clone.parts[0] === clone
+                && Matter.Composite.allBodies(engine.world).includes(clone);
+        }, bodyId);
+        expect(await page.evaluate(worldBodies)).toBe(count + 1);
     });
 });
-
-const runExamplesBrowser = async (puppeteer, Example, updates) => {
-    const examples = Object.keys(Example);
-    const browser = await puppeteer.launch({ executablePath: browserPath });
-    const page = await browser.newPage();
-    const results = {};
-    let example;
-
-    let pageError;
-    let pageWarns;
-
-    const onPageError = error => pageError = error;
-    const onPageConsole = async message => {
-        const type = message.type();
-        if (example && type === 'error' || type === 'warning') {
-            const log = `[${example}] ${message.type()} ${message.text()}`;
-            pageWarns = pageWarns || new Set();
-            pageWarns.add(log);
-        }
-    };
-
-    page.addListener('pageerror', onPageError);
-    page.addListener('console', onPageConsole);
-
-    await page.goto(demoPagePath).catch(onPageError);
-
-    for (example of examples) {
-        if (pageError) {
-            break;
-        }
-
-        results[example] = await page.evaluate(async (example, updates) => {
-            const demo = window.MatterDemoInstance;
-
-            MatterTools.Demo.setExampleById(demo, example);
-            const instance = demo.example.instance;
-            let ticks = 0;
-
-            await new Promise((resolve) => {
-                Matter.Events.on(instance.runner, 'tick', () => {
-                    if (ticks >= updates) {
-                        Matter.Runner.stop(instance.runner);
-                        resolve();
-                    }
-                    ticks += 1;
-                });
-            });
-
-            return {
-                id: demo.example.id,
-                timestamp: instance.engine.timing.timestamp
-            };
-        }, example, updates);
-    }
-
-    await browser.close();
-
-    results.error = pageError;
-    results.warns = pageWarns;
-    return results;
-};

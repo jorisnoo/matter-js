@@ -59,6 +59,10 @@ class Engine {
         this.detector = options.detector || Detector.create();
         this.detector.pairs = this.pairs;
 
+        // matter-tools 0.14 probes the legacy interfaces when creating its GUI.
+        this.broadphase = this.detector;
+        this.metrics = {};
+
         this.world.gravity = this.gravity;
     }
 
@@ -231,6 +235,9 @@ class Engine {
 
         if (engineB.world) {
             engineA.world = engineB.world;
+            engineA.world.gravity = engineA.gravity;
+            // Even a previously up-to-date saved world needs a new detector body list.
+            Composite.setModified(engineA.world, true);
 
             Engine.clear(engineA);
 

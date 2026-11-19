@@ -1,3 +1,12 @@
+## [1.0.2] - 2026-11-19
+
+### Fixed
+
+- Restrict option merges and property paths to safe keys. Compound bodies now include each part's offset from the centre of mass in their rotational inertia, matching upstream's correction; scenes with widely separated parts may rotate more slowly.
+- Restore MatterTools GUI, Inspector and world snapshot compatibility. Class names are preserved in the compact bundle for namespace-based serialisation.
+- Correct the TypeScript contracts for plugins, mouse handlers, render events and ray hits. Preserve constraint plugin options.
+- Ship compact ES2022 modules with matching source maps. Installing the GitHub release uses the prebuilt files and no longer requires Vite or a build toolchain.
+
 ## [1.0.1] - 2026-10-05
 
 ### Fixed

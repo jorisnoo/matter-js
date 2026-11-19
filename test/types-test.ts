@@ -33,10 +33,12 @@ import Matter, {
     Plugin,
     Resolver,
     SAT,
-} from '../types/matter-js';
+} from 'matter-js';
 
 // ---- Engine ----
 const engine: Engine = Engine.create();
+const broadphase: Detector = engine.broadphase;
+const metrics: Record<string, unknown> = engine.metrics;
 const engineWithOptions: Engine = Engine.create({
     positionIterations: 10,
     velocityIterations: 8,
@@ -63,8 +65,10 @@ const render: Render = Render.create({
         height: 600,
         wireframes: false,
         showAngleIndicator: true,
+        showBroadphase: true,
     },
 });
+const controller: typeof Render = render.controller;
 Render.run(render);
 Render.stop(render);
 Render.setPixelRatio(render, 2);
@@ -148,6 +152,7 @@ const constraint: Constraint = Constraint.create({
     bodyB: rect,
     stiffness: 0.5,
     length: 100,
+    plugin: { spring: true },
 });
 const newConstraint: Constraint = new Constraint({ bodyA: body, pointB: { x: 0, y: 0 } });
 const pointAWorld: Vector = Constraint.pointAWorld(constraint);
@@ -166,6 +171,12 @@ Composite.add(engine.world, mouseConstraint);
 Mouse.setElement(mouse, document.body);
 Mouse.setOffset(mouse, { x: 0, y: 0 });
 Mouse.setScale(mouse, { x: 1, y: 1 });
+mouse.sourceEvents.mousemove?.preventDefault();
+mouse.sourceEvents.mousewheel?.deltaY;
+mouse.element.removeEventListener('touchmove', mouse.mousemove);
+mouse.element.removeEventListener('mousedown', mouse.mousedown);
+mouse.element.removeEventListener('touchend', mouse.mouseup);
+mouse.element.removeEventListener('wheel', mouse.mousewheel);
 Mouse.clearSourceEvents(mouse);
 const mousePos: Vector = mouse.position;
 const mouseBtn: number = mouse.button;
@@ -191,6 +202,11 @@ Events.on(mouseConstraint, 'startdrag', (event) => {
 
 Events.on(mouseConstraint, 'mousedown', (event) => {
     const eventMouse: Mouse = event.mouse;
+});
+
+Events.on(render, 'afterRender', (event) => {
+    const timestamp: number = event.timestamp;
+    const source: Render = event.source;
 });
 
 Events.on(body, 'sleepStart', (_event) => {});
@@ -248,7 +264,8 @@ Axes.rotate(axes, Math.PI / 4);
 
 // ---- Query ----
 const collisions: Collision[] = Query.collides(body, allBodies);
-const rayCollisions: Collision[] = Query.ray(allBodies, { x: 0, y: 0 }, { x: 100, y: 100 });
+const rayCollisions = Query.ray(allBodies, { x: 0, y: 0 }, { x: 100, y: 100 });
+const rayBody: Body = rayCollisions[0].body;
 const regionBodies: Body[] = Query.region(allBodies, bounds);
 const pointBodies: Body[] = Query.point(allBodies, { x: 50, y: 50 });
 
@@ -326,4 +343,4 @@ World.clear(world, false);
 const matterEngine: Engine = Matter.Engine.create();
 const matterBody: Body = Matter.Bodies.rectangle(0, 0, 10, 10);
 Matter.Composite.add(matterEngine.world, matterBody);
-Matter.use();
+Matter.use({ name: 'test-plugin', version: '1.0.0', install: module => module.Body.create() }, 'test');

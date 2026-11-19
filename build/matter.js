@@ -1,5 +1,4 @@
-/**
- * matter-js 1.0.1 by @liabru
+/*! matter-js 1.0.2 by @liabru
  * http://brm.io/matter-js/
  * License MIT
  *
@@ -25,12 +24,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-//#region src/core/Common.js
+// \0rolldown/runtime.js
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", {
+	value,
+	configurable: true
+});
+
+// src/core/Common.js
 /**
 * The `Matter.Common` module contains utility functions that are common to all modules.
 *
 * @class Common
 */
+var isReservedKey = (key) => key === "__proto__" || key === "constructor" || key === "prototype";
+var isPlainObject = (value) => {
+	if (value === null || typeof value !== "object") return false;
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === null || prototype === Object.prototype;
+};
+var pathParts = (path, begin, end) => {
+	const parts = path.split(".").slice(begin, end);
+	if (parts.some(isReservedKey)) throw new TypeError("Reserved property in path");
+	return parts;
+};
 var Common = class Common {
 	static _baseDelta = 1e3 / 60;
 	static _nextId = 0;
@@ -61,7 +78,8 @@ var Common = class Common {
 	* @return {} obj extended
 	*/
 	static extend(obj, deep, ...rest) {
-		let sources, deepClone;
+		let sources;
+		let deepClone;
 		if (typeof deep === "boolean") {
 			deepClone = deep;
 			sources = rest;
@@ -71,11 +89,18 @@ var Common = class Common {
 		}
 		for (let i = 0; i < sources.length; i++) {
 			const source = sources[i];
-			if (source) for (const prop in source) if (deepClone && source[prop] && source[prop].constructor === Object) if (!obj[prop] || obj[prop].constructor === Object) {
-				obj[prop] = obj[prop] || {};
-				Common.extend(obj[prop], deepClone, source[prop]);
-			} else obj[prop] = source[prop];
-			else obj[prop] = source[prop];
+			if (source) for (const prop in source) {
+				if (!Object.hasOwn(source, prop) || isReservedKey(prop)) continue;
+				const value = source[prop];
+				if (deepClone && isPlainObject(value)) {
+					const target = Object.hasOwn(obj, prop) ? obj[prop] : void 0;
+					if (!target || isPlainObject(target)) {
+						obj[prop] = Common.extend(target || {}, true, value);
+						continue;
+					}
+				}
+				obj[prop] = value;
+			}
 		}
 		return obj;
 	}
@@ -99,8 +124,11 @@ var Common = class Common {
 	* @return {} The object at the given path
 	*/
 	static get(obj, path, begin, end) {
-		path = path.split(".").slice(begin, end);
-		for (let i = 0; i < path.length; i += 1) obj = obj[path[i]];
+		path = pathParts(path, begin, end);
+		for (let i = 0; i < path.length; i += 1) {
+			if (!Object.hasOwn(obj, path[i])) return void 0;
+			obj = obj[path[i]];
+		}
 		return obj;
 	}
 	/**
@@ -114,8 +142,13 @@ var Common = class Common {
 	* @return {} Pass through `val` for chaining
 	*/
 	static set(obj, path, val, begin, end) {
-		const parts = path.split(".").slice(begin, end);
-		Common.get(obj, path, 0, -1)[parts[parts.length - 1]] = val;
+		const parts = pathParts(path, begin, end);
+		if (!parts.length) throw new TypeError("Empty property path");
+		for (let i = 0; i < parts.length - 1; i++) {
+			if (!Object.hasOwn(obj, parts[i])) throw new TypeError("Missing own property in path");
+			obj = obj[parts[i]];
+		}
+		obj[parts[parts.length - 1]] = val;
 		return val;
 	}
 	/**
@@ -270,7 +303,9 @@ var Common = class Common {
 	* @return {array} Partially ordered set of vertices in topological order.
 	*/
 	static topologicalSort(graph) {
-		const result = [], visited = [], temp = [];
+		const result = [];
+		const visited = [];
+		const temp = [];
 		for (const node in graph) if (!visited[node] && !temp[node]) Common._topologicalSort(node, visited, temp, graph, result);
 		return result;
 	}
@@ -365,8 +400,8 @@ var Common = class Common {
 		return decomp;
 	}
 };
-//#endregion
-//#region src/core/Plugin.js
+
+// src/core/Plugin.js
 /**
 * The `Matter.Plugin` module contains functions for registering and installing plugins on modules.
 *
@@ -383,7 +418,9 @@ var Plugin = class Plugin {
 	static register(plugin) {
 		if (!Plugin.isPlugin(plugin)) Common.warn("Plugin.register:", Plugin.toString(plugin), "does not implement all required fields.");
 		if (plugin.name in Plugin._registry) {
-			const registered = Plugin._registry[plugin.name], pluginVersion = Plugin.versionParse(plugin.version).number, registeredVersion = Plugin.versionParse(registered.version).number;
+			const registered = Plugin._registry[plugin.name];
+			const pluginVersion = Plugin.versionParse(plugin.version).number;
+			const registeredVersion = Plugin.versionParse(registered.version).number;
 			if (pluginVersion > registeredVersion) {
 				Common.warn("Plugin.register:", Plugin.toString(registered), "was upgraded to", Plugin.toString(plugin));
 				Plugin._registry[plugin.name] = plugin;
@@ -469,7 +506,9 @@ var Plugin = class Plugin {
 			Common.warn("Plugin.use:", Plugin.toString(module), "does not specify any dependencies to install.");
 			return;
 		}
-		const dependencies = Plugin.dependencies(module), sortedDependencies = Common.topologicalSort(dependencies), status = [];
+		const dependencies = Plugin.dependencies(module);
+		const sortedDependencies = Common.topologicalSort(dependencies);
+		const status = [];
 		for (let i = 0; i < sortedDependencies.length; i += 1) {
 			if (sortedDependencies[i] === module.name) continue;
 			const plugin = Plugin.resolve(sortedDependencies[i]);
@@ -502,12 +541,14 @@ var Plugin = class Plugin {
 	* @return {object} A dependency graph.
 	*/
 	static dependencies(module, tracked = {}) {
-		const parsedBase = Plugin.dependencyParse(module), name = parsedBase.name;
+		const parsedBase = Plugin.dependencyParse(module);
+		const name = parsedBase.name;
 		if (name in tracked) return;
 		module = Plugin.resolve(module) || module;
 		tracked[name] = (module.uses || []).map((dependency) => {
 			if (Plugin.isPlugin(dependency)) Plugin.register(dependency);
-			const parsed = Plugin.dependencyParse(dependency), resolved = Plugin.resolve(dependency);
+			const parsed = Plugin.dependencyParse(dependency);
+			const resolved = Plugin.resolve(dependency);
 			if (resolved && !Plugin.versionSatisfies(resolved.version, parsed.range)) {
 				Common.warn("Plugin.dependencies:", Plugin.toString(resolved), "does not satisfy", Plugin.toString(parsed), "used by", `${Plugin.toString(parsedBase)}.`);
 				resolved._warned = true;
@@ -594,7 +635,8 @@ var Plugin = class Plugin {
 	*/
 	static versionSatisfies(version, range) {
 		range = range || "*";
-		const r = Plugin.versionParse(range), v = Plugin.versionParse(version);
+		const r = Plugin.versionParse(range);
+		const v = Plugin.versionParse(version);
 		if (r.isRange) {
 			if (r.operator === "*" || version === "*") return true;
 			if (r.operator === ">") return v.number > r.number;
@@ -609,8 +651,8 @@ var Plugin = class Plugin {
 		return version === range || version === "*";
 	}
 };
-//#endregion
-//#region src/core/Matter.js
+
+// src/core/Matter.js
 /**
 * The `Matter` module is the top level namespace. It also includes a function for installing plugins on top of the library.
 *
@@ -630,7 +672,7 @@ var Matter = class Matter {
 	* @readOnly
 	* @type {String}
 	*/
-	static version = "1.0.1";
+	static version = "1.0.2";
 	/**
 	* A list of plugin dependencies to be installed. These are normally set and installed through `Matter.use`.
 	* Alternatively you may set `Matter.uses` manually and install them by calling `Plugin.use(Matter)`.
@@ -681,8 +723,8 @@ var Matter = class Matter {
 		return Common.chainPathAfter(Matter, path, func);
 	}
 };
-//#endregion
-//#region src/geometry/Vector.js
+
+// src/geometry/Vector.js
 /**
 * The `Matter.Vector` module contains methods for creating and manipulating vectors.
 * Vectors are the basis of all the geometry related operations in the engine.
@@ -745,7 +787,8 @@ var Vector = class Vector {
 	* @return {vector} The vector rotated about (0, 0)
 	*/
 	static rotate(vector, angle, output) {
-		const cos = Math.cos(angle), sin = Math.sin(angle);
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
 		if (!output) output = {};
 		const x = vector.x * cos - vector.y * sin;
 		output.y = vector.x * sin + vector.y * cos;
@@ -762,7 +805,8 @@ var Vector = class Vector {
 	* @return {vector} A new vector rotated about the point
 	*/
 	static rotateAbout(vector, angle, point, output) {
-		const cos = Math.cos(angle), sin = Math.sin(angle);
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
 		if (!output) output = {};
 		const x = point.x + ((vector.x - point.x) * cos - (vector.y - point.y) * sin);
 		output.y = point.y + ((vector.x - point.x) * sin + (vector.y - point.y) * cos);
@@ -922,8 +966,8 @@ var Vector = class Vector {
 		Vector.create()
 	];
 };
-//#endregion
-//#region src/geometry/Axes.js
+
+// src/geometry/Axes.js
 /**
 * The `Matter.Axes` module contains methods for creating and manipulating sets of axes.
 *
@@ -939,7 +983,8 @@ var Axes = class {
 	static fromVertices(vertices) {
 		const axes = {};
 		for (let i = 0; i < vertices.length; i++) {
-			const j = (i + 1) % vertices.length, normal = Vector.normalise({
+			const j = (i + 1) % vertices.length;
+			const normal = Vector.normalise({
 				x: vertices[j].y - vertices[i].y,
 				y: vertices[i].x - vertices[j].x
 			});
@@ -957,7 +1002,8 @@ var Axes = class {
 	*/
 	static rotate(axes, angle) {
 		if (angle === 0) return;
-		const cos = Math.cos(angle), sin = Math.sin(angle);
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
 		for (let i = 0; i < axes.length; i++) {
 			const axis = axes[i];
 			let xx;
@@ -967,8 +1013,8 @@ var Axes = class {
 		}
 	}
 };
-//#endregion
-//#region src/geometry/Vertices.js
+
+// src/geometry/Vertices.js
 /**
 * The `Matter.Vertices` module contains methods for creating and manipulating sets of vertices.
 * A set of vertices is an array of `Matter.Vector` with additional indexing properties inserted by `Vertices.create`.
@@ -999,7 +1045,8 @@ var Vertices = class Vertices {
 	static create(points, body) {
 		const vertices = [];
 		for (let i = 0; i < points.length; i++) {
-			const point = points[i], vertex = {
+			const point = points[i];
+			const vertex = {
 				x: point.x,
 				y: point.y,
 				index: i,
@@ -1020,7 +1067,8 @@ var Vertices = class Vertices {
 	* @return {vertices} vertices
 	*/
 	static fromPath(path, body) {
-		const pathPattern = /L?\s*([-\d.e]+)[\s,]*([-\d.e]+)*/gi, points = [];
+		const pathPattern = /L?\s*([-\d.e]+)[\s,]*([-\d.e]+)*/gi;
+		const points = [];
 		path.replace(pathPattern, (match, x, y) => {
 			points.push({
 				x: parseFloat(x),
@@ -1040,7 +1088,10 @@ var Vertices = class Vertices {
 		let centre = {
 			x: 0,
 			y: 0
-		}, cross, temp, j;
+		};
+		let cross;
+		let temp;
+		let j;
 		for (let i = 0; i < vertices.length; i++) {
 			j = (i + 1) % vertices.length;
 			cross = Vector.cross(vertices[i], vertices[j]);
@@ -1074,7 +1125,8 @@ var Vertices = class Vertices {
 	* @return {number} The area
 	*/
 	static area(vertices, signed) {
-		let area = 0, j = vertices.length - 1;
+		let area = 0;
+		let j = vertices.length - 1;
 		for (let i = 0; i < vertices.length; i++) {
 			area += (vertices[j].x - vertices[i].x) * (vertices[j].y + vertices[i].y);
 			j = i;
@@ -1090,7 +1142,10 @@ var Vertices = class Vertices {
 	* @return {number} The polygon's moment of inertia
 	*/
 	static inertia(vertices, mass) {
-		let numerator = 0, denominator = 0, cross, j;
+		let numerator = 0;
+		let denominator = 0;
+		let cross;
+		let j;
 		const v = vertices;
 		for (let n = 0; n < v.length; n++) {
 			j = (n + 1) % v.length;
@@ -1108,9 +1163,11 @@ var Vertices = class Vertices {
 	* @param {number} scalar
 	*/
 	static translate(vertices, vector, scalar = 1) {
-		const verticesLength = vertices.length, translateX = vector.x * scalar, translateY = vector.y * scalar;
-		let i;
-		for (i = 0; i < verticesLength; i++) {
+		const verticesLength = vertices.length;
+		const translateX = vector.x * scalar;
+		const translateY = vector.y * scalar;
+		let i = 0;
+		for (; i < verticesLength; i++) {
 			vertices[i].x += translateX;
 			vertices[i].y += translateY;
 		}
@@ -1125,9 +1182,16 @@ var Vertices = class Vertices {
 	*/
 	static rotate(vertices, angle, point) {
 		if (angle === 0) return;
-		const cos = Math.cos(angle), sin = Math.sin(angle), pointX = point.x, pointY = point.y, verticesLength = vertices.length;
-		let vertex, dx, dy, i;
-		for (i = 0; i < verticesLength; i++) {
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
+		const pointX = point.x;
+		const pointY = point.y;
+		const verticesLength = vertices.length;
+		let vertex;
+		let dx;
+		let dy;
+		let i = 0;
+		for (; i < verticesLength; i++) {
 			vertex = vertices[i];
 			dx = vertex.x - pointX;
 			dy = vertex.y - pointY;
@@ -1144,8 +1208,11 @@ var Vertices = class Vertices {
 	* @return {boolean} True if the vertices contains point, otherwise false
 	*/
 	static contains(vertices, point) {
-		const pointX = point.x, pointY = point.y, verticesLength = vertices.length;
-		let vertex = vertices[verticesLength - 1], nextVertex;
+		const pointX = point.x;
+		const pointY = point.y;
+		const verticesLength = vertices.length;
+		let vertex = vertices[verticesLength - 1];
+		let nextVertex;
 		for (let i = 0; i < verticesLength; i++) {
 			nextVertex = vertices[i];
 			if ((pointX - vertex.x) * (nextVertex.y - vertex.y) + (pointY - vertex.y) * (vertex.x - nextVertex.x) > 0) return false;
@@ -1164,7 +1231,8 @@ var Vertices = class Vertices {
 	static scale(vertices, scaleX, scaleY, point) {
 		if (scaleX === 1 && scaleY === 1) return vertices;
 		point = point || Vertices.centre(vertices);
-		let vertex, delta;
+		let vertex;
+		let delta;
 		for (let i = 0; i < vertices.length; i++) {
 			vertex = vertices[i];
 			delta = Vector.sub(vertex, point);
@@ -1190,7 +1258,10 @@ var Vertices = class Vertices {
 		else radius = radius || [8];
 		const newVertices = [];
 		for (let i = 0; i < vertices.length; i++) {
-			const prevVertex = vertices[i - 1 >= 0 ? i - 1 : vertices.length - 1], vertex = vertices[i], nextVertex = vertices[(i + 1) % vertices.length], currentRadius = radius[i < radius.length ? i : radius.length - 1];
+			const prevVertex = vertices[i - 1 >= 0 ? i - 1 : vertices.length - 1];
+			const vertex = vertices[i];
+			const nextVertex = vertices[(i + 1) % vertices.length];
+			const currentRadius = radius[i < radius.length ? i : radius.length - 1];
 			if (currentRadius === 0) {
 				newVertices.push(vertex);
 				continue;
@@ -1203,7 +1274,10 @@ var Vertices = class Vertices {
 				x: nextVertex.y - vertex.y,
 				y: vertex.x - nextVertex.x
 			});
-			const diagonalRadius = Math.sqrt(2 * Math.pow(currentRadius, 2)), radiusVector = Vector.mult(Common.clone(prevNormal), currentRadius), midNormal = Vector.normalise(Vector.mult(Vector.add(prevNormal, nextNormal), .5)), scaledVertex = Vector.sub(vertex, Vector.mult(midNormal, diagonalRadius));
+			const diagonalRadius = Math.sqrt(2 * Math.pow(currentRadius, 2));
+			const radiusVector = Vector.mult(Common.clone(prevNormal), currentRadius);
+			const midNormal = Vector.normalise(Vector.mult(Vector.add(prevNormal, nextNormal), .5));
+			const scaledVertex = Vector.sub(vertex, Vector.mult(midNormal, diagonalRadius));
 			let precision = quality;
 			if (quality === -1) precision = Math.pow(currentRadius, .32) * 1.75;
 			precision = Common.clamp(precision, qualityMin, qualityMax);
@@ -1231,7 +1305,11 @@ var Vertices = class Vertices {
 	* @return {bool} `true` if the `vertices` are convex, `false` if not (or `null` if not computable).
 	*/
 	static isConvex(vertices) {
-		let flag = 0, i, j, k, z;
+		let flag = 0;
+		let i;
+		let j;
+		let k;
+		let z;
 		const n = vertices.length;
 		if (n < 3) return null;
 		for (i = 0; i < n; i++) {
@@ -1253,8 +1331,10 @@ var Vertices = class Vertices {
 	* @return [vertex] vertices
 	*/
 	static hull(vertices) {
-		const upper = [], lower = [];
-		let vertex, i;
+		const upper = [];
+		const lower = [];
+		let vertex;
+		let i;
 		vertices = vertices.slice(0);
 		vertices.sort((vertexA, vertexB) => {
 			const dx = vertexA.x - vertexB.x;
@@ -1275,8 +1355,8 @@ var Vertices = class Vertices {
 		return upper.concat(lower);
 	}
 };
-//#endregion
-//#region src/core/Events.js
+
+// src/core/Events.js
 /**
 * The `Matter.Events` module contains methods to fire and listen to events on other objects.
 *
@@ -1321,7 +1401,8 @@ var Events = class {
 		}
 		const names = eventNames.split(" ");
 		for (let i = 0; i < names.length; i++) {
-			const callbacks = object.events[names[i]], newCallbacks = [];
+			const callbacks = object.events[names[i]];
+			const newCallbacks = [];
 			if (callback && callbacks) {
 				for (let j = 0; j < callbacks.length; j++) if (callbacks[j] !== callback) newCallbacks.push(callbacks[j]);
 			}
@@ -1336,7 +1417,10 @@ var Events = class {
 	* @param {} event
 	*/
 	static trigger(object, eventNames, event) {
-		let names, name, callbacks, eventClone;
+		let names;
+		let name;
+		let callbacks;
+		let eventClone;
 		const events = object.events;
 		if (events && Object.keys(events).length > 0) {
 			if (!event) event = {};
@@ -1354,8 +1438,8 @@ var Events = class {
 		}
 	}
 };
-//#endregion
-//#region src/core/Sleeping.js
+
+// src/core/Sleeping.js
 /**
 * The `Matter.Sleeping` module contains methods to manage the sleeping state of bodies.
 *
@@ -1372,14 +1456,19 @@ var Sleeping = class Sleeping {
 	* @param {number} delta
 	*/
 	static update(bodies, delta) {
-		const timeScale = delta / Common._baseDelta, motionSleepThreshold = Sleeping._motionSleepThreshold;
+		const timeScale = delta / Common._baseDelta;
+		const motionSleepThreshold = Sleeping._motionSleepThreshold;
 		for (let i = 0; i < bodies.length; i++) {
-			const body = bodies[i], speed = Body.getSpeed(body), angularSpeed = Body.getAngularSpeed(body), motion = speed * speed + angularSpeed * angularSpeed;
+			const body = bodies[i];
+			const speed = Body.getSpeed(body);
+			const angularSpeed = Body.getAngularSpeed(body);
+			const motion = speed * speed + angularSpeed * angularSpeed;
 			if (body.force.x !== 0 || body.force.y !== 0) {
 				Sleeping.set(body, false);
 				continue;
 			}
-			const minMotion = Math.min(body.motion, motion), maxMotion = Math.max(body.motion, motion);
+			const minMotion = Math.min(body.motion, motion);
+			const maxMotion = Math.max(body.motion, motion);
 			body.motion = Sleeping._minBias * minMotion + (1 - Sleeping._minBias) * maxMotion;
 			if (body.sleepThreshold > 0 && body.motion < motionSleepThreshold) {
 				body.sleepCounter += 1;
@@ -1397,10 +1486,13 @@ var Sleeping = class Sleeping {
 		for (let i = 0; i < pairs.length; i++) {
 			const pair = pairs[i];
 			if (!pair.isActive) continue;
-			const collision = pair.collision, bodyA = collision.bodyA.parent, bodyB = collision.bodyB.parent;
+			const collision = pair.collision;
+			const bodyA = collision.bodyA.parent;
+			const bodyB = collision.bodyB.parent;
 			if (bodyA.isSleeping && bodyB.isSleeping || bodyA.isStatic || bodyB.isStatic) continue;
 			if (bodyA.isSleeping || bodyB.isSleeping) {
-				const sleepingBody = bodyA.isSleeping && !bodyA.isStatic ? bodyA : bodyB, movingBody = sleepingBody === bodyA ? bodyB : bodyA;
+				const sleepingBody = bodyA.isSleeping && !bodyA.isStatic ? bodyA : bodyB;
+				const movingBody = sleepingBody === bodyA ? bodyB : bodyA;
 				if (!sleepingBody.isStatic && movingBody.motion > motionSleepThreshold) Sleeping.set(sleepingBody, false);
 			}
 		}
@@ -1432,8 +1524,8 @@ var Sleeping = class Sleeping {
 		}
 	}
 };
-//#endregion
-//#region src/geometry/Bounds.js
+
+// src/geometry/Bounds.js
 /**
 * The `Matter.Bounds` module contains methods for creating and manipulating axis-aligned bounding boxes (AABB).
 *
@@ -1525,15 +1617,16 @@ var Bounds = class Bounds {
 	* @param {vector} position
 	*/
 	static shift(bounds, position) {
-		const deltaX = bounds.max.x - bounds.min.x, deltaY = bounds.max.y - bounds.min.y;
+		const deltaX = bounds.max.x - bounds.min.x;
+		const deltaY = bounds.max.y - bounds.min.y;
 		bounds.min.x = position.x;
 		bounds.max.x = position.x + deltaX;
 		bounds.min.y = position.y;
 		bounds.max.y = position.y + deltaY;
 	}
 };
-//#endregion
-//#region src/body/Body.js
+
+// src/body/Body.js
 /**
 * The `Matter.Body` module contains methods for creating and manipulating rigid bodies.
 * For creating bodies with common configurations such as rectangles, circles and other polygons see the module `Matter.Bodies`.
@@ -1708,7 +1801,9 @@ var Body = class Body {
 			"#f55a3c",
 			"#063e7b",
 			"#ececd1"
-		]), defaultStrokeStyle = body.isStatic ? "#555" : "#ccc", defaultLineWidth = body.isStatic && body.render.fillStyle === null ? 1 : 0;
+		]);
+		const defaultStrokeStyle = body.isStatic ? "#555" : "#ccc";
+		const defaultLineWidth = body.isStatic && body.render.fillStyle === null ? 1 : 0;
 		body.render.fillStyle = body.render.fillStyle || defaultFillStyle;
 		body.render.strokeStyle = body.render.strokeStyle || defaultStrokeStyle;
 		body.render.lineWidth = body.render.lineWidth || defaultLineWidth;
@@ -1917,7 +2012,8 @@ var Body = class Body {
 			let vertices = [];
 			for (i = 0; i < parts.length; i++) vertices = vertices.concat(parts[i].vertices);
 			Vertices.clockwiseSort(vertices);
-			const hull = Vertices.hull(vertices), hullCentre = Vertices.centre(hull);
+			const hull = Vertices.hull(vertices);
+			const hullCentre = Vertices.centre(hull);
 			Body.setVertices(body, hull);
 			Vertices.translate(body.vertices, hullCentre);
 		}
@@ -2121,7 +2217,10 @@ var Body = class Body {
 	static rotate(body, rotation, point, updateVelocity) {
 		if (!point) Body.setAngle(body, body.angle + rotation, updateVelocity);
 		else {
-			const cos = Math.cos(rotation), sin = Math.sin(rotation), dx = body.position.x - point.x, dy = body.position.y - point.y;
+			const cos = Math.cos(rotation);
+			const sin = Math.sin(rotation);
+			const dx = body.position.x - point.x;
+			const dy = body.position.y - point.y;
 			Body.setPosition(body, {
 				x: point.x + (dx * cos - dy * sin),
 				y: point.y + (dx * sin + dy * cos)
@@ -2138,7 +2237,8 @@ var Body = class Body {
 	* @param {vector} [point]
 	*/
 	static scale(body, scaleX, scaleY, point) {
-		let totalArea = 0, totalInertia = 0;
+		let totalArea = 0;
+		let totalInertia = 0;
 		point = point || body.position;
 		for (let i = 0; i < body.parts.length; i++) {
 			const part = body.parts[i];
@@ -2170,8 +2270,10 @@ var Body = class Body {
 				Body.setInertia(body, totalInertia);
 			}
 		}
-		if (body.circleRadius) if (scaleX === scaleY) body.circleRadius *= scaleX;
-		else body.circleRadius = null;
+		if (body.circleRadius) {
+			if (scaleX === scaleY) body.circleRadius *= scaleX;
+			else body.circleRadius = null;
+		}
 	}
 	/**
 	* Performs an update by integrating the equations of motion on the `body`.
@@ -2182,8 +2284,11 @@ var Body = class Body {
 	*/
 	static update(body, deltaTime) {
 		deltaTime = (deltaTime ?? 1e3 / 60) * body.timeScale;
-		const deltaTimeSquared = deltaTime * deltaTime, correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;
-		const frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta), velocityPrevX = (body.position.x - body.positionPrev.x) * correction, velocityPrevY = (body.position.y - body.positionPrev.y) * correction;
+		const deltaTimeSquared = deltaTime * deltaTime;
+		const correction = Body._timeCorrection ? deltaTime / (body.deltaTime || deltaTime) : 1;
+		const frictionAir = 1 - body.frictionAir * (deltaTime / Common._baseDelta);
+		const velocityPrevX = (body.position.x - body.positionPrev.x) * correction;
+		const velocityPrevY = (body.position.y - body.positionPrev.y) * correction;
 		body.velocity.x = velocityPrevX * frictionAir + body.force.x / body.mass * deltaTimeSquared;
 		body.velocity.y = velocityPrevY * frictionAir + body.force.y / body.mass * deltaTimeSquared;
 		body.positionPrev.x = body.position.x;
@@ -2215,7 +2320,8 @@ var Body = class Body {
 	* @param {body} body
 	*/
 	static updateVelocities(body) {
-		const timeScale = Body._baseDelta / body.deltaTime, bodyVelocity = body.velocity;
+		const timeScale = Body._baseDelta / body.deltaTime;
+		const bodyVelocity = body.velocity;
 		bodyVelocity.x = (body.position.x - body.positionPrev.x) * timeScale;
 		bodyVelocity.y = (body.position.y - body.positionPrev.y) * timeScale;
 		body.speed = Math.sqrt(bodyVelocity.x * bodyVelocity.x + bodyVelocity.y * bodyVelocity.y);
@@ -2268,18 +2374,22 @@ var Body = class Body {
 			}
 		};
 		for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
-			const part = body.parts[i], mass = part.mass !== Infinity ? part.mass : 1;
+			const part = body.parts[i];
+			const mass = part.mass !== Infinity ? part.mass : 1;
 			properties.mass += mass;
 			properties.area += part.area;
-			properties.inertia += part.inertia;
 			properties.centre = Vector.add(properties.centre, Vector.mult(part.position, mass));
 		}
 		properties.centre = Vector.div(properties.centre, properties.mass);
+		for (let i = body.parts.length === 1 ? 0 : 1; i < body.parts.length; i++) {
+			const part = body.parts[i];
+			properties.inertia += part.inertia + part.mass * Math.pow(Vector.magnitude(Vector.sub(part.position, properties.centre)), 2);
+		}
 		return properties;
 	}
 };
-//#endregion
-//#region src/factory/Bodies.js
+
+// src/factory/Bodies.js
 /**
 * The `Matter.Bodies` module contains factory methods for creating rigid body models
 * with commonly used body configurations (such as rectangles, circles and other polygons).
@@ -2337,7 +2447,9 @@ var Bodies = class Bodies {
 		if (slope >= 1) Common.warn("Bodies.trapezoid: slope parameter must be < 1.");
 		slope *= .5;
 		const roof = (1 - slope * 2) * width;
-		const x1 = width * slope, x2 = x1 + roof, x3 = x2 + x1;
+		const x1 = width * slope;
+		const x2 = x1 + roof;
+		const x3 = x2 + x1;
 		let verticesPath;
 		if (slope < .5) verticesPath = `L 0 0 L ${x1} ${-height} L ${x2} ${-height} L ${x3} 0`;
 		else verticesPath = `L 0 0 L ${x2} ${-height} L ${x3} 0`;
@@ -2394,10 +2506,13 @@ var Bodies = class Bodies {
 	static polygon(x, y, sides, radius, options) {
 		options = options || {};
 		if (sides < 3) return Bodies.circle(x, y, radius, options);
-		const theta = 2 * Math.PI / sides, offset = theta * .5;
+		const theta = 2 * Math.PI / sides;
+		const offset = theta * .5;
 		let path = "";
 		for (let i = 0; i < sides; i += 1) {
-			const angle = offset + i * theta, xx = Math.cos(angle) * radius, yy = Math.sin(angle) * radius;
+			const angle = offset + i * theta;
+			const xx = Math.cos(angle) * radius;
+			const yy = Math.sin(angle) * radius;
 			path += `L ${xx.toFixed(3)} ${yy.toFixed(3)} `;
 		}
 		const polygon = {
@@ -2452,7 +2567,17 @@ var Bodies = class Bodies {
 	static fromVertices(x, y, vertexSets, options, flagInternal = false, removeCollinear = .01, minimumArea = 10, removeDuplicatePoints = .01) {
 		options = options || {};
 		const decomp = Common.getDecomp();
-		let canDecomp, body, parts, isConvex, isConcave, vertices, i, j, k, v, z;
+		let canDecomp;
+		let body;
+		let parts;
+		let isConvex;
+		let isConcave;
+		let vertices;
+		let i;
+		let j;
+		let k;
+		let v;
+		let z;
 		canDecomp = Boolean(decomp && decomp.quickDecomp);
 		parts = [];
 		if (!Array.isArray(vertexSets[0])) vertexSets = [vertexSets];
@@ -2498,9 +2623,11 @@ var Bodies = class Bodies {
 				for (j = i + 1; j < parts.length; j++) {
 					const partB = parts[j];
 					if (Bounds.overlaps(partA.bounds, partB.bounds)) {
-						const pav = partA.vertices, pbv = partB.vertices;
+						const pav = partA.vertices;
+						const pbv = partB.vertices;
 						for (k = 0; k < partA.vertices.length; k++) for (z = 0; z < partB.vertices.length; z++) {
-							const da = Vector.magnitudeSquared(Vector.sub(pav[(k + 1) % pav.length], pbv[z])), db = Vector.magnitudeSquared(Vector.sub(pav[k], pbv[(z + 1) % pbv.length]));
+							const da = Vector.magnitudeSquared(Vector.sub(pav[(k + 1) % pav.length], pbv[z]));
+							const db = Vector.magnitudeSquared(Vector.sub(pav[k], pbv[(z + 1) % pbv.length]));
 							if (da < coincident_max_dist && db < coincident_max_dist) {
 								pav[k].isInternal = true;
 								pbv[z].isInternal = true;
@@ -2520,8 +2647,8 @@ var Bodies = class Bodies {
 		} else return parts[0];
 	}
 };
-//#endregion
-//#region src/collision/Contact.js
+
+// src/collision/Contact.js
 /**
 * The `Matter.Contact` module contains methods for creating and manipulating collision contacts.
 *
@@ -2549,8 +2676,8 @@ var Contact = class Contact {
 		return new Contact(vertex);
 	}
 };
-//#endregion
-//#region src/collision/Pair.js
+
+// src/collision/Pair.js
 /**
 * The `Matter.Pair` module contains methods for creating and manipulating collision pairs.
 *
@@ -2565,7 +2692,8 @@ var Pair = class Pair {
 	* @return {pair} A new pair
 	*/
 	constructor(collision, timestamp) {
-		const bodyA = collision.bodyA, bodyB = collision.bodyB;
+		const bodyA = collision.bodyA;
+		const bodyB = collision.bodyB;
 		this.id = Pair.id(bodyA, bodyB);
 		this.bodyA = bodyA;
 		this.bodyB = bodyB;
@@ -2602,7 +2730,11 @@ var Pair = class Pair {
 	* @param {number} timestamp
 	*/
 	static update(pair, collision, timestamp) {
-		const supports = collision.supports, supportCount = collision.supportCount, contacts = pair.contacts, parentA = collision.parentA, parentB = collision.parentB;
+		const supports = collision.supports;
+		const supportCount = collision.supportCount;
+		const contacts = pair.contacts;
+		const parentA = collision.parentA;
+		const parentB = collision.parentB;
 		pair.isActive = true;
 		pair.timeUpdated = timestamp;
 		pair.collision = collision;
@@ -2614,8 +2746,10 @@ var Pair = class Pair {
 		pair.slop = parentA.slop > parentB.slop ? parentA.slop : parentB.slop;
 		pair.contactCount = supportCount;
 		collision.pair = pair;
-		const supportA = supports[0], supportB = supports[1];
-		let contactA = contacts[0], contactB = contacts[1];
+		const supportA = supports[0];
+		const supportB = supports[1];
+		let contactA = contacts[0];
+		let contactB = contacts[1];
 		if (contactB.vertex === supportA || contactA.vertex === supportB) {
 			contacts[1] = contactA;
 			contacts[0] = contactA = contactB;
@@ -2651,8 +2785,8 @@ var Pair = class Pair {
 		return bodyA.id < bodyB.id ? `${bodyA.id.toString(36)}:${bodyB.id.toString(36)}` : `${bodyB.id.toString(36)}:${bodyA.id.toString(36)}`;
 	}
 };
-//#endregion
-//#region src/collision/Collision.js
+
+// src/collision/Collision.js
 /**
 * The `Matter.Collision` module contains methods for detecting collisions between a given pair of bodies.
 *
@@ -2740,8 +2874,16 @@ var Collision = class Collision {
 		let minOverlap;
 		if (_overlapAB.overlap < _overlapBA.overlap) minOverlap = _overlapAB;
 		else minOverlap = _overlapBA;
-		const normal = collision.normal, tangent = collision.tangent, penetration = collision.penetration, supports = collision.supports, depth = minOverlap.overlap, minAxis = minOverlap.axis, deltaX = bodyB.position.x - bodyA.position.x, deltaY = bodyB.position.y - bodyA.position.y;
-		let normalX = minAxis.x, normalY = minAxis.y;
+		const normal = collision.normal;
+		const tangent = collision.tangent;
+		const penetration = collision.penetration;
+		const supports = collision.supports;
+		const depth = minOverlap.overlap;
+		const minAxis = minOverlap.axis;
+		const deltaX = bodyB.position.x - bodyA.position.x;
+		const deltaY = bodyB.position.y - bodyA.position.y;
+		let normalX = minAxis.x;
+		let normalY = minAxis.y;
 		if (normalX * deltaX + normalY * deltaY >= 0) {
 			normalX = -normalX;
 			normalY = -normalY;
@@ -2776,11 +2918,29 @@ var Collision = class Collision {
 	* @param {axes} axes
 	*/
 	static _overlapAxes(result, verticesA, verticesB, axes) {
-		const verticesALength = verticesA.length, verticesBLength = verticesB.length, verticesAX = verticesA[0].x, verticesAY = verticesA[0].y, verticesBX = verticesB[0].x, verticesBY = verticesB[0].y, axesLength = axes.length;
-		let overlapMin = Number.MAX_VALUE, overlapAxisNumber = 0, overlap, overlapAB, overlapBA, dot, i, j;
+		const verticesALength = verticesA.length;
+		const verticesBLength = verticesB.length;
+		const verticesAX = verticesA[0].x;
+		const verticesAY = verticesA[0].y;
+		const verticesBX = verticesB[0].x;
+		const verticesBY = verticesB[0].y;
+		const axesLength = axes.length;
+		let overlapMin = Number.MAX_VALUE;
+		let overlapAxisNumber = 0;
+		let overlap;
+		let overlapAB;
+		let overlapBA;
+		let dot;
+		let i;
+		let j;
 		for (i = 0; i < axesLength; i++) {
-			const axis = axes[i], axisX = axis.x, axisY = axis.y;
-			let minA = verticesAX * axisX + verticesAY * axisY, minB = verticesBX * axisX + verticesBY * axisY, maxA = minA, maxB = minB;
+			const axis = axes[i];
+			const axisX = axis.x;
+			const axisY = axis.y;
+			let minA = verticesAX * axisX + verticesAY * axisY;
+			let minB = verticesBX * axisX + verticesBY * axisY;
+			let maxA = minA;
+			let maxB = minB;
 			for (j = 1; j < verticesALength; j += 1) {
 				dot = verticesA[j].x * axisX + verticesA[j].y * axisY;
 				if (dot > maxA) maxA = dot;
@@ -2814,9 +2974,19 @@ var Collision = class Collision {
 	* @return [vector]
 	*/
 	static _findSupports(bodyA, bodyB, normal, direction) {
-		const vertices = bodyB.vertices, verticesLength = vertices.length, bodyAPositionX = bodyA.position.x, bodyAPositionY = bodyA.position.y, normalX = normal.x * direction, normalY = normal.y * direction;
-		let vertexA = vertices[0], vertexB = vertexA, nearestDistance = normalX * (bodyAPositionX - vertexB.x) + normalY * (bodyAPositionY - vertexB.y), vertexC, distance, j;
-		for (j = 1; j < verticesLength; j += 1) {
+		const vertices = bodyB.vertices;
+		const verticesLength = vertices.length;
+		const bodyAPositionX = bodyA.position.x;
+		const bodyAPositionY = bodyA.position.y;
+		const normalX = normal.x * direction;
+		const normalY = normal.y * direction;
+		let vertexA = vertices[0];
+		let vertexB = vertexA;
+		let nearestDistance = normalX * (bodyAPositionX - vertexB.x) + normalY * (bodyAPositionY - vertexB.y);
+		let vertexC;
+		let distance;
+		let j = 1;
+		for (; j < verticesLength; j += 1) {
 			vertexB = vertices[j];
 			distance = normalX * (bodyAPositionX - vertexB.x) + normalY * (bodyAPositionY - vertexB.y);
 			if (distance < nearestDistance) {
@@ -2837,8 +3007,8 @@ var Collision = class Collision {
 		return _supports;
 	}
 };
-//#endregion
-//#region src/body/Composite.js
+
+// src/body/Composite.js
 /**
 * A composite is a collection of `Matter.Body`, `Matter.Constraint` and other `Matter.Composite` objects.
 *
@@ -2937,9 +3107,7 @@ var Composite = class Composite {
 				case "composite":
 					Composite.addComposite(composite, obj);
 					break;
-				case "mouseConstraint":
-					Composite.addConstraint(composite, obj.constraint);
-					break;
+				case "mouseConstraint": Composite.addConstraint(composite, obj.constraint);
 			}
 		}
 		Events.trigger(composite, "afterAdd", { object });
@@ -2970,9 +3138,7 @@ var Composite = class Composite {
 				case "composite":
 					Composite.removeComposite(composite, obj, deep);
 					break;
-				case "mouseConstraint":
-					Composite.removeConstraint(composite, obj.constraint);
-					break;
+				case "mouseConstraint": Composite.removeConstraint(composite, obj.constraint);
 			}
 		}
 		Events.trigger(composite, "afterRemove", { object });
@@ -3174,7 +3340,8 @@ var Composite = class Composite {
 	* @return {object} The requested object, if found
 	*/
 	static get(composite, id, type) {
-		let objects, object;
+		let objects;
+		let object;
 		switch (type) {
 			case "body":
 				objects = Composite.allBodies(composite);
@@ -3182,9 +3349,7 @@ var Composite = class Composite {
 			case "constraint":
 				objects = Composite.allConstraints(composite);
 				break;
-			case "composite":
-				objects = Composite.allComposites(composite).concat(composite);
-				break;
+			case "composite": objects = Composite.allComposites(composite).concat(composite);
 		}
 		if (!objects) return null;
 		object = objects.filter((object) => object.id.toString() === id.toString());
@@ -3236,9 +3401,13 @@ var Composite = class Composite {
 	* @param {bool} [recursive=true]
 	*/
 	static rotate(composite, rotation, point, recursive) {
-		const cos = Math.cos(rotation), sin = Math.sin(rotation), bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
+		const cos = Math.cos(rotation);
+		const sin = Math.sin(rotation);
+		const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
 		for (let i = 0; i < bodies.length; i++) {
-			const body = bodies[i], dx = body.position.x - point.x, dy = body.position.y - point.y;
+			const body = bodies[i];
+			const dx = body.position.x - point.x;
+			const dy = body.position.y - point.y;
 			Body.setPosition(body, {
 				x: point.x + (dx * cos - dy * sin),
 				y: point.y + (dx * sin + dy * cos)
@@ -3259,7 +3428,9 @@ var Composite = class Composite {
 	static scale(composite, scaleX, scaleY, point, recursive) {
 		const bodies = recursive ? Composite.allBodies(composite) : composite.bodies;
 		for (let i = 0; i < bodies.length; i++) {
-			const body = bodies[i], dx = body.position.x - point.x, dy = body.position.y - point.y;
+			const body = bodies[i];
+			const dx = body.position.x - point.x;
+			const dy = body.position.y - point.y;
 			Body.setPosition(body, {
 				x: point.x + dx * scaleX,
 				y: point.y + dy * scaleY
@@ -3275,7 +3446,8 @@ var Composite = class Composite {
 	* @returns {bounds} The composite bounds.
 	*/
 	static bounds(composite) {
-		const bodies = Composite.allBodies(composite), vertices = [];
+		const bodies = Composite.allBodies(composite);
+		const vertices = [];
 		for (let i = 0; i < bodies.length; i += 1) {
 			const body = bodies[i];
 			vertices.push(body.bounds.min, body.bounds.max);
@@ -3283,8 +3455,8 @@ var Composite = class Composite {
 		return Bounds.create(vertices);
 	}
 };
-//#endregion
-//#region src/constraint/Constraint.js
+
+// src/constraint/Constraint.js
 /**
 * The `Matter.Constraint` module contains methods for creating and manipulating constraints.
 * Constraints are used for specifying that a fixed distance must be maintained between two bodies (or a body and a fixed world-space position).
@@ -3308,7 +3480,7 @@ var Constraint = class Constraint {
 	* @param {} options
 	*/
 	constructor(options = {}) {
-		Object.assign(this, options);
+		Common.extend(this, false, options);
 		if (this.bodyA && !this.pointA) this.pointA = {
 			x: 0,
 			y: 0
@@ -3329,7 +3501,7 @@ var Constraint = class Constraint {
 		this.angularStiffness = this.angularStiffness || 0;
 		this.angleA = this.bodyA ? this.bodyA.angle : this.angleA;
 		this.angleB = this.bodyB ? this.bodyB.angle : this.angleB;
-		this.plugin = {};
+		this.plugin = this.plugin ?? {};
 		const render = {
 			visible: true,
 			lineWidth: 2,
@@ -3365,7 +3537,8 @@ var Constraint = class Constraint {
 	*/
 	static preSolveAll(bodies) {
 		for (let i = 0; i < bodies.length; i += 1) {
-			const body = bodies[i], impulse = body.constraintImpulse;
+			const body = bodies[i];
+			const impulse = body.constraintImpulse;
 			if (body.isStatic || impulse.x === 0 && impulse.y === 0 && impulse.angle === 0) continue;
 			body.position.x += impulse.x;
 			body.position.y += impulse.y;
@@ -3382,11 +3555,15 @@ var Constraint = class Constraint {
 	static solveAll(constraints, delta) {
 		const timeScale = Common.clamp(delta / Common._baseDelta, 0, 1);
 		for (let i = 0; i < constraints.length; i += 1) {
-			const constraint = constraints[i], fixedA = !constraint.bodyA || constraint.bodyA && constraint.bodyA.isStatic, fixedB = !constraint.bodyB || constraint.bodyB && constraint.bodyB.isStatic;
+			const constraint = constraints[i];
+			const fixedA = !constraint.bodyA || constraint.bodyA && constraint.bodyA.isStatic;
+			const fixedB = !constraint.bodyB || constraint.bodyB && constraint.bodyB.isStatic;
 			if (fixedA || fixedB) Constraint.solve(constraints[i], timeScale);
 		}
 		for (let i = 0; i < constraints.length; i += 1) {
-			const constraint = constraints[i], fixedA = !constraint.bodyA || constraint.bodyA && constraint.bodyA.isStatic, fixedB = !constraint.bodyB || constraint.bodyB && constraint.bodyB.isStatic;
+			const constraint = constraints[i];
+			const fixedA = !constraint.bodyA || constraint.bodyA && constraint.bodyA.isStatic;
+			const fixedB = !constraint.bodyB || constraint.bodyB && constraint.bodyB.isStatic;
 			if (!fixedA && !fixedB) Constraint.solve(constraints[i], timeScale);
 		}
 	}
@@ -3398,7 +3575,10 @@ var Constraint = class Constraint {
 	* @param {number} timeScale
 	*/
 	static solve(constraint, timeScale) {
-		const bodyA = constraint.bodyA, bodyB = constraint.bodyB, pointA = constraint.pointA, pointB = constraint.pointB;
+		const bodyA = constraint.bodyA;
+		const bodyB = constraint.bodyB;
+		const pointA = constraint.pointA;
+		const pointB = constraint.pointB;
 		if (!bodyA && !bodyB) return;
 		if (bodyA && !bodyA.isStatic) {
 			Vector.rotate(pointA, bodyA.angle - constraint.angleA, pointA);
@@ -3408,15 +3588,25 @@ var Constraint = class Constraint {
 			Vector.rotate(pointB, bodyB.angle - constraint.angleB, pointB);
 			constraint.angleB = bodyB.angle;
 		}
-		let pointAWorld = pointA, pointBWorld = pointB;
+		let pointAWorld = pointA;
+		let pointBWorld = pointB;
 		if (bodyA) pointAWorld = Vector.add(bodyA.position, pointA);
 		if (bodyB) pointBWorld = Vector.add(bodyB.position, pointB);
 		if (!pointAWorld || !pointBWorld) return;
 		const delta = Vector.sub(pointAWorld, pointBWorld);
 		let currentLength = Vector.magnitude(delta);
 		if (currentLength < Constraint._minLength) currentLength = Constraint._minLength;
-		const difference = (currentLength - constraint.length) / currentLength, stiffness = constraint.stiffness >= 1 || constraint.length === 0 ? constraint.stiffness * timeScale : constraint.stiffness * timeScale * timeScale, damping = constraint.damping * timeScale, force = Vector.mult(delta, difference * stiffness), massTotal = (bodyA ? bodyA.inverseMass : 0) + (bodyB ? bodyB.inverseMass : 0), resistanceTotal = massTotal + ((bodyA ? bodyA.inverseInertia : 0) + (bodyB ? bodyB.inverseInertia : 0));
-		let torque, share, normal, normalVelocity, relativeVelocity;
+		const difference = (currentLength - constraint.length) / currentLength;
+		const stiffness = constraint.stiffness >= 1 || constraint.length === 0 ? constraint.stiffness * timeScale : constraint.stiffness * timeScale * timeScale;
+		const damping = constraint.damping * timeScale;
+		const force = Vector.mult(delta, difference * stiffness);
+		const massTotal = (bodyA ? bodyA.inverseMass : 0) + (bodyB ? bodyB.inverseMass : 0);
+		const resistanceTotal = massTotal + ((bodyA ? bodyA.inverseInertia : 0) + (bodyB ? bodyB.inverseInertia : 0));
+		let torque;
+		let share;
+		let normal;
+		let normalVelocity;
+		let relativeVelocity;
 		if (damping > 0) {
 			const zero = Vector.create();
 			normal = Vector.div(delta, currentLength);
@@ -3460,7 +3650,8 @@ var Constraint = class Constraint {
 	*/
 	static postSolveAll(bodies) {
 		for (let i = 0; i < bodies.length; i++) {
-			const body = bodies[i], impulse = body.constraintImpulse;
+			const body = bodies[i];
+			const impulse = body.constraintImpulse;
 			if (body.isStatic || impulse.x === 0 && impulse.y === 0 && impulse.angle === 0) continue;
 			Sleeping.set(body, false);
 			for (let j = 0; j < body.parts.length; j++) {
@@ -3524,8 +3715,8 @@ var Constraint = class Constraint {
 		return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 	}
 };
-//#endregion
-//#region src/factory/Composites.js
+
+// src/factory/Composites.js
 /**
 * The `Matter.Composites` module contains factory methods for creating composite bodies
 * with commonly used configurations (such as stacks and chains).
@@ -3550,13 +3741,17 @@ var Composites = class Composites {
 	*/
 	static stack(x, y, columns, rows, columnGap, rowGap, callback) {
 		const stack = Composite.create({ label: "Stack" });
-		let currentX = x, currentY = y, lastBody, i = 0;
+		let currentX = x;
+		let currentY = y;
+		let lastBody;
+		let i = 0;
 		for (let row = 0; row < rows; row++) {
 			let maxHeight = 0;
 			for (let column = 0; column < columns; column++) {
 				const body = callback(currentX, currentY, column, row, lastBody, i);
 				if (body) {
-					const bodyHeight = body.bounds.max.y - body.bounds.min.y, bodyWidth = body.bounds.max.x - body.bounds.min.x;
+					const bodyHeight = body.bounds.max.y - body.bounds.min.y;
+					const bodyWidth = body.bounds.max.x - body.bounds.min.x;
 					if (bodyHeight > maxHeight) maxHeight = bodyHeight;
 					Body.translate(body, {
 						x: bodyWidth * .5,
@@ -3587,7 +3782,12 @@ var Composites = class Composites {
 	static chain(composite, xOffsetA, yOffsetA, xOffsetB, yOffsetB, options) {
 		const bodies = composite.bodies;
 		for (let i = 1; i < bodies.length; i++) {
-			const bodyA = bodies[i - 1], bodyB = bodies[i], bodyAHeight = bodyA.bounds.max.y - bodyA.bounds.min.y, bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x, bodyBHeight = bodyB.bounds.max.y - bodyB.bounds.min.y, bodyBWidth = bodyB.bounds.max.x - bodyB.bounds.min.x;
+			const bodyA = bodies[i - 1];
+			const bodyB = bodies[i];
+			const bodyAHeight = bodyA.bounds.max.y - bodyA.bounds.min.y;
+			const bodyAWidth = bodyA.bounds.max.x - bodyA.bounds.min.x;
+			const bodyBHeight = bodyB.bounds.max.y - bodyB.bounds.min.y;
+			const bodyBWidth = bodyB.bounds.max.x - bodyB.bounds.min.x;
 			const defaults = {
 				bodyA,
 				pointA: {
@@ -3618,7 +3818,11 @@ var Composites = class Composites {
 	*/
 	static mesh(composite, columns, rows, crossBrace, options) {
 		const bodies = composite.bodies;
-		let row, col, bodyA, bodyB, bodyC;
+		let row;
+		let col;
+		let bodyA;
+		let bodyB;
+		let bodyC;
 		for (row = 0; row < rows; row++) {
 			for (col = 1; col < columns; col++) {
 				bodyA = bodies[col - 1 + row * columns];
@@ -3669,10 +3873,12 @@ var Composites = class Composites {
 	*/
 	static pyramid(x, y, columns, rows, columnGap, rowGap, callback) {
 		return Composites.stack(x, y, columns, rows, columnGap, rowGap, (stackX, stackY, column, row, lastBody, i) => {
-			const actualRows = Math.min(rows, Math.ceil(columns / 2)), lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
+			const actualRows = Math.min(rows, Math.ceil(columns / 2));
+			const lastBodyWidth = lastBody ? lastBody.bounds.max.x - lastBody.bounds.min.x : 0;
 			if (row > actualRows) return;
 			row = actualRows - row;
-			const start = row, end = columns - 1 - row;
+			const start = row;
+			const end = columns - 1 - row;
 			if (column < start || column > end) return;
 			if (i === 1) Body.translate(lastBody, {
 				x: (column + (columns % 2 === 1 ? 1 : -1)) * lastBodyWidth,
@@ -3682,8 +3888,8 @@ var Composites = class Composites {
 		});
 	}
 };
-//#endregion
-//#region src/collision/Detector.js
+
+// src/collision/Detector.js
 /**
 * The `Matter.Detector` module contains methods for efficiently detecting collisions between a list of bodies using a broadphase algorithm.
 *
@@ -3740,13 +3946,27 @@ var Detector = class Detector {
 	* @return {collision[]} collisions
 	*/
 	static collisions(detector) {
-		const pairs = detector.pairs, bodies = detector.bodies, bodiesLength = bodies.length, canCollide = Detector.canCollide, collides = Collision.collides, collisions = detector.collisions;
-		let collisionIndex = 0, i, j;
+		const pairs = detector.pairs;
+		const bodies = detector.bodies;
+		const bodiesLength = bodies.length;
+		const canCollide = Detector.canCollide;
+		const collides = Collision.collides;
+		const collisions = detector.collisions;
+		let collisionIndex = 0;
+		let i;
+		let j;
 		bodies.sort(Detector._compareBoundsX);
 		for (i = 0; i < bodiesLength; i++) {
-			const bodyA = bodies[i], boundXMax = bodyA.bounds.max.x, boundYMax = bodyA.bounds.max.y, boundYMin = bodyA.bounds.min.y, bodyAStatic = bodyA.isStatic || bodyA.isSleeping, partsALength = bodyA.parts.length, partsASingle = partsALength === 1;
+			const bodyA = bodies[i];
+			const boundXMax = bodyA.bounds.max.x;
+			const boundYMax = bodyA.bounds.max.y;
+			const boundYMin = bodyA.bounds.min.y;
+			const bodyAStatic = bodyA.isStatic || bodyA.isSleeping;
+			const partsALength = bodyA.parts.length;
+			const partsASingle = partsALength === 1;
 			for (j = i + 1; j < bodiesLength; j++) {
-				const bodyB = bodies[j], boundsB = bodyB.bounds;
+				const bodyB = bodies[j];
+				const boundsB = bodyB.bounds;
 				if (boundsB.min.x > boundXMax) break;
 				if (boundYMax < boundsB.min.y || boundYMin > boundsB.max.y) continue;
 				if (bodyAStatic && (bodyB.isStatic || bodyB.isSleeping)) continue;
@@ -3756,11 +3976,14 @@ var Detector = class Detector {
 					const collision = collides(bodyA, bodyB, pairs);
 					if (collision) collisions[collisionIndex++] = collision;
 				} else {
-					const partsAStart = partsALength > 1 ? 1 : 0, partsBStart = partsBLength > 1 ? 1 : 0;
+					const partsAStart = partsALength > 1 ? 1 : 0;
+					const partsBStart = partsBLength > 1 ? 1 : 0;
 					for (let k = partsAStart; k < partsALength; k++) {
-						const partA = bodyA.parts[k], boundsA = partA.bounds;
+						const partA = bodyA.parts[k];
+						const boundsA = partA.bounds;
 						for (let z = partsBStart; z < partsBLength; z++) {
-							const partB = bodyB.parts[z], boundsB = partB.bounds;
+							const partB = bodyB.parts[z];
+							const boundsB = partB.bounds;
 							if (boundsA.min.x > boundsB.max.x || boundsA.max.x < boundsB.min.x || boundsA.max.y < boundsB.min.y || boundsA.min.y > boundsB.max.y) continue;
 							const collision = collides(partA, partB, pairs);
 							if (collision) collisions[collisionIndex++] = collision;
@@ -3797,8 +4020,8 @@ var Detector = class Detector {
 		return bodyA.bounds.min.x - bodyB.bounds.min.x;
 	}
 };
-//#endregion
-//#region src/collision/Resolver.js
+
+// src/collision/Resolver.js
 /**
 * The `Matter.Resolver` module contains methods for resolving collision pairs.
 *
@@ -3817,7 +4040,9 @@ var Resolver = class Resolver {
 	* @param {pair[]} pairs
 	*/
 	static preSolvePosition(pairs) {
-		let i, pair, contactCount;
+		let i;
+		let pair;
+		let contactCount;
 		const pairsLength = pairs.length;
 		for (i = 0; i < pairsLength; i++) {
 			pair = pairs[i];
@@ -3835,8 +4060,17 @@ var Resolver = class Resolver {
 	* @param {number} [damping=1]
 	*/
 	static solvePosition(pairs, delta, damping) {
-		let i, pair, collision, bodyA, bodyB, normal, contactShare, positionImpulse;
-		const positionDampen = Resolver._positionDampen * (damping || 1), slopDampen = Common.clamp(delta / Common._baseDelta, 0, 1), pairsLength = pairs.length;
+		let i;
+		let pair;
+		let collision;
+		let bodyA;
+		let bodyB;
+		let normal;
+		let contactShare;
+		let positionImpulse;
+		const positionDampen = Resolver._positionDampen * (damping || 1);
+		const slopDampen = Common.clamp(delta / Common._baseDelta, 0, 1);
+		const pairsLength = pairs.length;
 		for (i = 0; i < pairsLength; i++) {
 			pair = pairs[i];
 			if (!pair.isActive || pair.isSensor) continue;
@@ -3873,9 +4107,16 @@ var Resolver = class Resolver {
 	* @param {body[]} bodies
 	*/
 	static postSolvePosition(bodies) {
-		const positionWarming = Resolver._positionWarming, bodiesLength = bodies.length, verticesTranslate = Vertices.translate, boundsUpdate = Bounds.update;
+		const positionWarming = Resolver._positionWarming;
+		const bodiesLength = bodies.length;
+		const verticesTranslate = Vertices.translate;
+		const boundsUpdate = Bounds.update;
 		for (let i = 0; i < bodiesLength; i++) {
-			const body = bodies[i], positionImpulse = body.positionImpulse, positionImpulseX = positionImpulse.x, positionImpulseY = positionImpulse.y, velocity = body.velocity;
+			const body = bodies[i];
+			const positionImpulse = body.positionImpulse;
+			const positionImpulseX = positionImpulse.x;
+			const positionImpulseY = positionImpulse.y;
+			const velocity = body.velocity;
 			body.totalContacts = 0;
 			if (positionImpulseX !== 0 || positionImpulseY !== 0) {
 				for (let j = 0; j < body.parts.length; j++) {
@@ -3904,15 +4145,26 @@ var Resolver = class Resolver {
 	*/
 	static preSolveVelocity(pairs) {
 		const pairsLength = pairs.length;
-		let i, j;
+		let i;
+		let j;
 		for (i = 0; i < pairsLength; i++) {
 			const pair = pairs[i];
 			if (!pair.isActive || pair.isSensor) continue;
-			const contacts = pair.contacts, contactCount = pair.contactCount, collision = pair.collision, bodyA = collision.parentA, bodyB = collision.parentB, normal = collision.normal, tangent = collision.tangent;
+			const contacts = pair.contacts;
+			const contactCount = pair.contactCount;
+			const collision = pair.collision;
+			const bodyA = collision.parentA;
+			const bodyB = collision.parentB;
+			const normal = collision.normal;
+			const tangent = collision.tangent;
 			for (j = 0; j < contactCount; j++) {
-				const contact = contacts[j], contactVertex = contact.vertex, normalImpulse = contact.normalImpulse, tangentImpulse = contact.tangentImpulse;
+				const contact = contacts[j];
+				const contactVertex = contact.vertex;
+				const normalImpulse = contact.normalImpulse;
+				const tangentImpulse = contact.tangentImpulse;
 				if (normalImpulse !== 0 || tangentImpulse !== 0) {
-					const impulseX = normal.x * normalImpulse + tangent.x * tangentImpulse, impulseY = normal.y * normalImpulse + tangent.y * tangentImpulse;
+					const impulseX = normal.x * normalImpulse + tangent.x * tangentImpulse;
+					const impulseY = normal.y * normalImpulse + tangent.y * tangentImpulse;
 					if (!(bodyA.isStatic || bodyA.isSleeping)) {
 						bodyA.positionPrev.x += impulseX * bodyA.inverseMass;
 						bodyA.positionPrev.y += impulseY * bodyA.inverseMass;
@@ -3934,19 +4186,53 @@ var Resolver = class Resolver {
 	* @param {number} delta
 	*/
 	static solveVelocity(pairs, delta) {
-		const timeScale = delta / Common._baseDelta, timeScaleCubed = timeScale * timeScale * timeScale, restingThresh = -Resolver._restingThresh * timeScale, restingThreshTangent = Resolver._restingThreshTangent, frictionNormalMultiplier = Resolver._frictionNormalMultiplier * timeScale, frictionMaxStatic = Resolver._frictionMaxStatic, pairsLength = pairs.length;
-		let tangentImpulse, maxFriction, i, j;
+		const timeScale = delta / Common._baseDelta;
+		const timeScaleCubed = timeScale * timeScale * timeScale;
+		const restingThresh = -Resolver._restingThresh * timeScale;
+		const restingThreshTangent = Resolver._restingThreshTangent;
+		const frictionNormalMultiplier = Resolver._frictionNormalMultiplier * timeScale;
+		const frictionMaxStatic = Resolver._frictionMaxStatic;
+		const pairsLength = pairs.length;
+		let tangentImpulse;
+		let maxFriction;
+		let i;
+		let j;
 		for (i = 0; i < pairsLength; i++) {
 			const pair = pairs[i];
 			if (!pair.isActive || pair.isSensor) continue;
-			const collision = pair.collision, bodyA = collision.parentA, bodyB = collision.parentB, normalX = collision.normal.x, normalY = collision.normal.y, tangentX = collision.tangent.x, tangentY = collision.tangent.y, inverseMassTotal = pair.inverseMass, friction = pair.friction * pair.frictionStatic * frictionNormalMultiplier, contacts = pair.contacts, contactCount = pair.contactCount, contactShare = 1 / contactCount;
-			const bodyAVelocityX = bodyA.position.x - bodyA.positionPrev.x, bodyAVelocityY = bodyA.position.y - bodyA.positionPrev.y, bodyAAngularVelocity = bodyA.angle - bodyA.anglePrev, bodyBVelocityX = bodyB.position.x - bodyB.positionPrev.x, bodyBVelocityY = bodyB.position.y - bodyB.positionPrev.y, bodyBAngularVelocity = bodyB.angle - bodyB.anglePrev;
+			const collision = pair.collision;
+			const bodyA = collision.parentA;
+			const bodyB = collision.parentB;
+			const normalX = collision.normal.x;
+			const normalY = collision.normal.y;
+			const tangentX = collision.tangent.x;
+			const tangentY = collision.tangent.y;
+			const inverseMassTotal = pair.inverseMass;
+			const friction = pair.friction * pair.frictionStatic * frictionNormalMultiplier;
+			const contacts = pair.contacts;
+			const contactCount = pair.contactCount;
+			const contactShare = 1 / contactCount;
+			const bodyAVelocityX = bodyA.position.x - bodyA.positionPrev.x;
+			const bodyAVelocityY = bodyA.position.y - bodyA.positionPrev.y;
+			const bodyAAngularVelocity = bodyA.angle - bodyA.anglePrev;
+			const bodyBVelocityX = bodyB.position.x - bodyB.positionPrev.x;
+			const bodyBVelocityY = bodyB.position.y - bodyB.positionPrev.y;
+			const bodyBAngularVelocity = bodyB.angle - bodyB.anglePrev;
 			for (j = 0; j < contactCount; j++) {
-				const contact = contacts[j], contactVertex = contact.vertex;
-				const offsetAX = contactVertex.x - bodyA.position.x, offsetAY = contactVertex.y - bodyA.position.y, offsetBX = contactVertex.x - bodyB.position.x, offsetBY = contactVertex.y - bodyB.position.y;
-				const velocityPointAX = bodyAVelocityX - offsetAY * bodyAAngularVelocity, velocityPointAY = bodyAVelocityY + offsetAX * bodyAAngularVelocity, velocityPointBX = bodyBVelocityX - offsetBY * bodyBAngularVelocity, velocityPointBY = bodyBVelocityY + offsetBX * bodyBAngularVelocity;
-				const relativeVelocityX = velocityPointAX - velocityPointBX, relativeVelocityY = velocityPointAY - velocityPointBY;
-				const normalVelocity = normalX * relativeVelocityX + normalY * relativeVelocityY, tangentVelocity = tangentX * relativeVelocityX + tangentY * relativeVelocityY;
+				const contact = contacts[j];
+				const contactVertex = contact.vertex;
+				const offsetAX = contactVertex.x - bodyA.position.x;
+				const offsetAY = contactVertex.y - bodyA.position.y;
+				const offsetBX = contactVertex.x - bodyB.position.x;
+				const offsetBY = contactVertex.y - bodyB.position.y;
+				const velocityPointAX = bodyAVelocityX - offsetAY * bodyAAngularVelocity;
+				const velocityPointAY = bodyAVelocityY + offsetAX * bodyAAngularVelocity;
+				const velocityPointBX = bodyBVelocityX - offsetBY * bodyBAngularVelocity;
+				const velocityPointBY = bodyBVelocityY + offsetBX * bodyBAngularVelocity;
+				const relativeVelocityX = velocityPointAX - velocityPointBX;
+				const relativeVelocityY = velocityPointAY - velocityPointBY;
+				const normalVelocity = normalX * relativeVelocityX + normalY * relativeVelocityY;
+				const tangentVelocity = tangentX * relativeVelocityX + tangentY * relativeVelocityY;
 				const normalOverlap = pair.separation + normalVelocity;
 				let normalForce = Math.min(normalOverlap, 1);
 				normalForce = normalOverlap < 0 ? 0 : normalForce;
@@ -3960,7 +4246,9 @@ var Resolver = class Resolver {
 					tangentImpulse = tangentVelocity;
 					maxFriction = frictionMaxStatic;
 				}
-				const oAcN = offsetAX * normalY - offsetAY * normalX, oBcN = offsetBX * normalY - offsetBY * normalX, share = contactShare / (inverseMassTotal + bodyA.inverseInertia * oAcN * oAcN + bodyB.inverseInertia * oBcN * oBcN);
+				const oAcN = offsetAX * normalY - offsetAY * normalX;
+				const oBcN = offsetBX * normalY - offsetBY * normalX;
+				const share = contactShare / (inverseMassTotal + bodyA.inverseInertia * oAcN * oAcN + bodyB.inverseInertia * oBcN * oBcN);
 				let normalImpulse = (1 + pair.restitution) * normalVelocity * share;
 				tangentImpulse *= share;
 				if (normalVelocity < restingThresh) contact.normalImpulse = 0;
@@ -3978,7 +4266,8 @@ var Resolver = class Resolver {
 					if (contact.tangentImpulse > maxFriction) contact.tangentImpulse = maxFriction;
 					tangentImpulse = contact.tangentImpulse - contactTangentImpulse;
 				}
-				const impulseX = normalX * normalImpulse + tangentX * tangentImpulse, impulseY = normalY * normalImpulse + tangentY * tangentImpulse;
+				const impulseX = normalX * normalImpulse + tangentX * tangentImpulse;
+				const impulseY = normalY * normalImpulse + tangentY * tangentImpulse;
 				if (!(bodyA.isStatic || bodyA.isSleeping)) {
 					bodyA.positionPrev.x += impulseX * bodyA.inverseMass;
 					bodyA.positionPrev.y += impulseY * bodyA.inverseMass;
@@ -3993,8 +4282,8 @@ var Resolver = class Resolver {
 		}
 	}
 };
-//#endregion
-//#region src/collision/Pairs.js
+
+// src/collision/Pairs.js
 /**
 * The `Matter.Pairs` module contains methods for creating and manipulating collision pair sets.
 *
@@ -4033,9 +4322,24 @@ var Pairs = class Pairs {
 	* @param {number} timestamp
 	*/
 	static update(pairs, collisions, timestamp) {
-		const pairUpdate = Pair.update, pairCreate = Pair.create, pairSetActive = Pair.setActive, pairsTable = pairs.table, pairsList = pairs.list, collisionStart = pairs.collisionStart, collisionEnd = pairs.collisionEnd, collisionActive = pairs.collisionActive, collisionsLength = collisions.length;
-		let pairsListLength = pairsList.length, pairsListIndex = pairsListLength, collisionStartIndex = 0, collisionEndIndex = 0, collisionActiveIndex = 0, collision, pair, i;
-		for (i = 0; i < collisionsLength; i++) {
+		const pairUpdate = Pair.update;
+		const pairCreate = Pair.create;
+		const pairSetActive = Pair.setActive;
+		const pairsTable = pairs.table;
+		const pairsList = pairs.list;
+		const collisionStart = pairs.collisionStart;
+		const collisionEnd = pairs.collisionEnd;
+		const collisionActive = pairs.collisionActive;
+		const collisionsLength = collisions.length;
+		let pairsListLength = pairsList.length;
+		let pairsListIndex = pairsListLength;
+		let collisionStartIndex = 0;
+		let collisionEndIndex = 0;
+		let collisionActiveIndex = 0;
+		let collision;
+		let pair;
+		let i = 0;
+		for (; i < collisionsLength; i++) {
 			collision = collisions[i];
 			pair = collision.pair;
 			if (pair) {
@@ -4082,8 +4386,8 @@ var Pairs = class Pairs {
 		return pairs;
 	}
 };
-//#endregion
-//#region src/core/Engine.js
+
+// src/core/Engine.js
 /**
 * The `Matter.Engine` module contains methods for creating and manipulating engines.
 * An engine is a controller that manages updating the simulation of the world.
@@ -4127,6 +4431,8 @@ var Engine = class Engine {
 		this.pairs = options.pairs || Pairs.create();
 		this.detector = options.detector || Detector.create();
 		this.detector.pairs = this.pairs;
+		this.broadphase = this.detector;
+		this.metrics = {};
 		this.world.gravity = this.gravity;
 	}
 	/**
@@ -4150,7 +4456,11 @@ var Engine = class Engine {
 	*/
 	static update(engine, delta) {
 		const startTime = Common.now();
-		const world = engine.world, detector = engine.detector, pairs = engine.pairs, timing = engine.timing, timestamp = timing.timestamp;
+		const world = engine.world;
+		const detector = engine.detector;
+		const pairs = engine.pairs;
+		const timing = engine.timing;
+		const timestamp = timing.timestamp;
 		let i;
 		if (delta > Engine._deltaMax) Common.warnOnce("Matter.Engine.update: delta argument is recommended to be less than or equal to", Engine._deltaMax.toFixed(3), "ms.");
 		delta = delta ?? Common._baseDelta;
@@ -4162,7 +4472,8 @@ var Engine = class Engine {
 			delta
 		};
 		Events.trigger(engine, "beforeUpdate", event);
-		const allBodies = Composite.allBodies(world), allConstraints = Composite.allConstraints(world);
+		const allBodies = Composite.allBodies(world);
+		const allConstraints = Composite.allConstraints(world);
 		if (world.isModified) {
 			Detector.setBodies(detector, allBodies);
 			Composite.setModified(world, false, false, true);
@@ -4217,6 +4528,8 @@ var Engine = class Engine {
 		Common.extend(engineA, engineB);
 		if (engineB.world) {
 			engineA.world = engineB.world;
+			engineA.world.gravity = engineA.gravity;
+			Composite.setModified(engineA.world, true);
 			Engine.clear(engineA);
 			const bodies = Composite.allBodies(engineA.world);
 			for (let i = 0; i < bodies.length; i++) {
@@ -4260,7 +4573,8 @@ var Engine = class Engine {
 	* @param {vector} gravity
 	*/
 	static _bodiesApplyGravity(bodies, gravity) {
-		const gravityScale = typeof gravity.scale !== "undefined" ? gravity.scale : .001, bodiesLength = bodies.length;
+		const gravityScale = typeof gravity.scale !== "undefined" ? gravity.scale : .001;
+		const bodiesLength = bodies.length;
 		if (gravity.x === 0 && gravity.y === 0 || gravityScale === 0) return;
 		for (let i = 0; i < bodiesLength; i++) {
 			const body = bodies[i];
@@ -4295,8 +4609,8 @@ var Engine = class Engine {
 		for (let i = 0; i < bodiesLength; i++) Body.updateVelocities(bodies[i]);
 	}
 };
-//#endregion
-//#region src/core/Mouse.js
+
+// src/core/Mouse.js
 /**
 * The `Matter.Mouse` module contains methods for creating and manipulating mouse inputs.
 *
@@ -4460,8 +4774,13 @@ var Mouse = class Mouse {
 	* @return {}
 	*/
 	static _getRelativeMousePosition(event, element, pixelRatio) {
-		const elementBounds = element.getBoundingClientRect(), rootNode = document.documentElement || document.body.parentNode || document.body, scrollX = window.pageXOffset !== void 0 ? window.pageXOffset : rootNode.scrollLeft, scrollY = window.pageYOffset !== void 0 ? window.pageYOffset : rootNode.scrollTop, touches = event.changedTouches;
-		let x, y;
+		const elementBounds = element.getBoundingClientRect();
+		const rootNode = document.documentElement || document.body.parentNode || document.body;
+		const scrollX = window.pageXOffset !== void 0 ? window.pageXOffset : rootNode.scrollLeft;
+		const scrollY = window.pageYOffset !== void 0 ? window.pageYOffset : rootNode.scrollTop;
+		const touches = event.changedTouches;
+		let x;
+		let y;
 		if (touches) {
 			x = touches[0].pageX - elementBounds.left - scrollX;
 			y = touches[0].pageY - elementBounds.top - scrollY;
@@ -4475,8 +4794,8 @@ var Mouse = class Mouse {
 		};
 	}
 };
-//#endregion
-//#region src/constraint/MouseConstraint.js
+
+// src/constraint/MouseConstraint.js
 /**
 * The `Matter.MouseConstraint` module contains methods for creating mouse constraints.
 * Mouse constraints are used for allowing user interaction, providing the ability to move bodies via the mouse or touch.
@@ -4497,11 +4816,13 @@ var MouseConstraint = class MouseConstraint {
 	*/
 	constructor(engine, options) {
 		let mouse = (engine ? engine.mouse : null) || (options ? options.mouse : null);
-		if (!mouse) if (engine && engine.render && engine.render.canvas) mouse = Mouse.create(engine.render.canvas);
-		else if (options && options.element) mouse = Mouse.create(options.element);
-		else {
-			mouse = Mouse.create();
-			Common.warn("MouseConstraint.create: options.mouse was undefined, options.element was undefined, may not function as expected");
+		if (!mouse) {
+			if (engine && engine.render && engine.render.canvas) mouse = Mouse.create(engine.render.canvas);
+			else if (options && options.element) mouse = Mouse.create(options.element);
+			else {
+				mouse = Mouse.create();
+				Common.warn("MouseConstraint.create: options.mouse was undefined, options.element was undefined, may not function as expected");
+			}
 		}
 		const constraint = Constraint.create({
 			label: "Mouse Constraint",
@@ -4558,34 +4879,36 @@ var MouseConstraint = class MouseConstraint {
 	* @param {body[]} bodies
 	*/
 	static update(mouseConstraint, bodies) {
-		const mouse = mouseConstraint.mouse, constraint = mouseConstraint.constraint;
+		const mouse = mouseConstraint.mouse;
+		const constraint = mouseConstraint.constraint;
 		let body = mouseConstraint.body;
-		if (mouse.button === 0) if (!constraint.bodyB) for (let i = 0; i < bodies.length; i++) {
-			body = bodies[i];
-			if (Bounds.contains(body.bounds, mouse.position) && Detector.canCollide(body.collisionFilter, mouseConstraint.collisionFilter)) for (let j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
-				const part = body.parts[j];
-				if (Vertices.contains(part.vertices, mouse.position)) {
-					constraint.pointA = mouse.position;
-					constraint.bodyB = mouseConstraint.body = body;
-					constraint.pointB = {
-						x: mouse.position.x - body.position.x,
-						y: mouse.position.y - body.position.y
-					};
-					constraint.angleB = body.angle;
-					Sleeping.set(body, false);
-					Events.trigger(mouseConstraint, "startdrag", {
-						mouse,
-						body
-					});
-					break;
+		if (mouse.button === 0) {
+			if (!constraint.bodyB) for (let i = 0; i < bodies.length; i++) {
+				body = bodies[i];
+				if (Bounds.contains(body.bounds, mouse.position) && Detector.canCollide(body.collisionFilter, mouseConstraint.collisionFilter)) for (let j = body.parts.length > 1 ? 1 : 0; j < body.parts.length; j++) {
+					const part = body.parts[j];
+					if (Vertices.contains(part.vertices, mouse.position)) {
+						constraint.pointA = mouse.position;
+						constraint.bodyB = mouseConstraint.body = body;
+						constraint.pointB = {
+							x: mouse.position.x - body.position.x,
+							y: mouse.position.y - body.position.y
+						};
+						constraint.angleB = body.angle;
+						Sleeping.set(body, false);
+						Events.trigger(mouseConstraint, "startdrag", {
+							mouse,
+							body
+						});
+						break;
+					}
 				}
 			}
-		}
-		else {
-			Sleeping.set(constraint.bodyB, false);
-			constraint.pointA = mouse.position;
-		}
-		else {
+			else {
+				Sleeping.set(constraint.bodyB, false);
+				constraint.pointA = mouse.position;
+			}
+		} else {
 			constraint.bodyB = mouseConstraint.body = null;
 			constraint.pointB = null;
 			if (body) Events.trigger(mouseConstraint, "enddrag", {
@@ -4601,15 +4924,16 @@ var MouseConstraint = class MouseConstraint {
 	* @param {mouse} mouseConstraint
 	*/
 	static _triggerEvents(mouseConstraint) {
-		const mouse = mouseConstraint.mouse, mouseEvents = mouse.sourceEvents;
+		const mouse = mouseConstraint.mouse;
+		const mouseEvents = mouse.sourceEvents;
 		if (mouseEvents.mousemove) Events.trigger(mouseConstraint, "mousemove", { mouse });
 		if (mouseEvents.mousedown) Events.trigger(mouseConstraint, "mousedown", { mouse });
 		if (mouseEvents.mouseup) Events.trigger(mouseConstraint, "mouseup", { mouse });
 		Mouse.clearSourceEvents(mouse);
 	}
 };
-//#endregion
-//#region src/collision/Query.js
+
+// src/collision/Query.js
 /**
 * The `Matter.Query` module contains methods for performing collision queries.
 *
@@ -4626,9 +4950,15 @@ var Query = class Query {
 	* @return {collision[]} Collisions
 	*/
 	static collides(body, bodies) {
-		const collisions = [], bodiesLength = bodies.length, bounds = body.bounds, collides = Collision.collides, overlaps = Bounds.overlaps;
+		const collisions = [];
+		const bodiesLength = bodies.length;
+		const bounds = body.bounds;
+		const collides = Collision.collides;
+		const overlaps = Bounds.overlaps;
 		for (let i = 0; i < bodiesLength; i++) {
-			const bodyA = bodies[i], partsALength = bodyA.parts.length, partsAStart = partsALength === 1 ? 0 : 1;
+			const bodyA = bodies[i];
+			const partsALength = bodyA.parts.length;
+			const partsAStart = partsALength === 1 ? 0 : 1;
 			if (overlaps(bodyA.bounds, bounds)) for (let j = partsAStart; j < partsALength; j++) {
 				const part = bodyA.parts[j];
 				if (overlaps(part.bounds, bounds)) {
@@ -4653,7 +4983,12 @@ var Query = class Query {
 	*/
 	static ray(bodies, startPoint, endPoint, rayWidth) {
 		rayWidth = rayWidth || 1e-100;
-		const rayAngle = Vector.angle(startPoint, endPoint), rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint)), rayX = (endPoint.x + startPoint.x) * .5, rayY = (endPoint.y + startPoint.y) * .5, ray = Bodies.rectangle(rayX, rayY, rayLength, rayWidth, { angle: rayAngle }), collisions = Query.collides(ray, bodies);
+		const rayAngle = Vector.angle(startPoint, endPoint);
+		const rayLength = Vector.magnitude(Vector.sub(startPoint, endPoint));
+		const rayX = (endPoint.x + startPoint.x) * .5;
+		const rayY = (endPoint.y + startPoint.y) * .5;
+		const ray = Bodies.rectangle(rayX, rayY, rayLength, rayWidth, { angle: rayAngle });
+		const collisions = Query.collides(ray, bodies);
 		for (let i = 0; i < collisions.length; i += 1) {
 			const collision = collisions[i];
 			collision.body = collision.bodyB = collision.bodyA;
@@ -4671,7 +5006,8 @@ var Query = class Query {
 	static region(bodies, bounds, outside) {
 		const result = [];
 		for (let i = 0; i < bodies.length; i++) {
-			const body = bodies[i], overlaps = Bounds.overlaps(body.bounds, bounds);
+			const body = bodies[i];
+			const overlaps = Bounds.overlaps(body.bounds, bounds);
 			if (overlaps && !outside || !overlaps && outside) result.push(body);
 		}
 		return result;
@@ -4698,8 +5034,8 @@ var Query = class Query {
 		return result;
 	}
 };
-//#endregion
-//#region src/render/Render.js
+
+// src/render/Render.js
 /**
 * The `Matter.Render` module is a lightweight, optional utility which provides a simple canvas based renderer for visualising instances of `Matter.Engine`.
 * It is intended for development and debugging purposes, but may also be suitable for simple games.
@@ -4707,7 +5043,8 @@ var Query = class Query {
 *
 * @class Render
 */
-var _requestAnimationFrame, _cancelAnimationFrame;
+var _requestAnimationFrame;
+var _cancelAnimationFrame;
 if (typeof window !== "undefined") {
 	_requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || ((callback) => {
 		window.setTimeout(() => {
@@ -4761,6 +5098,7 @@ var Render = class Render {
 				showSleeping: true,
 				showDebug: false,
 				showStats: false,
+				showBroadphase: false,
 				showPerformance: false,
 				showBounds: false,
 				showVelocity: false,
@@ -4782,6 +5120,7 @@ var Render = class Render {
 			this.canvas.height = this.options.height || this.canvas.height;
 		}
 		this.mouse = options.mouse;
+		this.controller = Render;
 		this.engine = options.engine;
 		this.canvas = this.canvas || Render._createCanvas(this.options.width, this.options.height);
 		this.context = this.canvas.getContext("2d");
@@ -4842,7 +5181,8 @@ var Render = class Render {
 	* @param {number} pixelRatio
 	*/
 	static setPixelRatio(render, pixelRatio) {
-		const options = render.options, canvas = render.canvas;
+		const options = render.options;
+		const canvas = render.canvas;
 		if (pixelRatio === "auto") pixelRatio = Render._getPixelRatio(canvas);
 		options.pixelRatio = pixelRatio;
 		canvas.setAttribute("data-pixel-ratio", pixelRatio);
@@ -4908,7 +5248,9 @@ var Render = class Render {
 			}
 		};
 		for (let i = 0; i < objects.length; i += 1) {
-			const object = objects[i], min = object.bounds ? object.bounds.min : object.min || object.position || object, max = object.bounds ? object.bounds.max : object.max || object.position || object;
+			const object = objects[i];
+			const min = object.bounds ? object.bounds.min : object.min || object.position || object;
+			const max = object.bounds ? object.bounds.max : object.max || object.position || object;
 			if (min && max) {
 				if (min.x < bounds.min.x) bounds.min.x = min.x;
 				if (max.x > bounds.max.x) bounds.max.x = max.x;
@@ -4916,8 +5258,13 @@ var Render = class Render {
 				if (max.y > bounds.max.y) bounds.max.y = max.y;
 			}
 		}
-		const width = bounds.max.x - bounds.min.x + 2 * padding.x, height = bounds.max.y - bounds.min.y + 2 * padding.y, viewHeight = render.canvas.height, outerRatio = render.canvas.width / viewHeight, innerRatio = width / height;
-		let scaleX = 1, scaleY = 1;
+		const width = bounds.max.x - bounds.min.x + 2 * padding.x;
+		const height = bounds.max.y - bounds.min.y + 2 * padding.y;
+		const viewHeight = render.canvas.height;
+		const outerRatio = render.canvas.width / viewHeight;
+		const innerRatio = width / height;
+		let scaleX = 1;
+		let scaleY = 1;
 		if (innerRatio > outerRatio) scaleY = innerRatio / outerRatio;
 		else scaleX = outerRatio / innerRatio;
 		render.options.hasBounds = true;
@@ -4949,7 +5296,10 @@ var Render = class Render {
 	* @param {render} render
 	*/
 	static startViewTransform(render) {
-		const boundsWidth = render.bounds.max.x - render.bounds.min.x, boundsHeight = render.bounds.max.y - render.bounds.min.y, boundsScaleX = boundsWidth / render.options.width, boundsScaleY = boundsHeight / render.options.height;
+		const boundsWidth = render.bounds.max.x - render.bounds.min.x;
+		const boundsHeight = render.bounds.max.y - render.bounds.min.y;
+		const boundsScaleX = boundsWidth / render.options.width;
+		const boundsScaleY = boundsHeight / render.options.height;
 		render.context.setTransform(render.options.pixelRatio / boundsScaleX, 0, 0, render.options.pixelRatio / boundsScaleY, 0, 0);
 		render.context.translate(-render.bounds.min.x, -render.bounds.min.y);
 	}
@@ -4968,9 +5318,19 @@ var Render = class Render {
 	* @param {render} render
 	*/
 	static world(render, time) {
-		const startTime = Common.now(), engine = render.engine, world = engine.world, canvas = render.canvas, context = render.context, options = render.options, timing = render.timing;
-		const allBodies = Composite.allBodies(world), allConstraints = Composite.allConstraints(world), background = options.wireframes ? options.wireframeBackground : options.background;
-		let bodies = [], constraints = [], i;
+		const startTime = Common.now();
+		const engine = render.engine;
+		const world = engine.world;
+		const canvas = render.canvas;
+		const context = render.context;
+		const options = render.options;
+		const timing = render.timing;
+		const allBodies = Composite.allBodies(world);
+		const allConstraints = Composite.allConstraints(world);
+		const background = options.wireframes ? options.wireframeBackground : options.background;
+		let bodies = [];
+		let constraints = [];
+		let i;
 		const event = { timestamp: engine.timing.timestamp };
 		Events.trigger(render, "beforeRender", event);
 		if (render.currentBackground !== background) Render._applyBackground(render, background);
@@ -4984,8 +5344,11 @@ var Render = class Render {
 				if (Bounds.overlaps(body.bounds, render.bounds)) bodies.push(body);
 			}
 			for (i = 0; i < allConstraints.length; i++) {
-				const constraint = allConstraints[i], bodyA = constraint.bodyA, bodyB = constraint.bodyB;
-				let pointAWorld = constraint.pointA, pointBWorld = constraint.pointB;
+				const constraint = allConstraints[i];
+				const bodyA = constraint.bodyA;
+				const bodyB = constraint.bodyB;
+				let pointAWorld = constraint.pointA;
+				let pointBWorld = constraint.pointB;
 				if (bodyA) pointAWorld = Vector.add(bodyA.position, constraint.pointA);
 				if (bodyB) pointBWorld = Vector.add(bodyB.position, constraint.pointB);
 				if (!pointAWorld || !pointBWorld) continue;
@@ -5009,7 +5372,7 @@ var Render = class Render {
 			if (options.showConvexHulls) Render.bodyConvexHulls(render, bodies, context);
 			Render.bodyWireframes(render, bodies, context);
 		}
-		if (options.showBounds) Render.bodyBounds(render, bodies, context);
+		if (options.showBounds || options.showBroadphase) Render.bodyBounds(render, bodies, context);
 		if (options.showAxes || options.showAngleIndicator) Render.bodyAxes(render, bodies, context);
 		if (options.showPositions) Render.bodyPositions(render, bodies, context);
 		if (options.showVelocity) Render.bodyVelocity(render, bodies, context);
@@ -5032,8 +5395,14 @@ var Render = class Render {
 	* @param {Number} time
 	*/
 	static stats(render, context, time) {
-		const engine = render.engine, world = engine.world, bodies = Composite.allBodies(world), width = 55, height = 44, y = 0;
-		let parts = 0, x = 0;
+		const engine = render.engine;
+		const world = engine.world;
+		const bodies = Composite.allBodies(world);
+		const width = 55;
+		const height = 44;
+		const y = 0;
+		let parts = 0;
+		let x = 0;
 		for (let i = 0; i < bodies.length; i += 1) parts += bodies[i].parts.length;
 		const sections = {
 			"Part": parts,
@@ -5050,9 +5419,9 @@ var Render = class Render {
 		for (const key in sections) {
 			const section = sections[key];
 			context.fillStyle = "#aaa";
-			context.fillText(key, x + width, y + 8);
+			context.fillText(key, x + width, 8);
 			context.fillStyle = "#eee";
-			context.fillText(section, x + width, y + 26);
+			context.fillText(section, x + width, 26);
 			x += width;
 		}
 	}
@@ -5064,17 +5433,37 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static performance(render, context) {
-		const engine = render.engine, timing = render.timing, deltaHistory = timing.deltaHistory, elapsedHistory = timing.elapsedHistory, timestampElapsedHistory = timing.timestampElapsedHistory, engineDeltaHistory = timing.engineDeltaHistory, engineUpdatesHistory = timing.engineUpdatesHistory, engineElapsedHistory = timing.engineElapsedHistory, lastEngineUpdatesPerFrame = engine.timing.lastUpdatesPerFrame, lastEngineDelta = engine.timing.lastDelta;
-		const deltaMean = Render._mean(deltaHistory), elapsedMean = Render._mean(elapsedHistory), engineDeltaMean = Render._mean(engineDeltaHistory), engineUpdatesMean = Render._mean(engineUpdatesHistory), engineElapsedMean = Render._mean(engineElapsedHistory), rateMean = Render._mean(timestampElapsedHistory) / deltaMean || 0, neededUpdatesPerFrame = Math.round(deltaMean / lastEngineDelta), fps = 1e3 / deltaMean || 0;
-		const graphHeight = 4, gap = 12, width = 60, height = 34, x = 10, y = 69;
+		const engine = render.engine;
+		const timing = render.timing;
+		const deltaHistory = timing.deltaHistory;
+		const elapsedHistory = timing.elapsedHistory;
+		const timestampElapsedHistory = timing.timestampElapsedHistory;
+		const engineDeltaHistory = timing.engineDeltaHistory;
+		const engineUpdatesHistory = timing.engineUpdatesHistory;
+		const engineElapsedHistory = timing.engineElapsedHistory;
+		const lastEngineUpdatesPerFrame = engine.timing.lastUpdatesPerFrame;
+		const lastEngineDelta = engine.timing.lastDelta;
+		const deltaMean = Render._mean(deltaHistory);
+		const elapsedMean = Render._mean(elapsedHistory);
+		const engineDeltaMean = Render._mean(engineDeltaHistory);
+		const engineUpdatesMean = Render._mean(engineUpdatesHistory);
+		const engineElapsedMean = Render._mean(engineElapsedHistory);
+		const rateMean = Render._mean(timestampElapsedHistory) / deltaMean || 0;
+		const neededUpdatesPerFrame = Math.round(deltaMean / lastEngineDelta);
+		const fps = 1e3 / deltaMean || 0;
+		const graphHeight = 4;
+		const width = 60;
+		const height = 34;
+		const x = 10;
+		const y = 69;
 		context.fillStyle = "#0e0f19";
-		context.fillRect(0, 50, gap * 5 + width * 6 + 22, height);
+		context.fillRect(0, 50, 442, height);
 		Render.status(context, x, y, width, graphHeight, deltaHistory.length, `${Math.round(fps)} fps`, fps / Render._goodFps, (i) => deltaHistory[i] / deltaMean - 1);
-		Render.status(context, x + gap + width, y, width, graphHeight, engineDeltaHistory.length, `${lastEngineDelta.toFixed(2)} dt`, Render._goodDelta / lastEngineDelta, (i) => engineDeltaHistory[i] / engineDeltaMean - 1);
-		Render.status(context, x + (gap + width) * 2, y, width, graphHeight, engineUpdatesHistory.length, `${lastEngineUpdatesPerFrame} upf`, Math.pow(Common.clamp(engineUpdatesMean / neededUpdatesPerFrame || 1, 0, 1), 4), (i) => engineUpdatesHistory[i] / engineUpdatesMean - 1);
-		Render.status(context, x + (gap + width) * 3, y, width, graphHeight, engineElapsedHistory.length, `${engineElapsedMean.toFixed(2)} ut`, 1 - lastEngineUpdatesPerFrame * engineElapsedMean / Render._goodFps, (i) => engineElapsedHistory[i] / engineElapsedMean - 1);
-		Render.status(context, x + (gap + width) * 4, y, width, graphHeight, elapsedHistory.length, `${elapsedMean.toFixed(2)} rt`, 1 - elapsedMean / Render._goodFps, (i) => elapsedHistory[i] / elapsedMean - 1);
-		Render.status(context, x + (gap + width) * 5, y, width, graphHeight, timestampElapsedHistory.length, `${rateMean.toFixed(2)} x`, rateMean * rateMean * rateMean, (i) => (timestampElapsedHistory[i] / deltaHistory[i] / rateMean || 0) - 1);
+		Render.status(context, 82, y, width, graphHeight, engineDeltaHistory.length, `${lastEngineDelta.toFixed(2)} dt`, Render._goodDelta / lastEngineDelta, (i) => engineDeltaHistory[i] / engineDeltaMean - 1);
+		Render.status(context, 154, y, width, graphHeight, engineUpdatesHistory.length, `${lastEngineUpdatesPerFrame} upf`, Math.pow(Common.clamp(engineUpdatesMean / neededUpdatesPerFrame || 1, 0, 1), 4), (i) => engineUpdatesHistory[i] / engineUpdatesMean - 1);
+		Render.status(context, 226, y, width, graphHeight, engineElapsedHistory.length, `${engineElapsedMean.toFixed(2)} ut`, 1 - lastEngineUpdatesPerFrame * engineElapsedMean / Render._goodFps, (i) => engineElapsedHistory[i] / engineElapsedMean - 1);
+		Render.status(context, 298, y, width, graphHeight, elapsedHistory.length, `${elapsedMean.toFixed(2)} rt`, 1 - elapsedMean / Render._goodFps, (i) => elapsedHistory[i] / elapsedMean - 1);
+		Render.status(context, 370, y, width, graphHeight, timestampElapsedHistory.length, `${rateMean.toFixed(2)} x`, rateMean * rateMean * rateMean, (i) => (timestampElapsedHistory[i] / deltaHistory[i] / rateMean || 0) - 1);
 	}
 	/**
 	* Renders a label, indicator and a chart.
@@ -5119,8 +5508,10 @@ var Render = class Render {
 		for (let i = 0; i < constraints.length; i++) {
 			const constraint = constraints[i];
 			if (!constraint.render.visible || !constraint.pointA || !constraint.pointB) continue;
-			const bodyA = constraint.bodyA, bodyB = constraint.bodyB;
-			let start, end;
+			const bodyA = constraint.bodyA;
+			const bodyB = constraint.bodyB;
+			let start;
+			let end;
 			if (bodyA) start = Vector.add(bodyA.position, constraint.pointA);
 			else start = constraint.pointA;
 			if (constraint.render.type === "pin") {
@@ -5133,7 +5524,9 @@ var Render = class Render {
 				c.beginPath();
 				c.moveTo(start.x, start.y);
 				if (constraint.render.type === "spring") {
-					const delta = Vector.sub(end, start), normal = Vector.perp(Vector.normalise(delta)), coils = Math.ceil(Common.clamp(constraint.length / 5, 12, 20));
+					const delta = Vector.sub(end, start);
+					const normal = Vector.perp(Vector.normalise(delta));
+					const coils = Math.ceil(Common.clamp(constraint.length / 5, 12, 20));
 					let offset;
 					for (let j = 1; j < coils; j += 1) {
 						offset = j % 2 === 0 ? 1 : -1;
@@ -5166,8 +5559,13 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static bodies(render, bodies, context) {
-		const c = context, options = render.options, showInternalEdges = options.showInternalEdges || !options.wireframes;
-		let body, part, i, k;
+		const c = context;
+		const options = render.options;
+		const showInternalEdges = options.showInternalEdges || !options.wireframes;
+		let body;
+		let part;
+		let i;
+		let k;
 		for (i = 0; i < bodies.length; i++) {
 			body = bodies[i];
 			if (!body.render.visible) continue;
@@ -5177,7 +5575,8 @@ var Render = class Render {
 				if (options.showSleeping && body.isSleeping) c.globalAlpha = .5 * part.render.opacity;
 				else if (part.render.opacity !== 1) c.globalAlpha = part.render.opacity;
 				if (part.render.sprite && part.render.sprite.texture && !options.wireframes) {
-					const sprite = part.render.sprite, texture = Render._getTexture(render, sprite.texture);
+					const sprite = part.render.sprite;
+					const texture = Render._getTexture(render, sprite.texture);
 					c.translate(part.position.x, part.position.y);
 					c.rotate(part.angle);
 					c.drawImage(texture, texture.width * -sprite.xOffset * sprite.xScale, texture.height * -sprite.yOffset * sprite.yScale, texture.width * sprite.xScale, texture.height * sprite.yScale);
@@ -5225,8 +5624,13 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static bodyWireframes(render, bodies, context) {
-		const c = context, showInternalEdges = render.options.showInternalEdges;
-		let body, part, i, j, k;
+		const c = context;
+		const showInternalEdges = render.options.showInternalEdges;
+		let body;
+		let part;
+		let i;
+		let j;
+		let k;
 		c.beginPath();
 		for (i = 0; i < bodies.length; i++) {
 			body = bodies[i];
@@ -5256,7 +5660,9 @@ var Render = class Render {
 	*/
 	static bodyConvexHulls(render, bodies, context) {
 		const c = context;
-		let body, i, j;
+		let body;
+		let i;
+		let j;
 		c.beginPath();
 		for (i = 0; i < bodies.length; i++) {
 			body = bodies[i];
@@ -5279,7 +5685,9 @@ var Render = class Render {
 	*/
 	static vertexNumbers(render, bodies, context) {
 		const c = context;
-		let i, j, k;
+		let i;
+		let j;
+		let k;
 		for (i = 0; i < bodies.length; i++) {
 			const parts = bodies[i].parts;
 			for (k = parts.length > 1 ? 1 : 0; k < parts.length; k++) {
@@ -5313,13 +5721,19 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static bodyBounds(render, bodies, context) {
-		const c = context, options = render.options;
+		const c = context;
+		const options = render.options;
 		c.beginPath();
-		for (let i = 0; i < bodies.length; i++) if (bodies[i].render.visible) {
-			const parts = bodies[i].parts;
-			for (let j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
-				const part = parts[j];
-				c.rect(part.bounds.min.x, part.bounds.min.y, part.bounds.max.x - part.bounds.min.x, part.bounds.max.y - part.bounds.min.y);
+		for (let i = 0; i < bodies.length; i++) {
+			const body = bodies[i];
+			if (body.render.visible) {
+				const parts = body.parts;
+				const start = options.showBroadphase || parts.length === 1 ? 0 : 1;
+				const end = options.showBroadphase && !options.showBounds ? 1 : parts.length;
+				for (let j = start; j < end; j++) {
+					const part = parts[j];
+					c.rect(part.bounds.min.x, part.bounds.min.y, part.bounds.max.x - part.bounds.min.x, part.bounds.max.y - part.bounds.min.y);
+				}
 			}
 		}
 		if (options.wireframes) c.strokeStyle = "rgba(255,255,255,0.08)";
@@ -5336,11 +5750,16 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static bodyAxes(render, bodies, context) {
-		const c = context, options = render.options;
-		let part, i, j, k;
+		const c = context;
+		const options = render.options;
+		let part;
+		let i;
+		let j;
+		let k;
 		c.beginPath();
 		for (i = 0; i < bodies.length; i++) {
-			const body = bodies[i], parts = body.parts;
+			const body = bodies[i];
+			const parts = body.parts;
 			if (!body.render.visible) continue;
 			if (options.showAxes) for (j = parts.length > 1 ? 1 : 0; j < parts.length; j++) {
 				part = parts[j];
@@ -5378,8 +5797,12 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static bodyPositions(render, bodies, context) {
-		const c = context, options = render.options;
-		let body, part, i, k;
+		const c = context;
+		const options = render.options;
+		let body;
+		let part;
+		let i;
+		let k;
 		c.beginPath();
 		for (i = 0; i < bodies.length; i++) {
 			body = bodies[i];
@@ -5436,7 +5859,8 @@ var Render = class Render {
 	*/
 	static bodyIds(render, bodies, context) {
 		const c = context;
-		let i, j;
+		let i;
+		let j;
 		for (i = 0; i < bodies.length; i++) {
 			if (!bodies[i].render.visible) continue;
 			const parts = bodies[i].parts;
@@ -5457,8 +5881,12 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static collisions(render, pairs, context) {
-		const c = context, options = render.options;
-		let pair, collision, i, j;
+		const c = context;
+		const options = render.options;
+		let pair;
+		let collision;
+		let i;
+		let j;
 		c.beginPath();
 		for (i = 0; i < pairs.length; i++) {
 			pair = pairs[i];
@@ -5478,7 +5906,8 @@ var Render = class Render {
 			if (!pair.isActive) continue;
 			collision = pair.collision;
 			if (pair.contactCount > 0) {
-				let normalPosX = pair.contacts[0].vertex.x, normalPosY = pair.contacts[0].vertex.y;
+				let normalPosX = pair.contacts[0].vertex.x;
+				let normalPosY = pair.contacts[0].vertex.y;
 				if (pair.contactCount === 2) {
 					normalPosX = (pair.contacts[0].vertex.x + pair.contacts[1].vertex.x) / 2;
 					normalPosY = (pair.contacts[0].vertex.y + pair.contacts[1].vertex.y) / 2;
@@ -5502,8 +5931,13 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static separations(render, pairs, context) {
-		const c = context, options = render.options;
-		let pair, collision, bodyA, bodyB, i;
+		const c = context;
+		const options = render.options;
+		let pair;
+		let collision;
+		let bodyA;
+		let bodyB;
+		let i;
 		c.beginPath();
 		for (i = 0; i < pairs.length; i++) {
 			pair = pairs[i];
@@ -5534,10 +5968,15 @@ var Render = class Render {
 	* @param {RenderingContext} context
 	*/
 	static inspector(inspector, context) {
-		const selected = inspector.selected, render = inspector.render, options = render.options;
+		const selected = inspector.selected;
+		const render = inspector.render;
+		const options = render.options;
 		let bounds;
 		if (options.hasBounds) {
-			const boundsWidth = render.bounds.max.x - render.bounds.min.x, boundsHeight = render.bounds.max.y - render.bounds.min.y, boundsScaleX = boundsWidth / render.options.width, boundsScaleY = boundsHeight / render.options.height;
+			const boundsWidth = render.bounds.max.x - render.bounds.min.x;
+			const boundsHeight = render.bounds.max.y - render.bounds.min.y;
+			const boundsScaleX = boundsWidth / render.options.width;
+			const boundsScaleY = boundsHeight / render.options.height;
 			context.scale(1 / boundsScaleX, 1 / boundsScaleY);
 			context.translate(-render.bounds.min.x, -render.bounds.min.y);
 		}
@@ -5591,7 +6030,10 @@ var Render = class Render {
 	* @param {number} time
 	*/
 	static _updateTiming(render, time) {
-		const engine = render.engine, timing = render.timing, historySize = timing.historySize, timestamp = engine.timing.timestamp;
+		const engine = render.engine;
+		const timing = render.timing;
+		const historySize = timing.historySize;
+		const timestamp = engine.timing.timestamp;
 		timing.delta = time - timing.lastTime || Render._goodDelta;
 		timing.lastTime = time;
 		timing.timestampElapsed = timestamp - timing.lastTimestamp || 0;
@@ -5677,8 +6119,8 @@ var Render = class Render {
 		render.currentBackground = background;
 	}
 };
-//#endregion
-//#region src/core/Runner.js
+
+// src/core/Runner.js
 /**
 * The `Matter.Runner` module is an optional utility that provides a game loop for running a `Matter.Engine` inside a browser environment.
 * A runner will continuously update a `Matter.Engine` whilst synchronising engine updates with the browser frame rate.
@@ -5756,7 +6198,8 @@ var Runner = class Runner {
 	* @param {number} time
 	*/
 	static tick(runner, engine, time) {
-		const tickStartTime = Common.now(), engineDelta = runner.delta;
+		const tickStartTime = Common.now();
+		const engineDelta = runner.delta;
 		let updateCount = 0;
 		let frameDelta = time - runner.timeLastTick;
 		if (!frameDelta || !runner.timeLastTick || frameDelta > Math.max(Runner._maxFrameDelta, runner.maxFrameTime)) frameDelta = runner.frameDelta || Runner._frameDeltaFallback;
@@ -5784,7 +6227,9 @@ var Runner = class Runner {
 			Events.trigger(runner, "afterUpdate", event);
 			runner.timeBuffer -= engineDelta;
 			updateCount += 1;
-			const elapsedTimeTotal = Common.now() - tickStartTime, elapsedTimeUpdates = Common.now() - updateStartTime, elapsedNextEstimate = elapsedTimeTotal + Runner._elapsedNextEstimate * elapsedTimeUpdates / updateCount;
+			const elapsedTimeTotal = Common.now() - tickStartTime;
+			const elapsedTimeUpdates = Common.now() - updateStartTime;
+			const elapsedNextEstimate = elapsedTimeTotal + Runner._elapsedNextEstimate * elapsedTimeUpdates / updateCount;
 			if (updateCount >= maxUpdates || elapsedNextEstimate > runner.maxFrameTime) {
 				runner.lastUpdatesDeferred = Math.round(Math.max(0, runner.timeBuffer / engineDelta - Runner._timeBufferMargin));
 				break;
@@ -5846,8 +6291,8 @@ var Runner = class Runner {
 		return result / valuesLength || 0;
 	}
 };
-//#endregion
-//#region src/collision/SAT.js
+
+// src/collision/SAT.js
 /**
 * This module has now been replaced by `Matter.Collision`.
 *
@@ -5874,8 +6319,8 @@ var SAT = class {
 	}
 };
 deprecated(SAT, "collides", "SAT.collides ➤ replaced by Collision.collides");
-//#endregion
-//#region src/geometry/Svg.js
+
+// src/geometry/Svg.js
 /**
 * The `Matter.Svg` module contains methods for converting SVG images into an array of vector points.
 *
@@ -5902,7 +6347,21 @@ var Svg = class Svg {
 	static pathToVertices(path, sampleLength) {
 		sampleLength = sampleLength || 15;
 		if (typeof window !== "undefined" && !("SVGPathSeg" in window)) Common.warn("Svg.pathToVertices: SVGPathSeg not defined, a polyfill is required.");
-		let i, il, total, point, segment, segments, segmentsQueue, lastSegment, lastPoint, segmentIndex, lx, ly, length = 0, x = 0, y = 0;
+		let i;
+		let il;
+		let total;
+		let point;
+		let segment;
+		let segments;
+		let segmentsQueue;
+		let lastSegment;
+		let lastPoint;
+		let segmentIndex;
+		let lx;
+		let ly;
+		let length = 0;
+		let x = 0;
+		let y = 0;
 		const points = [];
 		const addPoint = (px, py, pathSegType) => {
 			const isRelative = pathSegType % 2 === 1 && pathSegType > 1;
@@ -5940,9 +6399,7 @@ var Svg = class Svg {
 				case "H":
 					x = segment.x;
 					break;
-				case "V":
-					y = segment.y;
-					break;
+				case "V": y = segment.y;
 			}
 			addPoint(x, y, segment.pathSegType);
 		};
@@ -5966,7 +6423,6 @@ var Svg = class Svg {
 				case "A":
 					point = path.getPointAtLength(length);
 					addPoint(point.x, point.y, 0);
-					break;
 			}
 			length += sampleLength;
 		}
@@ -5974,10 +6430,19 @@ var Svg = class Svg {
 		return points;
 	}
 	static _svgPathToAbsolute(path) {
-		let x0, y0, x1, y1, x2, y2, x = 0, y = 0;
-		const segs = path.pathSegList, len = segs.numberOfItems;
+		let x0;
+		let y0;
+		let x1;
+		let y1;
+		let x2;
+		let y2;
+		let x = 0;
+		let y = 0;
+		const segs = path.pathSegList;
+		const len = segs.numberOfItems;
 		for (let i = 0; i < len; ++i) {
-			const seg = segs.getItem(i), segType = seg.pathSegTypeAsLetter;
+			const seg = segs.getItem(i);
+			const segType = seg.pathSegTypeAsLetter;
 			if (/[MLHVCSQTA]/.test(segType)) {
 				if ("x" in seg) x = seg.x;
 				if ("y" in seg) y = seg.y;
@@ -6020,7 +6485,6 @@ var Svg = class Svg {
 					case "Z":
 						x = x0;
 						y = y0;
-						break;
 				}
 			}
 			if (segType == "M" || segType == "m") {
@@ -6030,8 +6494,8 @@ var Svg = class Svg {
 		}
 	}
 };
-//#endregion
-//#region src/body/World.js
+
+// src/body/World.js
 /**
 * @deprecated Use `Matter.Composite` instead. This module is a thin re-export alias
 * and will be removed in a future release.
@@ -6059,8 +6523,8 @@ var World = class {
 	/** @deprecated Use Composite.addConstraint instead. */
 	static addConstraint = Composite.addConstraint;
 };
-//#endregion
-//#region src/module/main.js
+
+// src/module/main.js
 Matter.Axes = Axes;
 Matter.Bodies = Bodies;
 Matter.Body = Body;
@@ -6090,7 +6554,6 @@ Matter.Vector = Vector;
 Matter.Vertices = Vertices;
 Matter.World = World;
 var main_default = Matter;
-//#endregion
-export { Axes, Bodies, Body, Bounds, Collision, Common, Composite, Composites, Constraint, Contact, Detector, Engine, Events, Mouse, MouseConstraint, Pair, Pairs, Plugin, Query, Render, Resolver, Runner, SAT, Sleeping, Svg, Vector, Vertices, World, main_default as default };
 
+export { Axes, Bodies, Body, Bounds, Collision, Common, Composite, Composites, Constraint, Contact, Detector, Engine, Events, Mouse, MouseConstraint, Pair, Pairs, Plugin, Query, Render, Resolver, Runner, SAT, Sleeping, Svg, Vector, Vertices, World, main_default as default };
 //# sourceMappingURL=matter.js.map

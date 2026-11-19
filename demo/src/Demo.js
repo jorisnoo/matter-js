@@ -12,6 +12,11 @@
 import MatterTools from 'matter-tools';
 
 var demo = function(examples, isDev) {
+    // The serializer embedded in matter-tools otherwise looks up ESM classes on window.
+    Matter.Common.chainPathAfter(MatterTools, 'Serializer.create', function() {
+        this.resolver = new this.constructor.NamespaceResolver(Matter);
+    });
+
     var demo = MatterTools.Demo.create({
         toolbar: {
             title: 'matter-js' + (isDev ? ' ・ dev' : ''),
@@ -31,7 +36,7 @@ var demo = function(examples, isDev) {
         preventZoom: true,
         resetOnOrientation: true,
         routing: true,
-        startExample: 'mixed',
+        startExample: false,
         examples: examples
     });
 
@@ -97,7 +102,32 @@ var demo = function(examples, isDev) {
         });
     }
 
-    MatterTools.Demo.start(demo);
+    // A loaded world replaces the composite, but the Inspector tree and the
+    // example's live mouse handler still reference objects from the old world.
+    const loadState = MatterTools.Serializer.loadState;
+    MatterTools.Serializer.loadState = function(serializer, engine, key) {
+        const previous = engine.world;
+        loadState(serializer, engine, key);
+        const world = engine.world;
+        if (world === previous) return;
+
+        const mouse = previous.constraints.find(c => c.label === 'Mouse Constraint');
+        const savedMouse = world.constraints.find(c => c.label === 'Mouse Constraint');
+        if (mouse && savedMouse) {
+            Matter.Composite.remove(world, savedMouse);
+            mouse.bodyB = null;
+            Matter.Composite.add(world, mouse);
+        }
+
+        const inspector = demo.tools.inspector;
+        if (inspector && inspector.engine === engine) {
+            Matter.Composite.remove(inspector.root, previous);
+            Matter.Composite.add(inspector.root, world);
+            world.parent = null; // The Inspector root is a view, not part of the saved world.
+        }
+    };
+
+    MatterTools.Demo.start(demo, 'mixed');
 };
 
 export { demo };

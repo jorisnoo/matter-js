@@ -1,7 +1,12 @@
+import { cpSync } from 'node:fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ command }) => ({
+    optimizeDeps: {
+        // A second copy inside prebundled matter-tools would have different class prototypes.
+        exclude: ['matter-js'],
+    },
     root: 'demo',
     resolve: {
         alias: {
@@ -22,5 +27,17 @@ export default defineConfig(({ command }) => ({
     build: {
         outDir: 'dist',
         emptyOutDir: true,
+        rolldownOptions: {
+            output: { keepNames: true }, // Resurrect's namespace resolver uses constructor.name.
+        },
     },
+    plugins: [{
+        name: 'demo-example-assets',
+        writeBundle({ dir }) {
+            // The examples request these public URLs at runtime rather than importing them.
+            for (const folder of ['img', 'svg']) {
+                cpSync(path.resolve('demo', folder), path.join(dir, folder), { recursive: true });
+            }
+        },
+    }],
 }));

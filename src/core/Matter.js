@@ -24,7 +24,7 @@ class Matter {
      */
     // builds inject __MATTER_VERSION__; the fallback covers bundlers consuming src directly
     // and must match package.json (checked by test/Package.spec.js)
-    static version = typeof __MATTER_VERSION__ !== 'undefined' ? __MATTER_VERSION__ : '1.0.1';
+    static version = typeof __MATTER_VERSION__ !== 'undefined' ? __MATTER_VERSION__ : '1.0.2';
 
     /**
      * A list of plugin dependencies to be installed. These are normally set and installed through `Matter.use`.
